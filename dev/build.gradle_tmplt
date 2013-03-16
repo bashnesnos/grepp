@@ -1,5 +1,6 @@
 project.ext {
 	targetDir = new File(rootDir.getAbsolutePath() + '/dev')
+	tmplt_suffix = '_dev' //would be added to executable filenames
 	embedded = false //flag to embedd groovy-all into wgrep.jar
 	params = ['#WIN_DIR#' : targetDir.getAbsolutePath(),	//specify Windows home
 				'#NIX_DIR#' : '', //specify Nix home

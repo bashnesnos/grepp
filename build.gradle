@@ -6,6 +6,7 @@ apply plugin: 'groovy'
 
 //these properties are overwritten by subprojects dev, stable and release if they are defined there
 def targetDir = new File('/dev')
+def tmplt_suffix = ''
 def params = [:]
 def embedded = true //flag to embedd groovy-all into wgrep.jar
 
@@ -72,19 +73,18 @@ task transformTmplts(dependsOn: transformConfig, type: Copy) {
 
     rename { String fileName -> 
         def onlyName = (fileName =~ /.*(?=\.)/)[0]
-        fileName.replace(onlyName, onlyName + '_dev').replace('_tmplt','')
+        fileName.replace(onlyName, onlyName + tmplt_suffix).replace('_tmplt','')
     }
 
     into targetDir
 }
 
 task prepareSublimeSettings(type: Copy) {
-    from('/src/sublime')
+    from 'src/sublime/'
     filter { String line ->
-        //println line
         line.replace('#WGREP_HOME#', rootDir.getAbsolutePath())
     }
-    into rootDir
+    into mkdir('.sublime')
 }
 
 tasks.addRule("Pattern: release<ID>") { String taskName ->
@@ -103,6 +103,7 @@ tasks.addRule("Pattern: release<ID>") { String taskName ->
 
         embedded = subProject.hasProperty('embedded') ? subProject.embedded : embedded
         targetDir = subProject.hasProperty('targetDir') ? subProject.targetDir : targetDir
+        tmplt_suffix = subProject.hasProperty('tmplt_suffix') ? subProject.tmplt_suffix : tmplt_suffix
         params = subProject.hasProperty('params') ? subProject.params : params
 
         if (embedded) copyBuild.dependsOn(':makeEmbeddedJar')
