@@ -1,0 +1,56 @@
+#!/bin/bash
+SYSTEM="#SYSTEM#"
+OUTPUT="../results/"
+SYS_PATH="#SYS_PATH#"
+WORK_DIR="#NIX_DIR#"
+WGREP_PATH="java -Dwgrep.home=$WORK_DIR -cp $WORK_DIR/wgrep.jar org.smlt.tools.wgrep.WGrep $WORK_DIR/config.xml"
+WGREP_PARAMS="#PARAMS#"
+WGREP_FILENAME = "#FILENAME#"
+BOXES=#BOXES#
+SUFFIX="#SUFFIX#"
+CHECK="#CHECK#"
+#Set current time-10 minutes as a start date. Who needs old error's here.
+CUR_TIME=$(date '+%Y-%m-%dT%H:')
+CUR_MIN=$(date '+%M')
+LOG_PATH=$SYS_PATH
+
+if [ $CUR_MIN -gt 10 ]; then
+	if [ $CUR_MIN -gt 20 ]; then
+		if [ $CUR_MIN -gt 30 ]; then
+			if [ $CUR_MIN -gt 40 ]; then
+				if [ $CUR_MIN -gt 50 ]; then
+					CUR_MIN="50"
+				else
+					CUR_MIN="40"
+				fi
+			else
+				CUR_MIN="30"
+			fi
+		else
+			CUR_MIN="20"
+		fi
+	else
+		CUR_MIN="10"
+	fi
+else
+	CUR_MIN="00"
+fi
+
+
+WGREP_OTHER_PARAMS=" --dtime "$CUR_TIME$CUR_MIN" + "
+
+HISTORY_FILE=$SYSTEM$SUFFIX".history"
+
+SEARCH_PREV=$(grep "#$WGREP_PATH $WGREP_PARAMS $WGREP_OTHER_PARAMS $LOG_PATH$WGREP_FILENAME" $HISTORY_FILE)
+IS_NEW=$(test -z "$RESULT" && echo 1)
+
+if [ "$IS_NEW" == "1" ]; then
+	echo "#"$WGREP_PATH $WGREP_PARAMS $WGREP_OTHER_PARAMS $LOG_PATH$WGREP_FILENAME >> $HISTORY_FILE
+fi
+
+for box in ${BOXES[*]}
+do
+	eval ssh $box $WGREP_PATH $WGREP_PARAMS $WGREP_OTHER_PARAMS $LOG_PATH$WGREP_FILENAME > $OUTPUT$SYSTEM"_"$box$SUFFIX".log"
+done
+
+grep $CHECK $OUTPUT$SYSTEM"_"*$SUFFIX".log"

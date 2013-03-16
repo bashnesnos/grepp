@@ -1,0 +1,40 @@
+<root>
+	<global>
+        <spooling>.log</spooling>
+	</global>
+	<options>
+		<opt field="VERBOSE" handler="setParam">v</opt>
+		<opt field="TRACE" handler="setParam">t</opt>
+		<opt field="SPOOLING" handler="setParam">s</opt>
+		<opt field="FILE_MERGING" handler="setParam">m</opt>
+		<opt field="EXTNDD_PATTERN" handler="setExtendedPattern">e</opt>
+		<opt field="ATMTN_LEVEL" handler="setAutomation">a</opt>
+		<opt field="ATMTN_LEVEL" handler="setAutomation">i</opt>
+		<opt field="DATE_TIME_FILTER" handler="setDateTimeFilter">dtime</opt>
+	</options>
+	<extended_patterns>
+		<qualifier id="and"/>
+		<qualifier id="or"/>
+	</extended_patterns>
+	<pp_config default_sep="csv">
+		<pp_splitter_types>
+			<splitter_type handler="processPostFilter" id="filter"/>
+			<splitter_type handler="processPostCounter" id="counter"/>
+		</pp_splitter_types>
+		<pp_separators>
+			<separator id="csv" spool=".csv">,</separator>
+		</pp_separators>
+	</pp_config>
+	<automation>
+		<level handler="parseEntryConfig" id="entry_pattern" order="1" tags="a, i"/>
+		<level handler="parseExecuteThreadConfig" id="execute_thread" order="2" tags="i"/>
+	</automation>
+	<date_time_config>
+			<pattern id="INPUT_DATE_TIME_FORMAT" order="1" tags="dtime">yyyy-MM-dd'T'HH:mm:ss</pattern>
+			<pattern id="INPUT_DATE_TIME_FORMAT_M" order="2" tags="dtime">yyyy-MM-dd'T'HH:mm</pattern>
+			<pattern id="INPUT_DATE_TIME_FORMAT_H" order="3" tags="dtime">yyyy-MM-dd'T'HH</pattern>
+			<pattern id="INPUT_DATE_TIME_FORMAT_D" order="4" tags="dtime">yyyy-MM-dd</pattern>
+			<pattern id="INPUT_DATE_TIME_FORMAT_m" order="5" tags="dtime">yyyy-MM</pattern>
+			<pattern id="INPUT_DATE_TIME_FORMAT_Y" order="6" tags="dtime">yyyy</pattern>
+	</date_time_config>
+</root>

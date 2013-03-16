@@ -1,0 +1,2 @@
+@set WGREP_HOME=#WIN_DIR#
+java -Dwgrep.home=%WGREP_HOME% -cp %WGREP_HOME%\wgrep.jar org.smlt.tools.wgrep.WGrep %WGREP_HOME%\config.xml %*

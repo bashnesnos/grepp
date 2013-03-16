@@ -1,0 +1,13 @@
+2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo
+
+2013-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
+
+2014-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' ThreadEnd1
+
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
+Foo
+
+2012-10-20 05:05:57,952 [ACTIVE] ThreadStart: '1' SkipPattern
+
+2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2

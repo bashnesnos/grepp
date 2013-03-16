@@ -1,0 +1,113 @@
+import groovy.xml.DOMBuilder
+import groovy.xml.dom.DOMCategory
+import groovy.xml.XmlUtil
+
+apply plugin: 'groovy'
+
+//these properties are overwritten by subprojects dev, stable and release if they are defined there
+def targetDir = new File('/dev')
+def params = [:]
+def embedded = true //flag to embedd groovy-all into wgrep.jar
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.0.5'
+    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.0.5'
+	testCompile group: 'junit', name: 'junit', version: '4.10'
+}
+
+jar {
+	//'Quick packaging'
+}
+
+test {
+	systemProperty 'wgrep.home', rootDir.getAbsolutePath()
+}
+
+task makeEmbeddedJar(dependsOn: build, type: Jar) {
+	//'Groovy embedded packaging'
+	from 'build/classes/main'
+	from { 
+		configurations.compile.collect {it.isDirectory()? it : zipTree(it)} 
+	}
+}
+
+task copyBuild(type: Copy) {
+    from('/build/resources/main'){
+        exclude '**/*_tmplt'
+    }
+    from '/build/libs'
+    into targetDir
+}
+
+task transformConfig(dependsOn: copyBuild){
+    doLast {
+        def cfgDoc = DOMBuilder.parse(new FileReader(targetDir.getAbsolutePath() + '/config.xml'))
+        def customDoc = DOMBuilder.parse(new FileReader(targetDir.getAbsolutePath() + '/config.custom'))
+        def root = cfgDoc.documentElement
+        use(DOMCategory) {
+            root.appendChild(cfgDoc.importNode(customDoc.documentElement.custom[0], true))
+        }
+        cfgDoc.normalizeDocument()
+        XmlUtil.serialize(root, new FileWriter(targetDir.getAbsolutePath() + '/config.xml'))
+    }
+}
+
+task transformTmplts(dependsOn: transformConfig, type: Copy) {
+    from('/build/resources/main/')  {
+        include '**/*_tmplt'
+    }
+
+    filter { String line -> 
+        //println line
+        def newLine = line
+        for (param in params.keySet()) {
+            if (line =~ /$param/) newLine = newLine.replace(param, params[param])
+        }
+        newLine
+    }
+
+    rename { String fileName -> 
+        def onlyName = (fileName =~ /.*(?=\.)/)[0]
+        fileName.replace(onlyName, onlyName + '_dev').replace('_tmplt','')
+    }
+
+    into targetDir
+}
+
+task prepareSublimeSettings(type: Copy) {
+    from('/src/sublime/')  
+    filter { String line -> line.replace('#WGREP_HOME#', rootDir.getAbsolutePath()) }    
+    into rootDir
+}
+
+tasks.addRule("Pattern: release<ID>") { String taskName ->
+	if (taskName.startsWith("release"))
+	{
+		def subProject = null
+        if (taskName =~ /Dev/) {
+            subProject = project(':dev')
+		}
+		else if (taskName =~ /Stbl/) {
+            subProject = project(':stable')		
+        }
+        else if (taskName ==~ /release/) {
+            subProject = project(':release')
+        }
+
+        embedded = subProject.hasProperty('embedded') ? subProject.embedded : embedded
+        targetDir = subProject.hasProperty('targetDir') ? subProject.targetDir : targetDir
+        params = subProject.hasProperty('params') ? subProject.params : params
+
+        if (embedded) copyBuild.dependsOn(':makeEmbeddedJar')
+        else copyBuild.dependsOn(':build')
+
+        task(taskName, dependsOn: ':transformTmplts') << {
+
+        }
+
+	}
+}

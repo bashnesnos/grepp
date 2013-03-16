@@ -1,0 +1,50 @@
+wgrep installation.
+Example for terminal which has access to application boxes. Afterwards, the same mechanism could be used for updates.
+
+1. Unzip wgrep.zip
+2. Copy wgrep folder to terminal into 'myfiles' dir.
+3. Edit remote_install_wgrep.sh:
+	Change $USER variable to your username.
+	E.g.: USER='cooluser'
+4. Run: 
+	chmod +x make_execs.sh
+5. Execute 
+	./make_execs.sh
+	./rinstall_wgrep.sh
+6. To update run
+	./rinstall_wgrep.sh -u
+
+Now wgrep is installed into your's user 'home' directory on each box.
+
+- If you have public key login set up, you won't be treated for a password each time the script will be logging in. 
+If not, you'll be prompted 2*(number of servers) times.
+
+- Once the script is finished you can start using the tool.
+
+- Simple way to use the command is the following.
+[run each time you login] 1) Login to server which has the tool.
+
+[run each time you login] 2) Navigate to wgrep dir. Could be done like this:
+				cd ~/wgrep
+
+[run each time you login] 3) Init the tool by executing(all the dots are important):
+				. ./set_wgrep.sh
+
+		  	    4) Afterwards, you can use the tool anywhere on the server, just typing wgrep and your arguments. 
+			    5) Just try 'wgrep ?' first to get some examples.	
+
+- There is a way to use the tools remotely.
+	1) Login to terminal
+	2) Navigate to ~/myfiles/wgrep/remote
+	3) Edit the file 'remote_wgrep.sh' to populate the parameters you need to look for.
+	4) Execute:
+		./remote_wgrep.sh
+	5) Find your results in the 'results' folder:
+		~/myfiles/wgrep/results
+		e.g. 'system_box1.log'
+
+- Some preset autoamtic remote thing are available as well:
+	system_suffix_check.sh
+		- Gets log records =~ /check/ generated in last 10 minutes from specified in the script logs on each box into system_$BOX_suffix.log
+
+Enjoy!

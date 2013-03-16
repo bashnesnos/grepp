@@ -1,0 +1,6 @@
+{
+	"cmd": ["#WGREP_HOME#\\gradle", "build"],
+	"cmd": ["groovy", "-Dwgrep.home=#WGREP_HOME#", "-cp", "#WGREP_HOME#\\build\\libs\\wgrep.jar", "$file"],
+	"file_regex": "^[ ]*File \"(...*?)\", line ([0-9]*)",
+	"selector": "source.groovy"
+}

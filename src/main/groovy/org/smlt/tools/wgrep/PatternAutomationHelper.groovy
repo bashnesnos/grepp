@@ -1,0 +1,123 @@
+package org.smlt.tools.wgrep
+
+import groovy.xml.dom.DOMCategory
+
+class PatternAutomationHelper extends FacadeBase
+{
+
+    def ATMTN_SEQ = []
+    def ATMTN_DICT = [:]
+
+    PatternAutomationHelper(def lv_tag)
+    {
+        setCallingClass(this.getClass())
+        
+        if (!lv_tag)
+        {
+            lv_tag = getFacade().getParam('ATMTN_LEVEL')
+        }
+        use(DOMCategory)
+        {
+            def levels = getRoot().automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
+            levels.each { ATMTN_SEQ.add(it.'@handler'); ATMTN_DICT[it.'@handler'] = it.'@id' }
+        }
+        
+        automateByFile(getFacade().getParam('FILES')[0])
+
+        def predefnd = getFacade().getParam('PREDEF_TAG')
+        if (predefnd)
+        {
+            automateByTag(predefnd)
+        } 
+    }
+
+    def automateByFile(def filename)
+    {
+        def rslt = null
+        ATMTN_SEQ.each {
+            rslt = parseInit(ATMTN_DICT[it], filename, rslt, it)
+        }
+    }
+
+    def automateByTag(def tag)
+    {
+        def rslt = null
+        ATMTN_SEQ.each {
+            rslt = parseInit(ATMTN_DICT[it], tag, tag, it)
+        }
+    }
+
+    def parseInit(def level, def data, def tag_, def method)
+    {
+        trace('Identifying pattern for data=' + data + ' and tag=' + tag_ + ' with method=' + method)
+        def tag = (tag_) ? tag_ : findTagByData(level, data)
+        if (!tag)  
+        {
+            throw new IllegalArgumentException("Failed to identify tag")
+        }
+        return this."$method"(tag)
+    }
+
+    def parseEntryConfig(def tag)
+    {
+        use(DOMCategory)
+        {
+            def customCfg = getRoot().custom.config.find { it.'@id' ==~ tag }
+            if (customCfg)
+            {
+                trace('Parsing entry config for ' + tag)
+                getFacade().setLogEntryPattern(customCfg.starter.text() + customCfg.date.text())
+                getFacade().setExtraParam('LOG_DATE_PATTERN', customCfg.date.text())
+                getFacade().setExtraParam('LOG_DATE_FORMAT', customCfg.date_format.text())
+                getFacade().setExtraParam('LOG_FILE_THRESHOLD', customCfg.log_threshold.text())
+            }
+            else
+            {
+                trace("Entry config is undefined")
+            }
+            def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
+            if (customFilter)
+            {
+                trace('Parsing filter config for ' + tag)
+                getFacade().setFilterPattern(getCDATA(customFilter))
+            }
+            else
+            {
+                trace("Filter is undefined")
+            }
+        }
+        return tag
+    }
+
+    def parseExecuteThreadConfig(def tag)
+    {
+        if (!getFacade().getParam('PRESERVE_THREAD'))
+        {
+            trace('Parsing execute thread config for ' + tag)
+            getFacade().setExtendedPattern("PRESERVE_THREAD",tag)
+        }
+        return tag
+    }
+
+    def findTagByData(def level, def data)
+    {
+        trace("findTagByData started")
+        def tag = null
+        use(DOMCategory)
+        {
+            def sections = getRoot().custom.mappings.'*'.findAll { it.'@alevel' ==~ level}
+            def fileptrn = null
+            sections.find { section ->
+                fileptrn = section.'*'.find { ptrn -> 
+                    def mtchr = getCDATA(ptrn);
+                    trace("ptrn=" + mtchr + " data=" + data); 
+                    data =~ mtchr
+                }
+            }
+            if (fileptrn) tag = fileptrn.'@tags'
+            trace("Tag found="+tag)
+        }
+        return tag
+    }
+
+}
