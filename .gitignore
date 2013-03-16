@@ -11,4 +11,9 @@ release/
 # Idea
 ########
 .idea
-.iml
+*.iml
+
+########
+# General
+########
+*.log
