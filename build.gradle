@@ -82,7 +82,7 @@ task transformTmplts(dependsOn: transformConfig, type: Copy) {
 task prepareSublimeSettings(type: Copy) {
     from 'src/sublime/'
     filter { String line ->
-        line.replace('#WGREP_HOME#', rootDir.getAbsolutePath())
+        line.replace('#WGREP_HOME#', rootDir.getAbsolutePath().replaceAll( '(\\\\)', '\\\\$1' ))
     }
     into mkdir('.sublime')
 }
