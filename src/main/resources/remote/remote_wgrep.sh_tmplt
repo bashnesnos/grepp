@@ -1,53 +1,32 @@
 #!/bin/bash
 ##############PARAMS
-SYSTEM="#SYSTEM#"
 OUTPUT="../results/"
-SYS_PATH="#SYS_PATH#"
+OUTPUT_FILENAME="rwgrep"
 WORK_DIR="#NIX_DIR#"
 WGREP_PATH="java -Dwgrep.home=$WORK_DIR -cp $WORK_DIR/wgrep.jar org.smlt.tools.wgrep.WGrep $WORK_DIR/config.xml"
-WGREP_PARAMS= $1
-WGREP_FILENAME = $2
-MODE = $3
+MODE=""
+EXT=""
+ALL_PARAMS="$@"
 BOXES=#BOXES#
 
-if [ -n "$4" ]; then
-	OUTPUT_FILE_EXT=$4
+if [ ! "$EXT" == "" ]; then
+	OUTPUT_FILE_EXT=$EXT
 else
 	OUTPUT_FILE_EXT=".log"
 fi
 
 ###############
 
-LOG_PATH=$SYS_PATH
-HISTORY_FILE=$SYSTEM".history"
-
-SEARCH_PREV=$(grep "#$WGREP_PATH $WGREP_PARAMS $WGREP_OTHER_PARAMS $LOG_PATH$WGREP_FILENAME" $HISTORY_FILE)
-IS_NEW=$(test -z "$RESULT" && echo 1)
-
-if [ "$IS_NEW" == "1" ]; then
-	echo "##########################" >> $HISTORY_FILE
-	date >> $HISTORY_FILE
-	echo "==========================" >> $HISTORY_FILE
-	echo "SYSTEM=\""$SYSTEM"\"" >> $HISTORY_FILE
-	echo "OUTPUT=\""$OUTPUT"\"" >> $HISTORY_FILE
-	echo "SYS_PATH=\""$SYS_PATH"\"" >> $HISTORY_FILE
-	echo "LOG_DIR=\""$LOG_DIR"\"" >> $HISTORY_FILE
-	echo "#LOG_PATH=\""$LOG_PATH"\"" >> $HISTORY_FILE
-	echo "WGREP_PATH=\""$WGREP_PATH"\"" >> $HISTORY_FILE
-	echo "WGREP_PARAMS=\""$WGREP_PARAMS"\"" >> $HISTORY_FILE
-	echo "WGREP_FILENAME=\""$WGREP_FILENAME"\"" >> $HISTORY_FILE
-	echo "#"$WGREP_PATH $WGREP_PARAMS $WGREP_OTHER_PARAMS $LOG_PATH$WGREP_FILENAME >> $HISTORY_FILE
-	echo "BOX_1=\""${BOXES[0]}"\"" >> $HISTORY_FILE
-	echo "##########################" >> $HISTORY_FILE
-	echo " " >> $HISTORY_FILE
-fi
+HISTORY_FILE="rwgrep.history"
+echo "####"$(date '+%Y-%m-%dT%H:%M:%S') "#wgrep $ALL_PARAMS" >> $HISTORY_FILE
 
 for box in ${BOXES[*]}
 do
+	#echo ssh $box $WGREP_PATH $ALL_PARAMS
 	if [ "$MODE" == "-agg" ]; then
-		eval ssh $box $WGREP_PATH $WGREP_PARAMS $LOG_PATH$WGREP_FILENAME >> $OUTPUT$SYSTEM$OUTPUT_FILE_EXT
+		eval ssh $box $WGREP_PATH $ALL_PARAMS >> $OUTPUT$OUTPUT_FILENAME$OUTPUT_FILE_EXT
 	else
-		eval ssh $box $WGREP_PATH $WGREP_PARAMS $LOG_PATH$WGREP_FILENAME > $OUTPUT$SYSTEM"_"$box$OUTPUT_FILE_EXT
+		eval ssh $box $WGREP_PATH $ALL_PARAMS > $OUTPUT$OUTPUT_FILENAME"_"$box$OUTPUT_FILE_EXT
 	fi
 done
 
