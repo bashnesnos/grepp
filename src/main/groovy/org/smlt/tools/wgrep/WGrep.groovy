@@ -29,7 +29,8 @@ class WGrep
 	{
 		def WGREP_CONFIG = args[0]
 		WgrepFacade facade = WgrepFacade.getInstance([WGREP_CONFIG])
-		if (args.size() > 1) facade.processInVars(args[1..args.size()-1])
-		if (facade.checkVars()) facade.startProcessing()
+		def shouldProcess = 1
+		if (args.size() > 1) shouldProcess = facade.processInVars(args[1..args.size()-1])
+		if (shouldProcess > 0 && facade.checkVars()) facade.startProcessing()
 	}
 }

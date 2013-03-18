@@ -381,7 +381,9 @@ class WgrepFacade {
         {
             trace("Next argument " + arg)
 
-            if(processOptions(arg)) continue
+            def shouldContinue = processOptions(arg)
+            if (shouldContinue == -1) return shouldContinue
+            if (shouldContinue) continue
             
             if (!LEP_OVERRIDED && !LOG_ENTRY_PATTERN)
             {
@@ -632,5 +634,38 @@ class WgrepFacade {
             return pProcessor.process(blockData)
         }
         else return blockData
+    }
+
+    /**
+    * Method prints out some help
+    * <p> 
+    * Actually it has the same date as in groovydoc.
+    */
+    def printHelp() 
+    {
+        def help = """\
+        CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
+
+        Usage: 
+        java -cp wgrep.jar org.smlt.tools.wgrep.WGrep CONFIG_FILE [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+        Usage via supplied .bat or .sh file: 
+        wgrep [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+
+        Examples:
+
+        Using in Windows
+        wgrep -as \"SomethingINeedToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
+        wgrep -as \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log
+
+        Using on NIX 
+        wgrep -a --my_predefined_config --dtime 2011-11-11T11:10 2011-11-11T11:11 myapp.log 
+        wgrep -a --my_predefined_config myapp.log 
+        wgrep -a 'SomethingINeedToFind' myanotherapp.log 
+        wgrep -eas 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 
+        wgrep -ae 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' --dtime 2009-09-09T09:00 + thirdapp.log 
+        wgrep -as 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
+        """
+        println help
+        return -1
     }
 }
