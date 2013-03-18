@@ -5,7 +5,8 @@ import groovy.xml.XmlUtil
 apply plugin: 'groovy'
 
 //these properties are overwritten by subprojects dev, stable and release if they are defined there
-def targetDir = new File('/dev')
+def targetDir = null //is initialized with the project
+    def makeExecsFileWriter = null //is initialized with the project
 def tmplt_suffix = ''
 def params = [:]
 def embedded = true //flag to embedd groovy-all into wgrep.jar
@@ -36,12 +37,15 @@ task makeEmbeddedJar(dependsOn: build, type: Jar) {
 	}
 }
 
+task cleanSubProject(type: Delete){
+
+}
+
 task copyBuild(type: Copy) {
     from('/build/resources/main'){
         exclude '**/*_tmplt'
     }
     from '/build/libs'
-    into targetDir
 }
 
 task transformConfig(dependsOn: copyBuild){
@@ -62,21 +66,35 @@ task transformTmplts(dependsOn: transformConfig, type: Copy) {
         include '**/*_tmplt'
     }
 
-    filter { String line -> 
-        //println line
-        def newLine = line
-        for (param in params.keySet()) {
-            if (line =~ /$param/) newLine = newLine.replace(param, params[param])
+    eachFile { FileCopyDetails elem ->
+        def file = elem.getFile()
+        
+        def onlyName = (file.getName() =~ /.*(?=\.)/)[0]
+        def tFileName = file.getName().replace(onlyName, onlyName + tmplt_suffix).replace('_tmplt','')
+        elem.setName(tFileName)
+
+        if (tFileName =~ /\.sh/) {
+            if (!makeExecsFileWriter) {
+                makeExecsFileWriter = new FileWriter(destinationDir.getAbsolutePath() + '/make_execs.sh', true) //appending to make_execs.sh    
+            }
+            makeExecsFileWriter.write('\nchmod +x ' + elem.getPath())   
         }
-        newLine
-    }
 
-    rename { String fileName -> 
-        def onlyName = (fileName =~ /.*(?=\.)/)[0]
-        fileName.replace(onlyName, onlyName + tmplt_suffix).replace('_tmplt','')
+        elem.filter { String line ->
+            def newLine = line
+            for (param in params.keySet()) {
+                if (line =~ /$param/) newLine = newLine.replace(param, params[param])
+            }
+            newLine
+        }
     }
-
-    into targetDir
+    
+    doLast{
+        if (makeExecsFileWriter) {
+            makeExecsFileWriter.flush()
+            makeExecsFileWriter.close()
+        }
+    }
 }
 
 task prepareSublimeSettings(type: Copy) {
@@ -100,17 +118,30 @@ tasks.addRule("Pattern: release<ID>") { String taskName ->
         else if (taskName ==~ /release/) {
             subProject = project(':release')
         }
+        
+        if (subProject)
+        {
 
-        embedded = subProject.hasProperty('embedded') ? subProject.embedded : embedded
-        targetDir = subProject.hasProperty('targetDir') ? subProject.targetDir : targetDir
-        tmplt_suffix = subProject.hasProperty('tmplt_suffix') ? subProject.tmplt_suffix : tmplt_suffix
-        params = subProject.hasProperty('params') ? subProject.params : params
+            embedded = subProject.hasProperty('embedded') ? subProject.embedded : embedded
+            targetDir = subProject.hasProperty('targetDir') ? subProject.targetDir : targetDir
+            tmplt_suffix = subProject.hasProperty('tmplt_suffix') ? subProject.tmplt_suffix : tmplt_suffix
+            params = subProject.hasProperty('params') ? subProject.params : params
 
-        if (embedded) copyBuild.dependsOn(':makeEmbeddedJar')
-        else copyBuild.dependsOn(':build')
+            copyBuild.into targetDir
+            transformTmplts.into targetDir
 
-        task(taskName, dependsOn: ':transformTmplts') << {
+            cleanSubProject.delete fileTree(targetDir.getAbsolutePath()){
+                exclude '*gradle*'
+                exclude '*custom*'
+            }   
+            clean.dependsOn(':cleanSubProject')
+            
+            if (embedded) copyBuild.dependsOn(':makeEmbeddedJar')
+            else copyBuild.dependsOn(':build')
 
+            task(taskName, dependsOn: ':transformTmplts') << {
+
+            }
         }
 
 	}
