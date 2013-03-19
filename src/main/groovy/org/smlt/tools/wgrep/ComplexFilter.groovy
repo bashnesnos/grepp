@@ -2,8 +2,9 @@ package org.smlt.tools.wgrep
 
 import groovy.xml.dom.DOMCategory
 
-class ExtendedPatternProcessor extends FacadeBase
+class ComplexFilter extends ModuleBase
 {
+    private nextFilter
     //Complex pattern processing and stuff
     def EXTNDD_PTTRNS = []
     def EXTNDD_PTTRN_DICT = [:]
@@ -14,16 +15,14 @@ class ExtendedPatternProcessor extends FacadeBase
     def THRD_SKIP_END_PTTRNS = []
     def THRD_END_PTTRNS =[]
 
-    ExtendedPatternProcessor(def pt_tag)
+    ComplexFilter(def nextOne)
     {
-        setCallingClass(this.getClass())
-        if (!pt_tag)
-        {
-            pt_tag = getFacade().getParam('PRESERVE_THREAD')
-        }
+        nextFilter = nextOne
+        trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        def pt_tag = getFacade().getParam('PRESERVE_THREAD')
         use(DOMCategory)
         {
-            getRoot().extended_patterns.qualifier.each{ EXTNDD_QUALIFIERS.add(it.'@id')}
+            getRoot().extended_patterns.qualifier.each{ EXTNDD_QUALIFIERS.add(Qualifiers.valueOf(it.'@id'))}
             if (pt_tag)
             {
                 def extrctrs = getRoot().custom.thread_configs.extractor.findAll { it.'@tags' =~ pt_tag }
@@ -65,32 +64,52 @@ class ExtendedPatternProcessor extends FacadeBase
             def nextGroup = null
             if (mtch)
             {
+                qRegex = qRegex.replaceAll(/%/, "")
                 for (grp in mtch)
                 {
                     trace('Next group in match: ' + grp)
-                    if (!filterPattern)
-                    {
-                        filterPattern = grp
-                        continue
-                    }
-                    qRegex = qRegex.replaceAll(/%/, "")
                     def qualifier = (grp =~ /$qRegex/)
                     if (qualifier)
                     {
                         nextGroup = qualifier[0]
                         continue
                     }
-                    if (nextGroup)
-                    {
-                        addExtendedFilterPattern(grp, nextGroup)
-                        nextGroup = null
-                    }
+
+                    addExtendedFilterPattern(grp, nextGroup)
+                    nextGroup = null
+
                 }
             }
             else print 'Check your complex pattern. Likely it\'s wrong'
         }
+    }
 
-        getFacade().setParam('FILTER_PATTERN', filterPattern)
+    /**
+    * Method for complex pattern processing.
+    * <p> 
+    * Is called against each block.
+    *
+    * @param blockData A String to be filtered.
+    *
+    */
+
+    def filter(def blockData)
+    {
+        if (process(blockData, null))
+        {
+            if (nextFilter)
+            {
+                nextFilter.filter(blockData)
+            }
+            else
+            {
+                throw new RuntimeException("ComplexFilter shouldn't be the last in chain")
+            }
+        }
+        else 
+        {
+            trace("ComplexFilter not passed")
+        }
     }
 
     def process(def blockData, def matched)
@@ -104,76 +123,39 @@ class ExtendedPatternProcessor extends FacadeBase
         trace('List of patterns: ')
         trace(patterns)
         trace('Is matched? ' + matched)    
-        if (matched) extractThreadPatterns(blockData)
 
         def pattern = patterns[0]
         def qlfr = EXTNDD_PTTRN_DICT[pattern]
+        def ptrnMatcher = blockData =~ pattern
+        def hasMorePatterns = patterns.size()-1 > 0
 
-        if (matched && qlfr == 'and')
+        if ((qlfr && qlfr.check(matched, ptrnMatcher)) || ptrnMatcher)
         {
-            trace('Complex pattern \'and\'. Previous matched')
-            if (blockData =~ pattern)
+            trace('Proceeding')
+            if (!hasMorePatterns)
             {
-                trace(pattern + ' matched.')
-                if (patterns.size()-1 > 0)
-                {
-                    trace('Going deeper')
-                    process(blockData, patterns[1..(patterns.size()-1)], 1)
-                }
-                else
-                {
-                    trace('Returning data')
-                    return extractThreadPatterns(blockData)
-                }
-            }
-            else if ((patterns.size()-1) > 0)
-            {
-                trace(pattern + ' not matched. Going deeper')
-                process(blockData, patterns[1..(patterns.size()-1)], null)
+                trace('Returning data')
+                return extractThreadPatterns(blockData)
             }
             else
             {
-                trace(pattern + ' not matched. Returning null')
-                return
+                trace('Going deeper')
+                process(blockData, patterns[1..(patterns.size()-1)], 1)
             }
-        }
-        else if (qlfr == 'or')
-        {
-            trace('Complex pattern \'or\'.')
-            if (matched)
-            {
-                trace('Previous matched.')
-                return extractThreadPatterns(blockData)
-            }
-            if (blockData =~ pattern)
-            {
-                trace(pattern + ' matched.')
-                if (patterns.size()-1 > 0)
-                {
-                    trace('Going deeper')
-                    process(blockData, patterns[1..(patterns.size()-1)], 1)
-                }
-                else
-                {
-                    trace('Returning data')
-                    return extractThreadPatterns(blockData)
-                }
-            }
-            else if (patterns.size()-1 > 0)
-            {
-                trace('/' + pattern + '/ not matched. Going deeper')
-                process(blockData, patterns[1..(patterns.size()-1)], null)
-            }
-        }
-        else if (matched)
-        {
-            trace('/' + pattern + '/ and /' + qlfr + '/ not matched. But previous matched. Returning data')
-            return blockData
         }
         else
         {
-            trace('Nothing matched. Returning null')
-            return
+            trace('Nothing matched.')
+            if (!hasMorePatterns)
+            {
+                trace('Returning null since no patterns')
+                return
+            }
+            else
+            {
+                trace('Going deeper')
+                process(blockData, patterns[1..(patterns.size()-1)], null)
+            }
         }
 
         trace('All patterns checked. Returning')

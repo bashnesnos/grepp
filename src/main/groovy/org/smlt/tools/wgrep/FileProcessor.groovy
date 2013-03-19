@@ -1,20 +1,47 @@
 package org.smlt.tools.wgrep
 
-class FileProcessor extends FacadeBase
+class FileProcessor extends ModuleBase
 {
     //Reads logs files
     def fileList = []
     int curLine = 0
     boolean isBlockMatched = false;
     StringBuffer curBlock = null;
+    def filterChain = null;
+    def dateTimeChecker = null;
+    def fSeparator = null;
 
-    FileProcessor(def files) {
-        setCallingClass(this.getClass())
-        if (!files)
+    static FileProcessor getInstance() 
+    {
+        def filterChain_ = new PrintFilter()
+        def dateTimeChecker_ = null
+        if (getFacade().getParam('POST_PROCESSING'))
         {
-            files = getFacade().getParam("FILES")
+            filterChain_ = new PostFilter(filterChain_)
+        } 
+
+        if (getFacade().getParam('EXTNDD_PATTERN') || getFacade().getParam('PRESERVE_THREAD'))
+        {
+            filterChain_ = new ComplexFilter(filterChain_)
+        } 
+        else
+        {
+            filterChain_ = new BasicFilter(filterChain_)
         }
-        fileList = files
+
+        if (getFacade().getParam('DATE_TIME_FILTER'))
+        {
+            dateTimeChecker_ = new DateTimeChecker()
+        } 
+        return new FileProcessor(filterChain_, dateTimeChecker_)
+    }
+
+    private FileProcessor(def filterChain_, def dateTimeChecker_) 
+    {
+        filterChain = filterChain_
+        dateTimeChecker = dateTimeChecker_
+        fileList = getFacade().getParam("FILES")
+        fSeparator = getFacade().getParam('FOLDER_SEPARATOR')
         verbose("Total files to analyze: " + this.fileList.size())
         this.analyzeList()
     }
@@ -32,10 +59,10 @@ class FileProcessor extends FacadeBase
             {
                 removeFiles.add(fil);
                 def flname = fil;
-                if (fil =~ getFacade().FOLDER_SEPARATOR)
+                if (fil =~ fSeparator)
                 {
-                    dir = (fil =~/.*(?=${getFacade().FOLDER_SEPARATOR})/)[0]
-                    flname = (fil =~ /.*${getFacade().FOLDER_SEPARATOR}(.*)/)[0][1]
+                    dir = (fil =~/.*(?=$fSeparator)/)[0]
+                    flname = (fil =~ /.*$fSeparator(.*)/)[0][1]
                 }
                 def files = new File(dir).listFiles();
                 trace("files found " + files)
@@ -59,8 +86,8 @@ class FileProcessor extends FacadeBase
     def openFile(def fName)
     {
         trace("Opening " + fName)
-        def fileObj = getFacade().checkFileTime(fName)
-        if (fileObj)
+        def fileObj = new File(fName)
+        if (!dateTimeChecker || dateTimeChecker.check(fileObj))
         {
             trace("Done.")
             getFacade().checkEntryPattern(fName)
@@ -85,16 +112,16 @@ class FileProcessor extends FacadeBase
         }
 
         verbose("File ended. Lines processed: " + curLine)
-        if (!getFacade().getParam('FILE_MERGING') && isBlockMatched) printBlock(curBlock.toString())
+        if (!getFacade().getParam('FILE_MERGING') && isBlockMatched) returnBlock(curBlock.toString())
         else !isBlockMatched?verbose("Block continues"):verbose("Matched block continues")
     }
 
     def processLine(def line)
     {
-        def entry = (line =~ getFacade().LOG_ENTRY_PATTERN);
+        def entry = (line =~ getFacade().getParam('LOG_ENTRY_PATTERN'));
         if (entry)
         {
-            if (!isBlockMatched && getFacade().checkEntryTime(entry[0]))
+            if (!isBlockMatched && (!dateTimeChecker || dateTimeChecker.check(entry[0])))
             {
                 isBlockMatched = true
                 trace("appending")
@@ -104,7 +131,7 @@ class FileProcessor extends FacadeBase
             {
                 isBlockMatched = false
                 trace("returning block")
-                printBlock(curBlock.toString())
+                returnBlock(curBlock.toString())
                 return line
             }
             else
@@ -136,9 +163,9 @@ class FileProcessor extends FacadeBase
             curBlock = new StringBuffer(line)
     }
     
-    def printBlock(def block)
+    def returnBlock(def block)
     {
-        getFacade().filter(block)
+        filterChain.filter(block)
         curBlock = null
     }
 

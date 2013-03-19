@@ -1,6 +1,6 @@
 package org.smlt.tools.wgrep
 
-class AdditionalVarParser extends FacadeBase
+class AdditionalVarParser extends ModuleBase
 {
 	
 	def subscribe()

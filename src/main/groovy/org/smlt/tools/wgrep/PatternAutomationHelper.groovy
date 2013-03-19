@@ -2,20 +2,20 @@ package org.smlt.tools.wgrep
 
 import groovy.xml.dom.DOMCategory
 
-class PatternAutomationHelper extends FacadeBase
+class PatternAutomationHelper extends ModuleBase
 {
 
     def ATMTN_SEQ = []
     def ATMTN_DICT = [:]
+    def currentConfigPtrn = null
 
-    PatternAutomationHelper(def lv_tag)
+    static PatternAutomationHelper getInstance(){
+        return getFacade().getParam('ATMTN_LEVEL') ? new PatternAutomationHelper() : null
+    }
+
+    private PatternAutomationHelper()
     {
-        setCallingClass(this.getClass())
-        
-        if (!lv_tag)
-        {
-            lv_tag = getFacade().getParam('ATMTN_LEVEL')
-        }
+        def lv_tag = getFacade().getParam('ATMTN_LEVEL')
         use(DOMCategory)
         {
             def levels = getRoot().automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
@@ -34,6 +34,11 @@ class PatternAutomationHelper extends FacadeBase
     def automateByFile(def filename)
     {
         def rslt = null
+        if (currentConfigPtrn)
+        {
+            if (filename =~ currentConfigPtrn) return
+        }
+
         ATMTN_SEQ.each {
             rslt = parseInit(ATMTN_DICT[it], filename, rslt, it)
         }
@@ -107,9 +112,9 @@ class PatternAutomationHelper extends FacadeBase
         {
             def configs = getRoot().custom.config.findAll { it.pattern[0].'@alevel' ==~ level }
             def config = configs.find { config ->
-                def mtchr = getCDATA(config.pattern[0])
-                trace("ptrn=/" + mtchr + "/ data='" + data + "'")
-                data =~ mtchr
+                currentConfigPtrn = getCDATA(config.pattern[0])
+                trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")
+                data =~ currentConfigPtrn
             }
             if (config) tag = config.'@id'
         }

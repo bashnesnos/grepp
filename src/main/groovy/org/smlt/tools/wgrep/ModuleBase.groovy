@@ -1,10 +1,8 @@
 package org.smlt.tools.wgrep
 
-class FacadeBase
+class ModuleBase
 {
-    def callingClass
-
-    WgrepFacade getFacade()
+    static WgrepFacade getFacade()
     {
         return WgrepFacade.getInstance()
     }
@@ -16,7 +14,7 @@ class FacadeBase
     
     def trace(def text)
     {
-		getFacade().trace(callingClass + text)
+		getFacade().trace("[" + this.getClass().getCanonicalName() + "] " + text)
     }
 
     def getRoot()
@@ -27,11 +25,6 @@ class FacadeBase
     def getCDATA(def node)
     {
         return getFacade().getCDATA(node)
-    }
-
-    def setCallingClass(def clazz)
-    {
-        this.callingClass = "[" + clazz.getCanonicalName() + "] "
     }
 
 }

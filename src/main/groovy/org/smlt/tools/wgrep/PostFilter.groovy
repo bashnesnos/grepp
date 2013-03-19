@@ -2,8 +2,9 @@ package org.smlt.tools.wgrep
 
 import groovy.xml.dom.DOMCategory
 
-class PostProcessor extends FacadeBase
+class PostFilter extends ModuleBase
 {
+    private nextFilter
     //Postprocessing stuff
     def POST_PROCESS_PTTRNS = []
     def POST_PROCESS_SEP = null
@@ -11,13 +12,12 @@ class PostProcessor extends FacadeBase
     def POST_PROCESS_HEADER = null
     def HEADER_PRINTED = null
 
-    PostProcessor(def pp_tag)
+    PostFilter(def nextOne)
     {
-        setCallingClass(this.getClass())
-        if (!pp_tag)
-        {
-            pp_tag = getFacade().getParam('POST_PROCESSING')
-        }
+        nextFilter = nextOne
+        trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+
+        def pp_tag = getFacade().getParam('POST_PROCESSING')
         use(DOMCategory)
         {
             trace("Looking for splitters of type=" + pp_tag)
@@ -52,7 +52,15 @@ class PostProcessor extends FacadeBase
         }
     }
 
-    def process(def data)
+    /**
+    * Method for post processing.
+    * <p> 
+    * Is called against each block.
+    * 
+    * @param blockData A String to be post processed.
+    */
+
+    def filter(def blockData)
     {
         StringBuffer rslt = new StringBuffer("")
         if (!HEADER_PRINTED) 
@@ -60,8 +68,24 @@ class PostProcessor extends FacadeBase
             HEADER_PRINTED = 1
             getFacade().printBlock(POST_PROCESS_HEADER)
         }
-        POST_PROCESS_PTTRNS.each { ptrn -> rslt = smartPostProcess(ptrn, data, rslt, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn])} //TODO: new handlers model is needed
-        return rslt.toString()
+        POST_PROCESS_PTTRNS.each { ptrn -> rslt = smartPostProcess(ptrn, blockData, rslt, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn])} //TODO: new handlers model is needed
+        def result = rslt.toString()
+        
+        if (result) 
+        {
+            if (nextFilter)
+            {
+                nextFilter.filter(result)
+            }
+            else
+            {
+                throw new RuntimeException("PostFilter shouldn't be the last in chain")
+            }
+        }
+        else
+        {
+            trace("PostFilter not passed")
+        }
     }
 
     def smartPostProcess(def ptrn, def val, def agg, def sep, def method)

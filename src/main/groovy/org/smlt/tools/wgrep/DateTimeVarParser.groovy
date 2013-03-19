@@ -2,10 +2,6 @@ package org.smlt.tools.wgrep
 
 class DateTimeVarParser extends AdditionalVarParser
 {
-	DateTimeVarParser()
-    {
-        setCallingClass(this.getClass())
-    }
 
     def parseVar(def arg)
     {

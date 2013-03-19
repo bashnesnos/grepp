@@ -34,9 +34,6 @@ class WGrepTest extends GroovyTestCase
         facade.DATE_TIME_FILTER = null
         facade.paHelper = null
         facade.PREDEF_TAG = null
-        facade.epProcessor = null
-        facade.pProcessor = null
-        facade.dtChecker = null
         facade.additionalVarParsers = []
         facade.fProcessor = null
 
@@ -54,13 +51,6 @@ class WGrepTest extends GroovyTestCase
         assertTrue( facade.HOME_DIR != null )
     }
 
-    void testFileProcessor()
-    {
-        cleanUp()
-        FileProcessor fp = new FileProcessor([HOME+"\\fpTest*"])
-        assertTrue( fp.fileList == [HOME + "\\fpTest_test.log"])
-    }
-
     void testFailAutomationProcessing()
     {
         cleanUp()
@@ -75,7 +65,7 @@ class WGrepTest extends GroovyTestCase
         cleanUp()
         facade.processInVars(["-e","test","test%and%tets",HOME+"\\test*"])
         assertTrue( facade.EXTNDD_PATTERN == 'e')
-        assertTrue( facade.FILTER_PATTERN == "test" )
+        assertTrue( facade.FILTER_PATTERN == "test%and%tets" )
     }
     
     void testComplexVarsProcessing()
@@ -83,7 +73,6 @@ class WGrepTest extends GroovyTestCase
         cleanUp()
         facade.processInVars(["-t","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
         assertTrue( facade.DATE_TIME_FILTER == "dtime" )
-        assertTrue( facade.getDTChecker().FILE_DATE_FORMAT.toPattern() == "yyyy-MM-dd'T'HH:mm:ss" )
     }
 
     void testAutomationProcessing()

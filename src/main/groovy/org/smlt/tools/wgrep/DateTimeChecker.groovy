@@ -3,7 +3,7 @@ package org.smlt.tools.wgrep
 import java.text.SimpleDateFormat
 import groovy.xml.dom.DOMCategory
 
-class DateTimeChecker extends FacadeBase
+class DateTimeChecker extends ModuleBase
 {
     //Checking dates everywhere
 
@@ -18,7 +18,6 @@ class DateTimeChecker extends FacadeBase
 
     DateTimeChecker(def dt_tag)
     {
-        setCallingClass(this.getClass())
         if (!dt_tag)
         {
             dt_tag = getFacade().getParam('DATE_TIME_FILTER')
@@ -95,6 +94,13 @@ class DateTimeChecker extends FacadeBase
         else if (data instanceof String) checkEntryTime(data)
     }
 
+    /**
+    * Facade method to check if supplied filename, and corresponding {@link File} object suits desired date and time. 
+    * Calls {@link dtChecker.check()} method if {@link DATE_TIME_FILTER} is not null.
+    *
+    * @param fName A String with filename
+    */
+
     def checkFileTime(def file)
     {
         if (file) trace("Checking file " + file.getName() + " if it suits " + FILE_DATE_FORMAT.format(FROM_DATE))
@@ -130,6 +136,13 @@ class DateTimeChecker extends FacadeBase
             return null
         }
     }
+
+    /**
+    * Facade method to check if supplied entry suits desired date and time. 
+    * Calls {@link dtChecker.check()} method if {@link DATE_TIME_FILTER} and <code>entry</code> are not null.
+    *
+    * @param entry A String to be checked
+    */
     
     def checkEntryTime(def entry)
     {

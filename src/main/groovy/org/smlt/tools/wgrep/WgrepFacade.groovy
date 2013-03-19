@@ -54,11 +54,8 @@ class WgrepFacade {
     def PREDEF_TAG = null
     def EXTNDD_PATTERN = null
         def PRESERVE_THREAD = null
-        ExtendedPatternProcessor epProcessor
     def POST_PROCESSING = null
-        PostProcessor pProcessor 
     def DATE_TIME_FILTER = null
-        DateTimeChecker dtChecker
     def additionalVarParsers = []
     def extraParams = [:]
 
@@ -116,11 +113,8 @@ class WgrepFacade {
 
     def moduleInit()
     {
-        if (ATMTN_LEVEL) paHelper = new PatternAutomationHelper()
-        if (EXTNDD_PATTERN || PRESERVE_THREAD) epProcessor = new ExtendedPatternProcessor()
-        if (POST_PROCESSING) pProcessor = new PostProcessor()
-        if (DATE_TIME_FILTER) dtChecker = new DateTimeChecker()
-        fProcessor = new FileProcessor()
+        paHelper = PatternAutomationHelper.getInstance()
+        fProcessor = FileProcessor.getInstance()
         return 1
     }
 
@@ -138,13 +132,13 @@ class WgrepFacade {
             return
         }
 
-        if (!LOG_ENTRY_PATTERN)
+        if (!getParam('LOG_ENTRY_PATTERN'))
         {
             println "No log entry pattern. Can't split the log records."
             return
         }
 
-        if (!FILTER_PATTERN)
+        if (!getParam('FILTER_PATTERN'))
         {
             println "No filter pattern. To list all the file better use less"
             return
@@ -178,17 +172,6 @@ class WgrepFacade {
             def txt = node.text()
             return (txt)?txt:node.getFirstChild().getNodeValue()
         }
-    }
-
-    /**
-    * Returns current {@code @DataTimeChecker} instance. Is deprecated, used only by unit-tests.
-    * @return Value of <code>dtChecker</code>
-    */
-
-    @Deprecated
-    def getDTChecker()
-    {
-        return dtChecker
     }
 
     /**
@@ -237,6 +220,7 @@ class WgrepFacade {
 
     def setExtraParam(def field, def val)
     {
+        trace("Setting extra param: " + field + " val: " + val)
         this.extraParams[field] = val
     }
 
@@ -247,8 +231,7 @@ class WgrepFacade {
 
     def setLogEntryPattern(def val)
     {
-        LOG_ENTRY_PATTERN = val
-        trace("Set LOG_ENTRY_PATTERN=/"+LOG_ENTRY_PATTERN+"/")
+        setParam('LOG_ENTRY_PATTERN', val)
     }
     
     /**
@@ -258,11 +241,7 @@ class WgrepFacade {
 
     def setFilterPattern(def val)
     {
-        if (val)
-        {
-            FILTER_PATTERN = val
-            trace("Set FILTER_PATTERN=/"+FILTER_PATTERN+"/")
-        }
+        setParam('FILTER_PATTERN', val)
     }
 
     /**
@@ -272,7 +251,7 @@ class WgrepFacade {
 
     def setSpoolingExt(def val)
     {
-        SPOOLING_EXT = val
+        setParam('SPOOLING_EXT', val)
     }
 
     /**
@@ -542,100 +521,15 @@ class WgrepFacade {
         if (TRACE) println '###TRACE### ' + text
     }
 
-    //FILTERING AND STUFF
-
-    /**
-    * Facade method to check if any presets exists for supplied filename. Simply calls {@link PatternAutomationHelper.automateByFile()} method.
-    *
-    * @param fName A String with filename
-    */
-    def checkEntryPattern(def fName)
+   
+    def checkEntryPattern(def fileName)
     {
-        if (paHelper) paHelper.automateByFile(fName)
-    }
-
-    /**
-    * Facade method to check if supplied filename, and corresponding {@link File} object suits desired date and time. 
-    * Calls {@link dtChecker.check()} method if {@link DATE_TIME_FILTER} is not null.
-    *
-    * @param fName A String with filename
-    */
-    def checkFileTime(def fName)
-    {
-        def file = new File(fName)
-        if (!DATE_TIME_FILTER) return file
-        else return dtChecker.check(file)
-    }
-    
-    /**
-    * Facade method to check if supplied entry suits desired date and time. 
-    * Calls {@link dtChecker.check()} method if {@link DATE_TIME_FILTER} and <code>entry</code> are not null.
-    *
-    * @param entry A String to be checked
-    */
-    def checkEntryTime(def entry)
-    {
-        if (entry && DATE_TIME_FILTER)
+        if (paHelper)
         {
-            return dtChecker.check(entry)
+            paHelper.automateByFile(fileName)
         }
-        return true
     }
 
-    /**
-    * Combined filter method.
-    * <p> 
-    * Is called against each block. Current sequence is following:
-    * <li>1. Checks if block contains {@link FILTER_PATTERN}</li>
-    * <li>2. Passes block and matching result to {@link processComplexBlock} method</li>
-    * <li>3. Passes block to {@link postProcessBlockData} method</li>
-    * <li>4. Passes the result of step 3 to {@link printBlock} method</li>
-    *
-    * @param blockData A String to be filtered.
-    */
-
-    def filter(def blockData)
-    {
-        trace("Filtering with /"+FILTER_PATTERN+"/")
-        blockData = (blockData =~ FILTER_PATTERN)? processComplexBlock(blockData, 1) : processComplexBlock(blockData, null)
-        printBlock(postProcessBlockData(blockData))        
-    }
-
-    /**
-    * Method for complex pattern processing.
-    * <p> 
-    * Is called against each block. If {@link EXTNDD_PATTERN} and {@link PRESERVE_THREAD} both are null, return supplied block back.
-    * Otherwise passes supplied params to {@link ExtendedPatternProcessor.process()} method.
-    *
-    * @param blockData A String to be filtered.
-    * @param matched An <code>Object</code> or <code>null</code> if the supplied <code>blockData</code> passed <code>FILTER_PATTERN</code> check.
-    * @return result of {@link ExtendedPatternProcessor.process()} method.
-    */
-
-    def processComplexBlock(def blockData, def matched)
-    {
-        if (!EXTNDD_PATTERN && !PRESERVE_THREAD) return matched ? blockData : null
-        trace("Processing extended pattern")
-        return epProcessor.process(blockData, matched)
-    }
-
-    /**
-    * Method for post processing.
-    * <p> 
-    * Is called against each block. If {@link POST_PROCESSING} is not null, passes blockData to {@link PostProcessor.process()} method.
-    * Otherwise returns <code>blockData</code> back.
-    *
-    * @param blockData A String to be post processed.
-    * @return result of {@link PostProcessor.process()} method or the <code>blockData</code>
-    */
-    def postProcessBlockData(def blockData)
-    {
-        if (POST_PROCESSING)
-        {
-            return pProcessor.process(blockData)
-        }
-        else return blockData
-    }
 
     /**
     * Method prints out some help

@@ -3,6 +3,12 @@ Foo
 
 2013-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
 
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '5' 
+Boo
+
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '7' 
+Moo
+
 2014-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' ThreadEnd1
 
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 

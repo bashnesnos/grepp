@@ -55,10 +55,10 @@
 			<pattern alevel="entry_pattern">processing_test</pattern>
 		</config>
 		<thread_configs alevel="execute_thread" type="findPatternByTag">
-			<extractor qlfr="or" tags="to_test">ThreadStart: '\d{1,}'</extractor>
-			<pattern clct="THRD_SKIP_END_PTTRNS" tags="to_test">SkipPattern</pattern>
-			<pattern clct="THRD_END_PTTRNS" tags="to_test">ThreadEnd1</pattern>
-			<pattern clct="THRD_END_PTTRNS" tags="to_test">ThreadEnd2</pattern>
+			<extractor qlfr="or" tags="to_test, pr_test">ThreadStart: '\d{1,}'</extractor>
+			<pattern clct="THRD_SKIP_END_PTTRNS" tags="to_test, pr_test">SkipPattern</pattern>
+			<pattern clct="THRD_END_PTTRNS" tags="to_test, pr_test">ThreadEnd1</pattern>
+			<pattern clct="THRD_END_PTTRNS" tags="to_test, pr_test">ThreadEnd2</pattern>
 		</thread_configs>
 		<pp_splitters>
 			<splitter col_name="some_cmd" order="1" tags="some_timings" type="filter">Command name="?(.*?)"</splitter>
