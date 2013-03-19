@@ -46,11 +46,13 @@
 			<starter>####\[\D{1,}\].*</starter>
 			<date>\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2}</date>
 			<log_threshold>4</log_threshold>
+			<pattern alevel="entry_pattern">test_</pattern>
 		</config>
 		<config id="pr_test">
 			<date_format>yyyy-MM-dd HH:mm:ss</date_format>
 			<date>\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2}</date>
 			<log_threshold>24</log_threshold>
+			<pattern alevel="entry_pattern">processing_test</pattern>
 		</config>
 		<thread_configs alevel="execute_thread" type="findPatternByTag">
 			<extractor qlfr="or" tags="to_test">ThreadStart: '\d{1,}'</extractor>
@@ -65,11 +67,5 @@
 		<filters>
 			<filter tags="predef">Something::</filter>
 		</filters>
-		<mappings>
-			<log_config_mapping alevel="entry_pattern" type="findTagByPattern">
-				<pattern tags="to_test">test_</pattern>
-				<pattern tags="pr_test">processing_test</pattern>
-			</log_config_mapping>
-		</mappings>
 	</custom>
 </root>

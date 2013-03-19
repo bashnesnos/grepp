@@ -1,6 +1,7 @@
 project.ext {
 	targetDir = new File(rootDir.getAbsolutePath() + '/release')
-	embedded = false //flag to embedd groovy-all into wgrep.jar
+	embedded = true //flag to embedd groovy-all into wgrep.jar
+	doZip = true //flag to zip the build
 	params = ['#WIN_DIR#' : targetDir.getAbsolutePath(),	//specify Windows home
 				'#NIX_DIR#' : '', //specify Nix home
 				'#USER#' : '', //specify user

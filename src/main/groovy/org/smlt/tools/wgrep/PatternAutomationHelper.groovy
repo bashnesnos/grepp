@@ -22,13 +22,13 @@ class PatternAutomationHelper extends FacadeBase
             levels.each { ATMTN_SEQ.add(it.'@handler'); ATMTN_DICT[it.'@handler'] = it.'@id' }
         }
         
-        automateByFile(getFacade().getParam('FILES')[0])
-
         def predefnd = getFacade().getParam('PREDEF_TAG')
         if (predefnd)
         {
             automateByTag(predefnd)
         } 
+
+        automateByFile(getFacade().getParam('FILES')[0])
     }
 
     def automateByFile(def filename)
@@ -50,7 +50,7 @@ class PatternAutomationHelper extends FacadeBase
     def parseInit(def level, def data, def tag_, def method)
     {
         trace('Identifying pattern for data=' + data + ' and tag=' + tag_ + ' with method=' + method)
-        def tag = (tag_) ? tag_ : findTagByData(level, data)
+        def tag = (tag_) ? tag_ : findConfigByData(level, data)
         if (!tag)  
         {
             throw new IllegalArgumentException("Failed to identify tag")
@@ -99,23 +99,19 @@ class PatternAutomationHelper extends FacadeBase
         return tag
     }
 
-    def findTagByData(def level, def data)
+    def findConfigByData(def level, def data)
     {
-        trace("findTagByData started")
+        trace("findConfigByData started")
         def tag = null
         use(DOMCategory)
         {
-            def sections = getRoot().custom.mappings.'*'.findAll { it.'@alevel' ==~ level}
-            def fileptrn = null
-            sections.find { section ->
-                fileptrn = section.'*'.find { ptrn -> 
-                    def mtchr = getCDATA(ptrn);
-                    trace("ptrn=" + mtchr + " data=" + data); 
-                    data =~ mtchr
-                }
+            def configs = getRoot().custom.config.findAll { it.pattern[0].'@alevel' ==~ level }
+            def config = configs.find { config ->
+                def mtchr = getCDATA(config.pattern[0])
+                trace("ptrn=/" + mtchr + "/ data='" + data + "'")
+                data =~ mtchr
             }
-            if (fileptrn) tag = fileptrn.'@tags'
-            trace("Tag found="+tag)
+            if (config) tag = config.'@id'
         }
         return tag
     }

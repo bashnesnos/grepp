@@ -121,6 +121,7 @@ class WgrepFacade {
         if (POST_PROCESSING) pProcessor = new PostProcessor()
         if (DATE_TIME_FILTER) dtChecker = new DateTimeChecker()
         fProcessor = new FileProcessor()
+        return 1
     }
 
     /**

@@ -122,7 +122,7 @@ class ExtendedPatternProcessor extends FacadeBase
                 }
                 else
                 {
-                    trace('Returning')
+                    trace('Returning data')
                     return extractThreadPatterns(blockData)
                 }
             }
@@ -133,7 +133,7 @@ class ExtendedPatternProcessor extends FacadeBase
             }
             else
             {
-                trace(pattern + ' not matched. Returning')
+                trace(pattern + ' not matched. Returning null')
                 return
             }
         }
@@ -155,19 +155,24 @@ class ExtendedPatternProcessor extends FacadeBase
                 }
                 else
                 {
-                    trace('Returning')
+                    trace('Returning data')
                     return extractThreadPatterns(blockData)
                 }
             }
             else if (patterns.size()-1 > 0)
             {
-                trace(pattern + ' not matched. Going deeper')
+                trace('/' + pattern + '/ not matched. Going deeper')
                 process(blockData, patterns[1..(patterns.size()-1)], null)
             }
         }
+        else if (matched)
+        {
+            trace('/' + pattern + '/ and /' + qlfr + '/ not matched. But previous matched. Returning data')
+            return blockData
+        }
         else
         {
-            trace(pattern + ' not matched. Returning')
+            trace('Nothing matched. Returning null')
             return
         }
 

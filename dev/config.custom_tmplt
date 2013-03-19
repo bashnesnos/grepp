@@ -10,8 +10,9 @@
 			<starter>log_entry_starter_pattern</starter>
 			<date>log_entry_datetime_pattern</date>
 			<log_threshold>log_file_threshold_in_hours</log_threshold>
+			<pattern alevel="entry_pattern">file_pattern</pattern>
 		</config>
-		<thread_configs alevel="execute_thread" type="findPatternByTag">
+		<thread_configs alevel="execute_thread">
 			<extractor qlfr="or" tags="your_config_id, your_preserve_thread_tag">thread_start_pattern</extractor>
 			<pattern clct="THRD_SKIP_END_PTTRNS" tags="your_config_id, your_preserve_thread_tag">thread_end_to_skip_pattern</pattern>
 			<pattern clct="THRD_END_PTTRNS" tags="your_config_id, your_preserve_thread_tag">thread_end_pattern</pattern>
@@ -23,10 +24,5 @@
 		<filters>
 			<filter tags="thread_tag">filter_pattern</filter>
 		</filters>
-		<mappings>
-			<log_config_mapping alevel="entry_pattern" type="findTagByPattern">
-				<pattern tags="your_config_id">file_pattern</pattern>
-			</log_config_mapping>
-		</mappings>
 	</custom>
 </root>

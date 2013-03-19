@@ -9,12 +9,12 @@ BOXES=#BOXES#
 for box in ${BOXES[*]}
 do
 	if [ "$1" != "-u" ] && [ "$1" != "-rm" ]; then
-		eval ssh $box 'cd ~;mkdir wgrep;cd wgrep;mkdir results;mkdir remote;echo "done"'
+		ssh $box 'cd ~;mkdir wgrep;cd wgrep;mkdir results;mkdir remote;echo "done"'
 	fi
 
 	if [ "$1" == "-rm" ]; then
-		eval ssh $box 'cd ~/wgrep;rm -r *;echo "cleaned"'
+		ssh $box 'cd ~/wgrep;rm -r *;echo "cleaned"'
 	fi
 
-	eval scp -p -r ./ $USER@$box:$GREP_HOME
+	scp -p -r ./ $USER@$box:$GREP_HOME
 done
