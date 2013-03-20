@@ -13,10 +13,10 @@ Moo
 Goo
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo
-
+#basic
 2012-10-20 05:05:57,952 [ACTIVE] ThreadStart: '1' SkipPattern
 Loo
 2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
 Voo
-##
+#complex
 2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2

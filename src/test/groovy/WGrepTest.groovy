@@ -94,7 +94,7 @@ class WGrepTest extends GroovyTestCase
         assertTrue( facade.HOME_DIR != null )
     }
 
-    void testFiltering()
+    void testComplexFiltering()
     {
         cleanUp()
         facade.processInVars(["-i", "Foo", HOME+"\\processing_test.log"])
@@ -104,17 +104,18 @@ class WGrepTest extends GroovyTestCase
         System.setOut(new PrintStream(pipeOut))
         facade.startProcessing()
         def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
+        pipeOut.close()
         System.setOut(oldStdout)
 
         def line = '#'
-        StringBuffer actualResult = new StringBuffer(line)
+        StringBuffer actualResult = new StringBuffer()
 
         if (outputReader.ready())
         {
-            while (line != '##')
+            while (line != null)
             {
+                actualResult = actualResult.append(line).append('\n')
                 line = outputReader.readLine()
-                actualResult = actualResult.append('\n').append(line)
             }
         }
 
@@ -129,12 +130,51 @@ Too
 Goo
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo
-
+#basic
 2012-10-20 05:05:57,952 [ACTIVE] ThreadStart: '1' SkipPattern
 Loo
 2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
 Voo
-##"""
+#complex
+"""
+    
+        assertTrue( expectedResult == actualResult.toString() )
+    }
+
+    void testBasicFiltering()
+    {
+        cleanUp()
+        facade.processInVars(["-a", "Foo", HOME+"\\processing_test.log"])
+        def oldStdout = System.out
+        def pipeOut = new PipedOutputStream()
+        def pipeIn = new PipedInputStream(pipeOut)
+        System.setOut(new PrintStream(pipeOut))
+        facade.startProcessing()
+        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
+        pipeOut.close()
+        System.setOut(oldStdout)
+
+        def line = '#'
+        StringBuffer actualResult = new StringBuffer()
+
+        if (outputReader.ready())
+        {
+            while (line != null)
+            {
+                actualResult = actualResult.append(line).append('\n')
+                line = outputReader.readLine()
+            }
+        }
+
+def expectedResult = """\
+#
+2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo
+
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
+Foo
+#basic
+"""
     
         assertTrue( expectedResult == actualResult.toString() )
     }

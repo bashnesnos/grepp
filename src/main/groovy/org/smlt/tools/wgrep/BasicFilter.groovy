@@ -29,7 +29,7 @@ class BasicFilter extends ModuleBase{
         	if (nextFilter) 
         	{
         		trace("Passing to next filter")
-        		nextFilter.filter(data)	
+        		nextFilter.filter(blockData)	
         	}
         	else 
         	{
