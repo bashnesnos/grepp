@@ -42,7 +42,7 @@ class FileProcessor extends ModuleBase
         dateTimeChecker = dateTimeChecker_
         fileList = getFacade().getParam("FILES")
         fSeparator = getFacade().getParam('FOLDER_SEPARATOR')
-        verbose("Total files to analyze: " + this.fileList.size())
+        if (isVerboseEnabled()) verbose("Total files to analyze: " + this.fileList.size())
         this.analyzeList()
     }
 
@@ -54,7 +54,7 @@ class FileProcessor extends ModuleBase
         def removeFiles = []
         fileList.each
         { fil ->
-            trace("analyzing supplied file: " + fil);
+            if (isTraceEnabled()) trace("analyzing supplied file: " + fil);
             if (fil =~ /\*/)
             {
                 removeFiles.add(fil);
@@ -65,13 +65,13 @@ class FileProcessor extends ModuleBase
                     flname = (fil =~ /.*$fSeparator(.*)/)[0][1]
                 }
                 def files = new File(dir).listFiles();
-                trace("files found " + files)
+                if (isTraceEnabled()) trace("files found " + files)
                 def ptrn = flname.replaceAll(/\*/) {it - '*' + '.*'};
                 files.each
                 {
                     if (it.name ==~ /$ptrn/)
                     {
-                        trace("adding file " + it)
+                        if (isTraceEnabled()) trace("adding file " + it)
                         newFileList.add(it)
                     }
                 }
@@ -80,16 +80,16 @@ class FileProcessor extends ModuleBase
         
         removeFiles.each { rmFil -> fileList.remove(rmFil)  }
         if (newFileList.size() > 0) newFileList.sort() { it.lastModified() }.each { fileList.add(it.absolutePath) }
-        trace("Total files for wgrep: " + fileList)
+        if (isTraceEnabled()) trace("Total files for wgrep: " + fileList)
     }
 
     def openFile(def fName)
     {
-        trace("Opening " + fName)
+        if (isTraceEnabled()) trace("Opening " + fName)
         def fileObj = new File(fName)
         if (!dateTimeChecker || dateTimeChecker.check(fileObj))
         {
-            trace("Done.")
+            if (isTraceEnabled()) trace("Done.")
             getFacade().checkEntryPattern(fName)
             curLine = 0
             return fileObj
@@ -103,7 +103,7 @@ class FileProcessor extends ModuleBase
         if (!data) return
         def endLine = null
         data.eachLine { line ->
-            trace("curLine: " + curLine)
+            if (isTraceEnabled()) trace("curLine: " + curLine)
             curLine += 1
             if (endLine) 
             {
@@ -117,9 +117,9 @@ class FileProcessor extends ModuleBase
             processLine(endLine)
         }
 
-        verbose("File ended. Lines processed: " + curLine)
+        if (isVerboseEnabled()) verbose("File ended. Lines processed: " + curLine)
         if (!getFacade().getParam('FILE_MERGING') && isBlockMatched) returnBlock(curBlock.toString())
-        else !isBlockMatched?verbose("Block continues"):verbose("Matched block continues")
+        else (isVerboseEnabled() && !isBlockMatched) ? verbose("Block continues"): verbose("Matched block continues")
     }
 
     def processLine(def line)
@@ -130,25 +130,25 @@ class FileProcessor extends ModuleBase
             if (!isBlockMatched && (!dateTimeChecker || dateTimeChecker.check(entry[0])))
             {
                 isBlockMatched = true
-                trace("appending")
+                if (isTraceEnabled()) trace("appending")
                 appendCurBlock(line)
             }
             else if (isBlockMatched)
             {
                 isBlockMatched = false
-                trace("returning block")
+                if (isTraceEnabled()) trace("returning block")
                 returnBlock(curBlock.toString())
                 return line
             }
             else
             {
-                trace("skipping")
+                if (isTraceEnabled()) trace("skipping")
                 return line
             }
         }
         else if (isBlockMatched)
         {
-            trace("appending")
+            if (isTraceEnabled()) trace("appending")
             appendCurBlock(line)
         }
         return

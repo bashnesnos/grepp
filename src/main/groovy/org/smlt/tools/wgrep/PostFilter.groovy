@@ -15,14 +15,14 @@ class PostFilter extends ModuleBase
     PostFilter(def nextOne)
     {
         nextFilter = nextOne
-        trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
         def pp_tag = getFacade().getParam('POST_PROCESSING')
         use(DOMCategory)
         {
-            trace("Looking for splitters of type=" + pp_tag)
+            if (isTraceEnabled()) trace("Looking for splitters of type=" + pp_tag)
             def pttrns = getRoot().custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
-            trace("Patterns found=" + pttrns)
+            if (isTraceEnabled()) trace("Patterns found=" + pttrns)
             if (pttrns)
             {
                 pttrns.sort { it.'@order' }
@@ -45,7 +45,7 @@ class PostFilter extends ModuleBase
         {
                 if (sep_tag) POST_PROCESS_SEP = sep_tag
                 else POST_PROCESS_SEP = getRoot().pp_config.'@default_sep'[0]
-                trace("Looking for separator=" + POST_PROCESS_SEP)
+                if (isTraceEnabled()) trace("Looking for separator=" + POST_PROCESS_SEP)
                 def sep = getRoot().pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
                 POST_PROCESS_SEP = sep.text()
                 if (sep.'@spool') getFacade().setSpoolingExt(sep.'@spool')
@@ -84,13 +84,13 @@ class PostFilter extends ModuleBase
         }
         else
         {
-            trace("PostFilter not passed")
+            if (isTraceEnabled()) trace("PostFilter not passed")
         }
     }
 
     def smartPostProcess(def ptrn, def val, def agg, def sep, def method)
     {
-        trace(new StringBuffer('smart post processing, ptrn=') + ptrn + ' val=' + val + ' agg=' + agg + ' method=' + method)
+        if (isTraceEnabled()) trace(new StringBuffer('smart post processing, ptrn=') + ptrn + ' val=' + val + ' agg=' + agg + ' method=' + method)
         def mtch = (val =~ ptrn)
         if (mtch) return (agg.size() > 0)?agg.append(sep).append(this."$method"(mtch)):agg.append(this."$method"(mtch))
         return agg

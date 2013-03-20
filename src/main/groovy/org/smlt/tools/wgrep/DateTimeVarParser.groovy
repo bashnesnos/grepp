@@ -5,7 +5,7 @@ class DateTimeVarParser extends AdditionalVarParser
 
     def parseVar(def arg)
     {
-        trace("Additional var: " + arg)
+        if (isTraceEnabled()) trace("Additional var: " + arg)
         if (!getFacade().getExtraParam('FROM_DATE')) setDateFrom(arg)
         else if (!getFacade().getExtraParam('TO_DATE')) 
         {

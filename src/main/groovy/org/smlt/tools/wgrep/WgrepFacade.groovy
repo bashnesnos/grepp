@@ -182,7 +182,7 @@ class WgrepFacade {
 
     def getParam(def field)
     {
-        trace("Accessing main param: " + field)
+        if (isTraceEnabled()) trace("Accessing main param: " + field)
         return this."$field"
     }
 
@@ -194,7 +194,7 @@ class WgrepFacade {
 
     def getExtraParam(def field)
     {
-        trace("Accessing extra param: " + field)
+        if (isTraceEnabled()) trace("Accessing extra param: " + field)
         return this.extraParams[field]
     }
 
@@ -208,7 +208,7 @@ class WgrepFacade {
 
     def setParam(def field, def val)
     {
-        trace("Setting main param: " + field + " val: " + val)
+        if (isTraceEnabled()) trace("Setting main param: " + field + " val: " + val)
         this."$field" = val
     }
 
@@ -220,7 +220,7 @@ class WgrepFacade {
 
     def setExtraParam(def field, def val)
     {
-        trace("Setting extra param: " + field + " val: " + val)
+        if (isTraceEnabled()) trace("Setting extra param: " + field + " val: " + val)
         this.extraParams[field] = val
     }
 
@@ -333,7 +333,7 @@ class WgrepFacade {
         if (SPOOLING)
         {
             def out_file = new File(HOME_DIR + FOLDER_SEPARATOR + RESULTS_DIR + FOLDER_SEPARATOR + FILTER_PATTERN.replaceAll("[^\\p{L}\\p{N}]", {""}) + SPOOLING_EXT)
-            trace("Creating new file: " + out_file.getAbsolutePath())
+            if (isTraceEnabled()) trace("Creating new file: " + out_file.getAbsolutePath())
             out_file.createNewFile()
             System.setOut(new PrintStream(new FileOutputStream(out_file)))
         }
@@ -359,7 +359,7 @@ class WgrepFacade {
     {
         for (arg in args)
         {
-            trace("Next argument " + arg)
+            if (isTraceEnabled()) trace("Next argument " + arg)
 
             def shouldContinue = processOptions(arg)
             if (shouldContinue == -1) return shouldContinue
@@ -467,7 +467,7 @@ class WgrepFacade {
 
     def parseAdditionalVar(def arg)
     {
-        trace("Parsing additional var: " + arg)
+        if (isTraceEnabled()) trace("Parsing additional var: " + arg)
         if (additionalVarParsers.size() > 0)
         {
             additionalVarParsers[0].parseVar(arg)
@@ -500,6 +500,12 @@ class WgrepFacade {
 
 
     // Handlers implementation
+    
+    def isVerboseEnabled()
+    {
+        return VERBOSE || TRACE
+    }
+
     /**
     * Prints supplied string if {@link VERBOSE} is <code>true</code>
     *
@@ -510,6 +516,11 @@ class WgrepFacade {
         if (VERBOSE || TRACE) println text
     }
     
+    def isTraceEnabled()
+    {
+        return TRACE
+    }
+
     /**
     * Prints supplied string if {@link TRACE} is <code>true</code>
     *
@@ -518,7 +529,7 @@ class WgrepFacade {
 
     def trace(def text)
     {
-        if (TRACE) println '###TRACE### ' + text
+        if (isTraceEnabled()) println '###TRACE### ' + text
     }
 
    

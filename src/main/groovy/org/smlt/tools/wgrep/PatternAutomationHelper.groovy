@@ -54,7 +54,7 @@ class PatternAutomationHelper extends ModuleBase
 
     def parseInit(def level, def data, def tag_, def method)
     {
-        trace('Identifying pattern for data=' + data + ' and tag=' + tag_ + ' with method=' + method)
+        if (isTraceEnabled()) trace('Identifying pattern for data=' + data + ' and tag=' + tag_ + ' with method=' + method)
         def tag = (tag_) ? tag_ : findConfigByData(level, data)
         if (!tag)  
         {
@@ -70,7 +70,7 @@ class PatternAutomationHelper extends ModuleBase
             def customCfg = getRoot().custom.config.find { it.'@id' ==~ tag }
             if (customCfg)
             {
-                trace('Parsing entry config for ' + tag)
+                if (isTraceEnabled()) trace('Parsing entry config for ' + tag)
                 getFacade().setLogEntryPattern(customCfg.starter.text() + customCfg.date.text())
                 getFacade().setExtraParam('LOG_DATE_PATTERN', customCfg.date.text())
                 getFacade().setExtraParam('LOG_DATE_FORMAT', customCfg.date_format.text())
@@ -78,17 +78,17 @@ class PatternAutomationHelper extends ModuleBase
             }
             else
             {
-                trace("Entry config is undefined")
+                if (isTraceEnabled()) trace("Entry config is undefined")
             }
             def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
             if (customFilter)
             {
-                trace('Parsing filter config for ' + tag)
+                if (isTraceEnabled()) trace('Parsing filter config for ' + tag)
                 getFacade().setFilterPattern(getCDATA(customFilter))
             }
             else
             {
-                trace("Filter is undefined")
+                if (isTraceEnabled()) trace("Filter is undefined")
             }
         }
         return tag
@@ -98,7 +98,7 @@ class PatternAutomationHelper extends ModuleBase
     {
         if (!getFacade().getParam('PRESERVE_THREAD'))
         {
-            trace('Parsing execute thread config for ' + tag)
+            if (isTraceEnabled()) trace('Parsing execute thread config for ' + tag)
             getFacade().setExtendedPattern("PRESERVE_THREAD",tag)
         }
         return tag
@@ -106,14 +106,14 @@ class PatternAutomationHelper extends ModuleBase
 
     def findConfigByData(def level, def data)
     {
-        trace("findConfigByData started")
+        if (isTraceEnabled()) trace("findConfigByData started")
         def tag = null
         use(DOMCategory)
         {
             def configs = getRoot().custom.config.findAll { it.pattern[0].'@alevel' ==~ level }
             def config = configs.find { config ->
                 currentConfigPtrn = getCDATA(config.pattern[0])
-                trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")
+                if (isTraceEnabled()) trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")
                 data =~ currentConfigPtrn
             }
             if (config) tag = config.'@id'

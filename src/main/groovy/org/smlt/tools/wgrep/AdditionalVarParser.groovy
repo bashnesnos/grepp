@@ -15,6 +15,6 @@ class AdditionalVarParser extends ModuleBase
 
 	def parseVar(def arg)
     {
-        trace("Not implemented ")
+        if (isTraceEnabled()) trace("Not implemented ")
     }
 }

@@ -54,7 +54,7 @@ class DateTimeChecker extends ModuleBase
 
     def setFileDateFormat(def format)
     {
-        trace("FILE_DATE_FORMAT set to " + format)
+        if (isTraceEnabled()) trace("FILE_DATE_FORMAT set to " + format)
         FILE_DATE_FORMAT = new SimpleDateFormat(format)
         return format
     }
@@ -73,10 +73,10 @@ class DateTimeChecker extends ModuleBase
     {
         def date = null
         INPUT_DATE_PTTRNS.find { ptrn -> 
-            trace("trying date pattern="+ ptrn); 
+            if (isTraceEnabled()) trace("trying date pattern="+ ptrn); 
             try {
                 date = (new SimpleDateFormat(setFileDateFormat(ptrn))).parse(dateStr) 
-                trace("Pattern found")
+                if (isTraceEnabled()) trace("Pattern found")
                 true
             }
             catch(java.text.ParseException e)
@@ -103,11 +103,11 @@ class DateTimeChecker extends ModuleBase
 
     def checkFileTime(def file)
     {
-        if (file) trace("Checking file " + file.getName() + " if it suits " + FILE_DATE_FORMAT.format(FROM_DATE))
-        if (TO_DATE) trace(" and " +  FILE_DATE_FORMAT.format(TO_DATE))
+        if (file) if (isTraceEnabled()) trace("Checking file " + file.getName() + " if it suits " + FILE_DATE_FORMAT.format(FROM_DATE))
+        if (TO_DATE) if (isTraceEnabled()) trace(" and " +  FILE_DATE_FORMAT.format(TO_DATE))
 
         def fileTime = new Date(file.lastModified())
-        trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
+        if (isTraceEnabled()) trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
         if (FROM_DATE.compareTo(fileTime) <= 0)
         {
             if (TO_DATE)
@@ -118,21 +118,21 @@ class DateTimeChecker extends ModuleBase
                 }
                 if (TO_DATE.compareTo(fileTime) < 0)
                 {
-                    trace("Passed TO_DATE")
+                    if (isTraceEnabled()) trace("Passed TO_DATE")
                     if (fileTime.before(new Date(TO_DATE.getTime() + LOG_FILE_THRESHOLD*LOG_FILE_THRESHOLD_MLTPLR))) return file
                     else
                     {
-                        trace("File is too far")
+                        if (isTraceEnabled()) trace("File is too far")
                         return null
                     }
                 }
             }
-            trace("Passed FROM_DATE only")
+            if (isTraceEnabled()) trace("Passed FROM_DATE only")
             return file
         }
         else
         {
-            trace("Not passed")
+            if (isTraceEnabled()) trace("Not passed")
             return null
         }
     }
@@ -148,7 +148,7 @@ class DateTimeChecker extends ModuleBase
     {
         if (entry && LOG_DATE_PATTERN)
         {
-            trace("Checking log entry " + entry + " for log date pattern |" + LOG_DATE_PATTERN + "| and formatting to |" +  LOG_DATE_FORMAT.toPattern() + "|")
+            if (isTraceEnabled()) trace("Checking log entry " + entry + " for log date pattern |" + LOG_DATE_PATTERN + "| and formatting to |" +  LOG_DATE_FORMAT.toPattern() + "|")
             def entryDate =  LOG_DATE_FORMAT.parse((entry =~ LOG_DATE_PATTERN)[0])
             if (FROM_DATE.compareTo(entryDate) <= 0)
             {
@@ -156,21 +156,21 @@ class DateTimeChecker extends ModuleBase
                 {
                     if (TO_DATE.compareTo(entryDate) >= 0)
                     {
-                        trace("Passed TO_DATE")
+                        if (isTraceEnabled()) trace("Passed TO_DATE")
                         return true
                     }
                     else
                     {
-                        trace("Not passed")
+                        if (isTraceEnabled()) trace("Not passed")
                         return false
                     }
                 }
-                trace("Passed FROM_DATE only")
+                if (isTraceEnabled()) trace("Passed FROM_DATE only")
                 return true
             }
             else
             {
-                trace("Not passed")
+                if (isTraceEnabled()) trace("Not passed")
                 return null
             }
         }

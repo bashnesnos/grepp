@@ -5,7 +5,7 @@ class BasicFilter extends ModuleBase{
 
 	BasicFilter(def nextOne) {
 		nextFilter = nextOne
-        trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 
     /**
@@ -23,12 +23,12 @@ class BasicFilter extends ModuleBase{
     def filter(def blockData)
     {
         def filterPtrn = getFacade().getParam('FILTER_PATTERN')
-        trace("Filtering with /" + filterPtrn + "/")
+        if (isTraceEnabled()) trace("Filtering with /" + filterPtrn + "/")
         if (blockData =~ filterPtrn) 
         {
         	if (nextFilter) 
         	{
-        		trace("Passing to next filter")
+        		if (isTraceEnabled()) trace("Passing to next filter")
         		nextFilter.filter(blockData)	
         	}
         	else 
@@ -38,7 +38,7 @@ class BasicFilter extends ModuleBase{
         }
         else
         {
-        	trace("BasicFilter not passed")
+        	if (isTraceEnabled()) trace("BasicFilter not passed")
         }  
     }
 }

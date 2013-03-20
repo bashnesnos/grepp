@@ -7,9 +7,19 @@ class ModuleBase
         return WgrepFacade.getInstance()
     }
 
+    def isVerboseEnabled()
+    {
+        return getFacade().isVerboseEnabled()
+    }
+
     def verbose(def text)
     {
 		getFacade().verbose(text)
+    }
+
+    def isTraceEnabled()
+    {
+        return getFacade().isTraceEnabled()
     }
     
     def trace(def text)
