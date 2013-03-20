@@ -38,7 +38,7 @@ class ComplexFilter extends ModuleBase
     {
       trace("adding complex pattern: val=" + val + " qual=" + qualifier)
       EXTNDD_PTTRNS.add(val)
-      EXTNDD_PTTRN_DICT[val] = qualifier
+      EXTNDD_PTTRN_DICT[val] = qualifier ? Qualifiers.valueOf(qualifier) : null
       trace(EXTNDD_PTTRNS)
       trace(EXTNDD_PTTRN_DICT)
     }
@@ -51,17 +51,16 @@ class ComplexFilter extends ModuleBase
 
     def processExtendedPattern(def val)
     {
-        def filterPattern = val
+        def filterPattern = null
         def qRegex = ""
         EXTNDD_QUALIFIERS.each { qRegex += '%' + it + '%|' }
         qRegex = qRegex[0..qRegex.size()-2] //removing last |
-        def mtch = (filterPattern =~ /$qRegex/)
+        def mtch = (val =~ /$qRegex/)
         if (mtch.size() > 0)
         {
             trace('Processing complex pattern')
             mtch = val.tokenize("%")
-            filterPattern = null
-            def nextGroup = null
+            def nextQualifier = null
             if (mtch)
             {
                 qRegex = qRegex.replaceAll(/%/, "")
@@ -71,16 +70,21 @@ class ComplexFilter extends ModuleBase
                     def qualifier = (grp =~ /$qRegex/)
                     if (qualifier)
                     {
-                        nextGroup = qualifier[0]
+                        nextQualifier = qualifier[0]
                         continue
                     }
 
-                    addExtendedFilterPattern(grp, nextGroup)
-                    nextGroup = null
+                    addExtendedFilterPattern(grp, nextQualifier)
+                    nextQualifier = null
 
                 }
             }
-            else print 'Check your complex pattern. Likely it\'s wrong'
+            else throw new IllegalArgumentException('Check your complex pattern:/' + val + '/')
+        }
+        else 
+        {
+            facade.trace('No extended pattern supplied, might be a preserve thread')
+            addExtendedFilterPattern(val, null)
         }
     }
 
