@@ -133,7 +133,7 @@ class ComplexFilter extends ModuleBase
         def ptrnMatcher = blockData =~ pattern
         def hasMorePatterns = patterns.size()-1 > 0
 
-        if ((qlfr && qlfr.check(matched, ptrnMatcher)) || ptrnMatcher)
+        if ((qlfr && qlfr.check(matched, ptrnMatcher)) || (!qlfr && ptrnMatcher))
         {
             trace('Proceeding')
             if (!hasMorePatterns)
@@ -144,7 +144,7 @@ class ComplexFilter extends ModuleBase
             else
             {
                 trace('Going deeper')
-                process(blockData, patterns[1..(patterns.size()-1)], 1)
+                return process(blockData, patterns[1..(patterns.size()-1)], 1)
             }
         }
         else
@@ -158,11 +158,11 @@ class ComplexFilter extends ModuleBase
             else
             {
                 trace('Going deeper')
-                process(blockData, patterns[1..(patterns.size()-1)], null)
+                return process(blockData, patterns[1..(patterns.size()-1)], null)
             }
         }
 
-        trace('All patterns checked. Returning')
+        trace('This return shouldn\'t be reachable')
         return
     }
 

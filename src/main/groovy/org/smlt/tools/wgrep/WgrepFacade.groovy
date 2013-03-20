@@ -507,7 +507,7 @@ class WgrepFacade {
     */
     def verbose(def text)
     {
-        if (VERBOSE) println text
+        if (VERBOSE || TRACE) println text
     }
     
     /**

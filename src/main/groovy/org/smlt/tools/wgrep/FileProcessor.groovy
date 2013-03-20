@@ -91,6 +91,7 @@ class FileProcessor extends ModuleBase
         {
             trace("Done.")
             getFacade().checkEntryPattern(fName)
+            curLine = 0
             return fileObj
         }
         else
@@ -109,6 +110,11 @@ class FileProcessor extends ModuleBase
                 processLine(endLine)
             }
             endLine = processLine(line)
+        }
+
+        if (endLine) //if file ended with matching line
+        {
+            processLine(endLine)
         }
 
         verbose("File ended. Lines processed: " + curLine)

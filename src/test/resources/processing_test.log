@@ -2,7 +2,7 @@
 Foo
 
 2013-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
-
+Too
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '5' 
 Boo
 
@@ -10,10 +10,13 @@ Boo
 Moo
 
 2014-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' ThreadEnd1
-
+Goo
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo
 
 2012-10-20 05:05:57,952 [ACTIVE] ThreadStart: '1' SkipPattern
-
+Loo
+2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
+Voo
+##
 2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
