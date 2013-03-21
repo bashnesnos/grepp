@@ -323,6 +323,18 @@ class WgrepFacade {
     }
 
     /**
+    * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
+    * @param field Field to be set
+    * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+    */
+    def setPredefinedConfig(def field, def val)
+    {
+        setParam('LEP_OVERRIDED', '1')   
+        if (!getParam('ATMTN_LEVEL')) setParam('ATMTN_LEVEL', 'a')   
+        setParam(field, val)
+    }
+
+    /**
     * Initializes spooling, i.e. redirects System.out to a file. 
     * <p>
     * File is created in the {@link this.HOME_DIR} folder with name compiled from {@link this.FILTER_PATTERN} and extension as {@link this.SPOOLING_EXT}
@@ -332,7 +344,9 @@ class WgrepFacade {
     {
         if (SPOOLING)
         {
-            def out_file = new File(HOME_DIR + FOLDER_SEPARATOR + RESULTS_DIR + FOLDER_SEPARATOR + FILTER_PATTERN.replaceAll("[^\\p{L}\\p{N}]", {""}) + SPOOLING_EXT)
+            def resultsDir = new File(HOME_DIR + FOLDER_SEPARATOR + RESULTS_DIR)
+            if (!resultsDir.exists()) resultsDir.mkdir()
+            def out_file = new File(resultsDir.getAbsolutePath() + FOLDER_SEPARATOR + FILTER_PATTERN.replaceAll("[^\\p{L}\\p{N}]", {""}) + SPOOLING_EXT)
             if (isTraceEnabled()) trace("Creating new file: " + out_file.getAbsolutePath())
             out_file.createNewFile()
             System.setOut(new PrintStream(new FileOutputStream(out_file)))

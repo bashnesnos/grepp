@@ -12,10 +12,6 @@
 		<opt field="ATMTN_LEVEL" handler="setAutomation">i</opt>
 		<opt field="DATE_TIME_FILTER" handler="setDateTimeFilter">dtime</opt>
 	</options>
-	<extended_patterns>
-		<qualifier id="and"/>
-		<qualifier id="or"/>
-	</extended_patterns>
 	<pp_config default_sep="csv">
 		<pp_splitter_types>
 			<splitter_type handler="processPostFilter" id="filter"/>

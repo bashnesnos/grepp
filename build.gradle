@@ -117,9 +117,6 @@ tasks.addRule("Pattern: release<ID>") { String taskName ->
         if (taskName =~ /Dev/) {
             subProject = project(':dev')
 		}
-		else if (taskName =~ /Stbl/) {
-            subProject = project(':stable')		
-        }
         else if (taskName ==~ /release/) {
             subProject = project(':release')
 

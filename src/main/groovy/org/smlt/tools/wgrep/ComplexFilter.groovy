@@ -6,9 +6,9 @@ class ComplexFilter extends ModuleBase
 {
     private nextFilter
     //Complex pattern processing and stuff
+    def PATTERN = new StringBuffer()
     def EXTNDD_PTTRNS = []
     def EXTNDD_PTTRN_DICT = [:]
-    def EXTNDD_QUALIFIERS = []
 
     def THRD_START_EXTRCTRS =[:]
     def THRD_START_PTTRNS = []
@@ -22,7 +22,6 @@ class ComplexFilter extends ModuleBase
         def pt_tag = getFacade().getParam('PRESERVE_THREAD')
         use(DOMCategory)
         {
-            getRoot().extended_patterns.qualifier.each{ EXTNDD_QUALIFIERS.add(Qualifiers.valueOf(it.'@id'))}
             if (pt_tag)
             {
                 def extrctrs = getRoot().custom.thread_configs.extractor.findAll { it.'@tags' =~ pt_tag }
@@ -37,14 +36,24 @@ class ComplexFilter extends ModuleBase
     def addExtendedFilterPattern(def val, def qualifier)
     {
       if (isTraceEnabled()) trace("adding complex pattern: val=" + val + " qual=" + qualifier)
+      
+      if (qualifier) PATTERN = PATTERN.append(Qualifier.valueOf(qualifier).getPattern())
+      PATTERN = PATTERN.append(val)
+      
       EXTNDD_PTTRNS.add(val)
-      EXTNDD_PTTRN_DICT[val] = qualifier ? Qualifiers.valueOf(qualifier) : null
+      EXTNDD_PTTRN_DICT[val] = qualifier ? Qualifier.valueOf(qualifier) : null
+      
       if (isTraceEnabled()) trace(EXTNDD_PTTRNS)
       if (isTraceEnabled()) trace(EXTNDD_PTTRN_DICT)
     }
 
     def removeExtendedFilterPattern(def val)
     {
+      def qlfr = EXTNDD_PTTRN_DICT[val]
+      def ptrn = (qlfr ? qlfr.getPattern() : '') + val
+      def ptrnIndex = PATTERN.indexOf(ptrn)
+      if (isTraceEnabled()) trace('to delete:/' + ptrn +'/ index:' + ptrnIndex)
+      PATTERN = PATTERN.delete(ptrnIndex, ptrnIndex + ptrn.length())
       EXTNDD_PTTRNS.remove(val)
       EXTNDD_PTTRN_DICT.remove(val)
     }
@@ -53,7 +62,7 @@ class ComplexFilter extends ModuleBase
     {
         def filterPattern = null
         def qRegex = ""
-        EXTNDD_QUALIFIERS.each { qRegex += '%' + it + '%|' }
+        Qualifier.each { qRegex += '%' + it + '%|' }
         qRegex = qRegex[0..qRegex.size()-2] //removing last |
         def mtch = (val =~ /$qRegex/)
         if (mtch.size() > 0)
@@ -99,10 +108,20 @@ class ComplexFilter extends ModuleBase
 
     def filter(def blockData)
     {
-        if (process(blockData, null))
+        def curPattern = PATTERN.toString()
+        if (isTraceEnabled()) 
         {
+            trace('Data: ' + blockData + '\n' +
+                'List of patterns:\n ' +    
+                curPattern + '\n')
+        }
+
+        if (blockData =~ curPattern)
+        {
+            extractThreadPatterns(blockData)
             if (nextFilter)
             {
+                if (isTraceEnabled()) trace('Returning data')
                 nextFilter.filter(blockData)
             }
             else
@@ -116,71 +135,17 @@ class ComplexFilter extends ModuleBase
         }
     }
 
-    def process(def blockData, def matched)
+    def extractThreadPatterns(def data)
     {
-       return process(blockData, EXTNDD_PTTRNS, matched)
-    }
-
-    def process(def blockData, def patterns, def matched)
-    {
-        if (isTraceEnabled()) trace('Data: ' + blockData)
-        if (isTraceEnabled()) trace('List of patterns: ')
-        if (isTraceEnabled()) trace(patterns)
-        if (isTraceEnabled()) trace('Is matched? ' + matched)    
-
-        def pattern = patterns[0]
-        def qlfr = EXTNDD_PTTRN_DICT[pattern]
-        def ptrnMatcher = blockData =~ pattern
-        def hasMorePatterns = patterns.size()-1 > 0
-
-        if ((qlfr && qlfr.check(matched, ptrnMatcher)) || (!qlfr && ptrnMatcher))
-        {
-            if (isTraceEnabled()) trace('Proceeding')
-            if (!hasMorePatterns)
-            {
-                if (isTraceEnabled()) trace('Returning data')
-                return extractThreadPatterns(blockData)
-            }
-            else
-            {
-                if (isTraceEnabled()) trace('Going deeper')
-                return process(blockData, patterns[1..(patterns.size()-1)], 1)
-            }
+        if (searchThreadEnds(data)) 
+        { 
+            extractThreadStarts(data, "removeThreadStart")
         }
         else
         {
-            if (isTraceEnabled()) trace('Nothing matched.')
-            if (!hasMorePatterns)
-            {
-                if (isTraceEnabled()) trace('Returning null since no patterns')
-                return
-            }
-            else
-            {
-                if (isTraceEnabled()) trace('Going deeper')
-                return process(blockData, patterns[1..(patterns.size()-1)], null)
-            }
+            if (isTraceEnabled()) trace("Thread continues. Keeping starts")
+            extractThreadStarts(data, "addThreadStart")
         }
-
-        if (isTraceEnabled()) trace('This return shouldn\'t be reachable')
-        return
-    }
-
-    def extractThreadPatterns(def data)
-    {
-        if (getFacade().PRESERVE_THREAD)
-        {
-            if (searchThreadEnds(data)) 
-            { 
-                extractThreadStarts(data, "removeThreadStart")
-            }
-            else
-            {
-                if (isTraceEnabled()) trace("Thread continues. Keeping starts")
-                extractThreadStarts(data, "addThreadStart")
-            }
-        }
-        return data
     }
 
     def extractThreadStarts(def data, def method)
@@ -196,7 +161,6 @@ class ComplexFilter extends ModuleBase
                 this."$method"(start, qlfr)
             }
         }
-        return
     }
 
     def searchThreadEnds(def data)

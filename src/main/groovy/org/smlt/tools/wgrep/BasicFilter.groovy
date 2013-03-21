@@ -2,6 +2,7 @@ package org.smlt.tools.wgrep
 
 class BasicFilter extends ModuleBase{
 	private nextFilter
+    private filterPtrn = getFacade().getParam('FILTER_PATTERN')
 
 	BasicFilter(def nextOne) {
 		nextFilter = nextOne
@@ -22,7 +23,6 @@ class BasicFilter extends ModuleBase{
 
     def filter(def blockData)
     {
-        def filterPtrn = getFacade().getParam('FILTER_PATTERN')
         if (isTraceEnabled()) trace("Filtering with /" + filterPtrn + "/")
         if (blockData =~ filterPtrn) 
         {

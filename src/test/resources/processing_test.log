@@ -1,5 +1,5 @@
 2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
-Foo
+Foo Koo
 
 2013-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
 Too
@@ -12,7 +12,7 @@ Moo
 2014-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' ThreadEnd1
 Goo
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
-Foo
+Foo Man Chu
 #basic
 2012-10-20 05:05:57,952 [ACTIVE] ThreadStart: '1' SkipPattern
 Loo

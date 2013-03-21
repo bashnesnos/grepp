@@ -3,13 +3,14 @@ package org.smlt.tools.wgrep
 class FileProcessor extends ModuleBase
 {
     //Reads logs files
-    def fileList = []
-    int curLine = 0
-    boolean isBlockMatched = false;
-    StringBuffer curBlock = null;
-    def filterChain = null;
-    def dateTimeChecker = null;
-    def fSeparator = null;
+    protected def fileList = []
+    protected int curLine = 0
+    protected boolean isBlockMatched = false;
+    protected StringBuffer curBlock = null;
+    protected def filterChain = null;
+    protected def dateTimeChecker = null;
+    protected def fSeparator = null;
+    protected def logEntryPattern = null;
 
     static FileProcessor getInstance() 
     {
@@ -40,14 +41,15 @@ class FileProcessor extends ModuleBase
     {
         filterChain = filterChain_
         dateTimeChecker = dateTimeChecker_
-        fileList = getFacade().getParam("FILES")
+        fileList = getFacade().getParam('FILES')
         fSeparator = getFacade().getParam('FOLDER_SEPARATOR')
+        logEntryPattern = getFacade().getParam('LOG_ENTRY_PATTERN')
         if (isVerboseEnabled()) verbose("Total files to analyze: " + this.fileList.size())
         this.analyzeList()
     }
 
 
-    def analyzeList()
+    protected def analyzeList()
     {
         def dir = getFacade().CWD
         def newFileList = []
@@ -83,7 +85,7 @@ class FileProcessor extends ModuleBase
         if (isTraceEnabled()) trace("Total files for wgrep: " + fileList)
     }
 
-    def openFile(def fName)
+    protected def openFile(def fName)
     {
         if (isTraceEnabled()) trace("Opening " + fName)
         def fileObj = new File(fName)
@@ -107,14 +109,14 @@ class FileProcessor extends ModuleBase
             curLine += 1
             if (endLine) 
             {
-                processLine(endLine)
+                processLine(endLine, logEntryPattern)
             }
-            endLine = processLine(line)
+            endLine = processLine(line, logEntryPattern)
         }
 
         if (endLine) //if file ended with matching line
         {
-            processLine(endLine)
+            processLine(endLine, logEntryPattern)
         }
 
         if (isVerboseEnabled()) verbose("File ended. Lines processed: " + curLine)
@@ -122,9 +124,9 @@ class FileProcessor extends ModuleBase
         else (isVerboseEnabled() && !isBlockMatched) ? verbose("Block continues"): verbose("Matched block continues")
     }
 
-    def processLine(def line)
+    def processLine(def line, def pattern)
     {
-        def entry = (line =~ getFacade().getParam('LOG_ENTRY_PATTERN'));
+        def entry = (line =~ pattern);
         if (entry)
         {
             if (!isBlockMatched && (!dateTimeChecker || dateTimeChecker.check(entry[0])))
@@ -161,7 +163,7 @@ class FileProcessor extends ModuleBase
         }
     }
 
-    def appendCurBlock(def line)
+    protected def appendCurBlock(def line)
     {
         if (curBlock)
             curBlock = curBlock.append('\n').append(line)
@@ -169,14 +171,10 @@ class FileProcessor extends ModuleBase
             curBlock = new StringBuffer(line)
     }
     
-    def returnBlock(def block)
+    protected def returnBlock(def block)
     {
         filterChain.filter(block)
         curBlock = null
     }
 
-    def addFile(def filename)
-    {
-        fileList.add(filename)
-    }
 }

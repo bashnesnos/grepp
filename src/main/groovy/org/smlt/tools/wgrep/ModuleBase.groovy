@@ -2,6 +2,9 @@ package org.smlt.tools.wgrep
 
 class ModuleBase
 {
+    def isTraceEnabled = getFacade().isTraceEnabled()
+    def isVerboseEnabled = getFacade().isVerboseEnabled()
+
     static WgrepFacade getFacade()
     {
         return WgrepFacade.getInstance()
@@ -9,7 +12,7 @@ class ModuleBase
 
     def isVerboseEnabled()
     {
-        return getFacade().isVerboseEnabled()
+        return isTraceEnabled
     }
 
     def verbose(def text)
@@ -19,7 +22,7 @@ class ModuleBase
 
     def isTraceEnabled()
     {
-        return getFacade().isTraceEnabled()
+        return isVerboseEnabled
     }
     
     def trace(def text)

@@ -40,22 +40,21 @@ class PatternAutomationHelper extends ModuleBase
         }
 
         ATMTN_SEQ.each {
-            rslt = parseInit(ATMTN_DICT[it], filename, rslt, it)
+            rslt = parse(ATMTN_DICT[it], filename, rslt, it)
         }
     }
 
     def automateByTag(def tag)
     {
-        def rslt = null
         ATMTN_SEQ.each {
-            rslt = parseInit(ATMTN_DICT[it], tag, tag, it)
+            parse(ATMTN_DICT[it], tag, tag, it)
         }
     }
 
-    def parseInit(def level, def data, def tag_, def method)
+    def parse(def level, def data, def tag_, def method)
     {
         if (isTraceEnabled()) trace('Identifying pattern for data=' + data + ' and tag=' + tag_ + ' with method=' + method)
-        def tag = (tag_) ? tag_ : findConfigByData(level, data)
+        def tag = (tag_) ? tag_ : findConfigByFileName(level, data)
         if (!tag)  
         {
             throw new IllegalArgumentException("Failed to identify tag")
@@ -96,25 +95,21 @@ class PatternAutomationHelper extends ModuleBase
 
     def parseExecuteThreadConfig(def tag)
     {
-        if (!getFacade().getParam('PRESERVE_THREAD'))
-        {
-            if (isTraceEnabled()) trace('Parsing execute thread config for ' + tag)
-            getFacade().setExtendedPattern("PRESERVE_THREAD",tag)
-        }
+        getFacade().setParam('PRESERVE_THREAD', tag)
         return tag
     }
 
-    def findConfigByData(def level, def data)
+    def findConfigByFileName(def level, def fileName)
     {
-        if (isTraceEnabled()) trace("findConfigByData started")
+        if (isTraceEnabled()) trace("findConfigByFileName started")
         def tag = null
         use(DOMCategory)
         {
             def configs = getRoot().custom.config.findAll { it.pattern[0].'@alevel' ==~ level }
             def config = configs.find { config ->
                 currentConfigPtrn = getCDATA(config.pattern[0])
-                if (isTraceEnabled()) trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")
-                data =~ currentConfigPtrn
+                if (isTraceEnabled()) trace("ptrn=/" + currentConfigPtrn + "/ fileName='" + fileName + "'")
+                fileName =~ currentConfigPtrn
             }
             if (config) tag = config.'@id'
         }
