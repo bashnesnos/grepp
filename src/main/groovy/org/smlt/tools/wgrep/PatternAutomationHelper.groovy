@@ -10,7 +10,7 @@ class PatternAutomationHelper extends ModuleBase
     def currentConfigPtrn = null
 
     static PatternAutomationHelper getInstance(){
-        return getFacade().getParam('ATMTN_LEVEL') ? new PatternAutomationHelper() : null
+        return getFacade().getParam('ATMTN_LEVEL') != null ? new PatternAutomationHelper() : null
     }
 
     private PatternAutomationHelper()
@@ -23,7 +23,7 @@ class PatternAutomationHelper extends ModuleBase
         }
         
         def predefnd = getFacade().getParam('PREDEF_TAG')
-        if (predefnd)
+        if (predefnd != null)
         {
             automateByTag(predefnd)
         } 
@@ -34,7 +34,7 @@ class PatternAutomationHelper extends ModuleBase
     def automateByFile(def filename)
     {
         def rslt = null
-        if (currentConfigPtrn)
+        if (currentConfigPtrn != null)
         {
             if (filename =~ currentConfigPtrn) return
         }
@@ -54,8 +54,8 @@ class PatternAutomationHelper extends ModuleBase
     def parse(def level, def data, def tag_, def method)
     {
         if (isTraceEnabled()) trace('Identifying pattern for data=' + data + ' and tag=' + tag_ + ' with method=' + method)
-        def tag = (tag_) ? tag_ : findConfigByFileName(level, data)
-        if (!tag)  
+        def tag = (tag_ != null) ? tag_ : findConfigByFileName(level, data)
+        if (tag == null)  
         {
             throw new IllegalArgumentException("Failed to identify tag")
         }
@@ -67,7 +67,7 @@ class PatternAutomationHelper extends ModuleBase
         use(DOMCategory)
         {
             def customCfg = getRoot().custom.config.find { it.'@id' ==~ tag }
-            if (customCfg)
+            if (customCfg != null)
             {
                 if (isTraceEnabled()) trace('Parsing entry config for ' + tag)
                 getFacade().setLogEntryPattern(customCfg.starter.text() + customCfg.date.text())
@@ -80,7 +80,7 @@ class PatternAutomationHelper extends ModuleBase
                 if (isTraceEnabled()) trace("Entry config is undefined")
             }
             def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
-            if (customFilter)
+            if (customFilter != null)
             {
                 if (isTraceEnabled()) trace('Parsing filter config for ' + tag)
                 getFacade().setFilterPattern(getCDATA(customFilter))
@@ -111,7 +111,7 @@ class PatternAutomationHelper extends ModuleBase
                 if (isTraceEnabled()) trace("ptrn=/" + currentConfigPtrn + "/ fileName='" + fileName + "'")
                 fileName =~ currentConfigPtrn
             }
-            if (config) tag = config.'@id'
+            if (config != null) tag = config.'@id'
         }
         return tag
     }

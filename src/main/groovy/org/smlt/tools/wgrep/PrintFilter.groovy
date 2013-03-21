@@ -17,7 +17,18 @@ class PrintFilter extends ModuleBase{
 
     def filter(def blockData)
     {
-        getFacade().printBlock(blockData)
+        if (blockData != null) 
+        {
+            getFacade().printBlock(blockData)
+            if (nextFilter != null)
+            {
+                nextFilter.filter(blockData)
+            }
+        }
+        else
+        {
+            if (isTraceEnabled()) trace("PrintFilter not passed")
+        }
     }
 
 }

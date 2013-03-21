@@ -16,12 +16,12 @@ class FileProcessor extends ModuleBase
     {
         def filterChain_ = new PrintFilter()
         def dateTimeChecker_ = null
-        if (getFacade().getParam('POST_PROCESSING'))
+        if (getFacade().getParam('POST_PROCESSING') != null)
         {
             filterChain_ = new PostFilter(filterChain_)
         } 
 
-        if (getFacade().getParam('EXTNDD_PATTERN') || getFacade().getParam('PRESERVE_THREAD'))
+        if (getFacade().getParam('EXTNDD_PATTERN') != null || getFacade().getParam('PRESERVE_THREAD') != null)
         {
             filterChain_ = new ComplexFilter(filterChain_)
         } 
@@ -30,7 +30,7 @@ class FileProcessor extends ModuleBase
             filterChain_ = new BasicFilter(filterChain_)
         }
 
-        if (getFacade().getParam('DATE_TIME_FILTER'))
+        if (getFacade().getParam('DATE_TIME_FILTER') != null)
         {
             dateTimeChecker_ = new DateTimeChecker()
         } 
@@ -89,7 +89,7 @@ class FileProcessor extends ModuleBase
     {
         if (isTraceEnabled()) trace("Opening " + fName)
         def fileObj = new File(fName)
-        if (!dateTimeChecker || dateTimeChecker.check(fileObj))
+        if (dateTimeChecker == null || dateTimeChecker.check(fileObj))
         {
             if (isTraceEnabled()) trace("Done.")
             getFacade().checkEntryPattern(fName)
@@ -102,25 +102,25 @@ class FileProcessor extends ModuleBase
 
     def process(def data)
     {
-        if (!data) return
+        if (data == null) return
         def endLine = null
         data.eachLine { line ->
             if (isTraceEnabled()) trace("curLine: " + curLine)
             curLine += 1
-            if (endLine) 
+            if (endLine != null) 
             {
                 processLine(endLine, logEntryPattern)
             }
             endLine = processLine(line, logEntryPattern)
         }
 
-        if (endLine) //if file ended with matching line
+        if (endLine != null) //if file ended with matching line
         {
             processLine(endLine, logEntryPattern)
         }
 
         if (isVerboseEnabled()) verbose("File ended. Lines processed: " + curLine)
-        if (!getFacade().getParam('FILE_MERGING') && isBlockMatched) returnBlock(curBlock.toString())
+        if (getFacade().getParam('FILE_MERGING') == null && isBlockMatched) returnBlock(curBlock.toString())
         else (isVerboseEnabled() && !isBlockMatched) ? verbose("Block continues"): verbose("Matched block continues")
     }
 
@@ -129,7 +129,7 @@ class FileProcessor extends ModuleBase
         def entry = (line =~ pattern);
         if (entry)
         {
-            if (!isBlockMatched && (!dateTimeChecker || dateTimeChecker.check(entry[0])))
+            if (!isBlockMatched && (dateTimeChecker == null || dateTimeChecker.check(entry[0])))
             {
                 isBlockMatched = true
                 if (isTraceEnabled()) trace("appending")
@@ -165,10 +165,14 @@ class FileProcessor extends ModuleBase
 
     protected def appendCurBlock(def line)
     {
-        if (curBlock)
+        if (curBlock != null)
+        {
             curBlock = curBlock.append('\n').append(line)
+        }
         else 
+        {
             curBlock = new StringBuffer(line)
+        }
     }
     
     protected def returnBlock(def block)

@@ -18,7 +18,7 @@ class DateTimeChecker extends ModuleBase
 
     DateTimeChecker(def dt_tag)
     {
-        if (!dt_tag)
+        if (dt_tag == null)
         {
             dt_tag = getFacade().getParam('DATE_TIME_FILTER')
         }
@@ -33,11 +33,11 @@ class DateTimeChecker extends ModuleBase
     def parseExtra()
     {
         def ptrn = getFacade().getExtraParam('LOG_DATE_PATTERN') 
-        if (ptrn) LOG_DATE_PATTERN = ptrn
+        if (ptrn != null) LOG_DATE_PATTERN = ptrn
         def frmt = getFacade().getExtraParam('LOG_DATE_FORMAT') 
-        if (frmt) LOG_DATE_FORMAT = new SimpleDateFormat(frmt)
+        if (frmt != null) LOG_DATE_FORMAT = new SimpleDateFormat(frmt)
         def trshld = getFacade().getExtraParam('LOG_FILE_THRESHOLD') 
-        if (trshld) LOG_FILE_THRESHOLD = Integer.valueOf(trshld)
+        if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(trshld)
         setDateFrom(getFacade().getExtraParam('FROM_DATE'))
         setDateTo(getFacade().getExtraParam('TO_DATE'))
     }
@@ -84,13 +84,13 @@ class DateTimeChecker extends ModuleBase
                 false
             }
         }
-        if (date) return date 
+        if (date != null) return date 
         else null
     }
 
     def check(def data)
     {
-        if (data instanceof File) return checkFileTime(data)
+        if (data instanceof File) checkFileTime(data)
         else if (data instanceof String) checkEntryTime(data)
     }
 
@@ -114,7 +114,7 @@ class DateTimeChecker extends ModuleBase
             {
                 if (TO_DATE.compareTo(fileTime) >= 0)
                 {
-                    return file
+                    return true
                 }
                 if (TO_DATE.compareTo(fileTime) < 0)
                 {
@@ -123,17 +123,17 @@ class DateTimeChecker extends ModuleBase
                     else
                     {
                         if (isTraceEnabled()) trace("File is too far")
-                        return null
+                        return false
                     }
                 }
             }
             if (isTraceEnabled()) trace("Passed FROM_DATE only")
-            return file
+            return true
         }
         else
         {
             if (isTraceEnabled()) trace("Not passed")
-            return null
+            return false
         }
     }
 
@@ -171,7 +171,7 @@ class DateTimeChecker extends ModuleBase
             else
             {
                 if (isTraceEnabled()) trace("Not passed")
-                return null
+                return false
             }
         }
         return true

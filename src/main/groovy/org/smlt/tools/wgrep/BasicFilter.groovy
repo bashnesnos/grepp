@@ -26,7 +26,7 @@ class BasicFilter extends ModuleBase{
         if (isTraceEnabled()) trace("Filtering with /" + filterPtrn + "/")
         if (blockData =~ filterPtrn) 
         {
-        	if (nextFilter) 
+        	if (nextFilter != null) 
         	{
         		if (isTraceEnabled()) trace("Passing to next filter")
         		nextFilter.filter(blockData)	

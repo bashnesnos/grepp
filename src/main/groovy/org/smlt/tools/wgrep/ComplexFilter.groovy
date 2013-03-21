@@ -22,7 +22,7 @@ class ComplexFilter extends ModuleBase
         def pt_tag = getFacade().getParam('PRESERVE_THREAD')
         use(DOMCategory)
         {
-            if (pt_tag)
+            if (pt_tag != null)
             {
                 def extrctrs = getRoot().custom.thread_configs.extractor.findAll { it.'@tags' =~ pt_tag }
                 extrctrs.each { THRD_START_EXTRCTRS[it.text()] = it.'@qlfr' }
@@ -37,7 +37,7 @@ class ComplexFilter extends ModuleBase
     {
       if (isTraceEnabled()) trace("adding complex pattern: val=" + val + " qual=" + qualifier)
       
-      if (qualifier) PATTERN = PATTERN.append(Qualifier.valueOf(qualifier).getPattern())
+      if (qualifier != null) PATTERN = PATTERN.append(Qualifier.valueOf(qualifier).getPattern())
       PATTERN = PATTERN.append(val)
       
       EXTNDD_PTTRNS.add(val)
@@ -70,7 +70,7 @@ class ComplexFilter extends ModuleBase
             if (isTraceEnabled()) trace('Processing complex pattern')
             mtch = val.tokenize("%")
             def nextQualifier = null
-            if (mtch)
+            if (mtch != null)
             {
                 qRegex = qRegex.replaceAll(/%/, "")
                 for (grp in mtch)
@@ -119,7 +119,7 @@ class ComplexFilter extends ModuleBase
         if (blockData =~ curPattern)
         {
             extractThreadPatterns(blockData)
-            if (nextFilter)
+            if (nextFilter != null)
             {
                 if (isTraceEnabled()) trace('Returning data')
                 nextFilter.filter(blockData)
@@ -172,7 +172,7 @@ class ComplexFilter extends ModuleBase
                 if (isTraceEnabled()) trace("thrend ptrn: " + thrend);
                 data =~ thrend
             }
-            return decision
+            return decision != null
         }
         return false
     }
@@ -184,7 +184,7 @@ class ComplexFilter extends ModuleBase
             if (isTraceEnabled()) trace("skip ptrn: " + skip)
             data =~ skip
         }
-        return decision
+        return decision != null
     }
 
     def addThreadStart(def start, def qlfr)

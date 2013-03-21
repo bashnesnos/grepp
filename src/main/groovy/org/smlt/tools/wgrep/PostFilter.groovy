@@ -10,7 +10,7 @@ class PostFilter extends ModuleBase
     def POST_PROCESS_SEP = null
     def POST_PROCESS_DICT = [:]
     def POST_PROCESS_HEADER = null
-    def HEADER_PRINTED = null
+    def HEADER_PRINTED = false
 
     PostFilter(def nextOne)
     {
@@ -23,7 +23,7 @@ class PostFilter extends ModuleBase
             if (isTraceEnabled()) trace("Looking for splitters of type=" + pp_tag)
             def pttrns = getRoot().custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
             if (isTraceEnabled()) trace("Patterns found=" + pttrns)
-            if (pttrns)
+            if (pttrns != null)
             {
                 pttrns.sort { it.'@order' }
                 pttrns.each { ptrn_node ->
@@ -40,15 +40,23 @@ class PostFilter extends ModuleBase
 
     def setSeparator(def sep_tag)
     {
-        if (POST_PROCESS_SEP) return
+        if (POST_PROCESS_SEP != null) return
+
         use(DOMCategory)
         {
-                if (sep_tag) POST_PROCESS_SEP = sep_tag
-                else POST_PROCESS_SEP = getRoot().pp_config.'@default_sep'[0]
+                if (sep_tag != null && sep_tag != '') 
+                {
+                    POST_PROCESS_SEP = sep_tag
+                }
+                else 
+                {
+                    POST_PROCESS_SEP = getRoot().pp_config.'@default_sep'[0]
+                }
                 if (isTraceEnabled()) trace("Looking for separator=" + POST_PROCESS_SEP)
+                
                 def sep = getRoot().pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
                 POST_PROCESS_SEP = sep.text()
-                if (sep.'@spool') getFacade().setSpoolingExt(sep.'@spool')
+                if (sep.'@spool' != null) getFacade().setSpoolingExt(sep.'@spool')
         }
     }
 
@@ -65,15 +73,15 @@ class PostFilter extends ModuleBase
         StringBuffer rslt = new StringBuffer("")
         if (!HEADER_PRINTED) 
         {   
-            HEADER_PRINTED = 1
+            HEADER_PRINTED = true
             getFacade().printBlock(POST_PROCESS_HEADER)
         }
         POST_PROCESS_PTTRNS.each { ptrn -> rslt = smartPostProcess(ptrn, blockData, rslt, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn])} //TODO: new handlers model is needed
         def result = rslt.toString()
         
-        if (result) 
+        if (result != null) 
         {
-            if (nextFilter)
+            if (nextFilter != null)
             {
                 nextFilter.filter(result)
             }

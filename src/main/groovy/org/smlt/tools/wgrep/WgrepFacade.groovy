@@ -23,7 +23,7 @@ class WgrepFacade {
     */
 
     static WgrepFacade getInstance(def args) { 
-        if (!facadeInstance) 
+        if (facadeInstance == null) 
         {
             facadeInstance = new WgrepFacade(args)
         }
@@ -92,13 +92,46 @@ class WgrepFacade {
     //General
     
     /**
+    * Method prints out some help
+    * <p> 
+    * Actually it has the same date as in groovydoc.
+    */
+    def printHelp() 
+    {
+        def help = """\
+        CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
+
+        Usage: 
+        java -cp wgrep.jar org.smlt.tools.wgrep.WGrep CONFIG_FILE [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+        Usage via supplied .bat or .sh file: 
+        wgrep [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+
+        Examples:
+
+        Using in Windows
+        wgrep -as \"SomethingINeedToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
+        wgrep -as \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log
+
+        Using on NIX 
+        wgrep -a --my_predefined_config --dtime 2011-11-11T11:10 2011-11-11T11:11 myapp.log 
+        wgrep -a --my_predefined_config myapp.log 
+        wgrep -a 'SomethingINeedToFind' myanotherapp.log 
+        wgrep -eas 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 
+        wgrep -ae 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' --dtime 2009-09-09T09:00 + thirdapp.log 
+        wgrep -as 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
+        """
+        println help
+        return -1
+    }
+
+    /**
     * Main method for printing a block. Checks if it is not null and prints to System.out.
     * @param block Block to be printed
     */
 
     def printBlock(def block)
     {
-        if (block) println block
+        println block
     }
 
     /**
@@ -115,35 +148,6 @@ class WgrepFacade {
     {
         paHelper = PatternAutomationHelper.getInstance()
         fProcessor = FileProcessor.getInstance()
-        return 1
-    }
-
-    /**
-    * Method checks if all the main vars are not nulls.
-    * @return <code>1</code> if check is passed. <code>null</code> otherwise.
-    */
-
-    def checkVars()
-    {
-        
-        if (FILES.isEmpty())
-        {
-            println "No file to wgrep"
-            return
-        }
-
-        if (!getParam('LOG_ENTRY_PATTERN'))
-        {
-            println "No log entry pattern. Can't split the log records."
-            return
-        }
-
-        if (!getParam('FILTER_PATTERN'))
-        {
-            println "No filter pattern. To list all the file better use less"
-            return
-        }
-
         return 1
     }
 
@@ -166,7 +170,7 @@ class WgrepFacade {
 
     def getCDATA(def node)
     {
-        if (!node) return
+        if (node == null) return
         use(DOMCategory)
         {
             def txt = node.text()
@@ -261,7 +265,7 @@ class WgrepFacade {
 
     def setFileName(def val)
     {
-        if (!val) return
+        if (val == null) return
         FILES.add(val)
     }
 
@@ -307,7 +311,7 @@ class WgrepFacade {
 
     def setAutomation(def field, def val)
     {
-        setParam('LEP_OVERRIDED', '1')   
+        setParam('LEP_OVERRIDED', true)   
         setParam(field, val)
     }
 
@@ -318,7 +322,7 @@ class WgrepFacade {
     */
     def setPredefined(def field, def val)
     {
-        setParam('FP_OVERRIDED', '1')   
+        setParam('FP_OVERRIDED', true)   
         setParam(field, val)
     }
 
@@ -329,8 +333,8 @@ class WgrepFacade {
     */
     def setPredefinedConfig(def field, def val)
     {
-        setParam('LEP_OVERRIDED', '1')   
-        if (!getParam('ATMTN_LEVEL')) setParam('ATMTN_LEVEL', 'a')   
+        setParam('LEP_OVERRIDED', true)   
+        if (getParam('ATMTN_LEVEL') == null) setParam('ATMTN_LEVEL', 'a')   
         setParam(field, val)
     }
 
@@ -342,7 +346,7 @@ class WgrepFacade {
 
     def spool()
     {
-        if (SPOOLING)
+        if (SPOOLING != null)
         {
             def resultsDir = new File(HOME_DIR + FOLDER_SEPARATOR + RESULTS_DIR)
             if (!resultsDir.exists()) resultsDir.mkdir()
@@ -375,23 +379,23 @@ class WgrepFacade {
         {
             if (isTraceEnabled()) trace("Next argument " + arg)
 
-            def shouldContinue = processOptions(arg)
+            def shouldContinue = processOptions(arg) 
             if (shouldContinue == -1) return shouldContinue
-            if (shouldContinue) continue
+            if (shouldContinue > 0) continue
             
-            if (!LEP_OVERRIDED && !LOG_ENTRY_PATTERN)
+            if (!LEP_OVERRIDED && LOG_ENTRY_PATTERN == null)
             {
                 setLogEntryPattern(arg)
                 continue
             }
 
-            if (!FP_OVERRIDED && !FILTER_PATTERN) 
+            if (!FP_OVERRIDED && FILTER_PATTERN == null) 
             {
                 setFilterPattern(arg)
                 continue
             }
 
-            if (parseAdditionalVar(arg)) continue
+            if (parseAdditionalVar(arg) != null) continue
             setFileName(arg)
         }
         moduleInit()
@@ -417,7 +421,7 @@ class WgrepFacade {
             processComlpexArg(arg.substring(2)) //skipping '--' itself
             return 1
         }
-        return null
+        return 0
     }
     
     /**
@@ -460,8 +464,8 @@ class WgrepFacade {
         use(DOMCategory)
         {
             def optElem = root.options.opt.find {it.text() == opt}
-            if (!optElem) optElem = root.custom.options.opt.find {it.text() == opt}
-            if (optElem)
+            if (optElem == null) optElem = root.custom.options.opt.find {it.text() == opt}
+            if (optElem != null)
             {
                 def handler = optElem['@handler']
                 facadeInstance."$handler"(optElem['@field'], optElem.text())
@@ -517,7 +521,7 @@ class WgrepFacade {
     
     def isVerboseEnabled()
     {
-        return VERBOSE || TRACE
+        return VERBOSE != null || TRACE != null
     }
 
     /**
@@ -527,12 +531,12 @@ class WgrepFacade {
     */
     def verbose(def text)
     {
-        if (VERBOSE || TRACE) println text
+        if (isVerboseEnabled()) println text
     }
     
     def isTraceEnabled()
     {
-        return TRACE
+        return TRACE != null
     }
 
     /**
@@ -549,43 +553,39 @@ class WgrepFacade {
    
     def checkEntryPattern(def fileName)
     {
-        if (paHelper)
+        if (paHelper != null)
         {
             paHelper.automateByFile(fileName)
         }
     }
 
-
     /**
-    * Method prints out some help
-    * <p> 
-    * Actually it has the same date as in groovydoc.
+    * Method checks if all the main vars are not nulls.
+    * @return <code>1</code> if check is passed. <code>null</code> otherwise.
     */
-    def printHelp() 
+
+    def checkVars()
     {
-        def help = """\
-        CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
+        
+        if (FILES.isEmpty())
+        {
+            println "No file to wgrep"
+            return false
+        }
 
-        Usage: 
-        java -cp wgrep.jar org.smlt.tools.wgrep.WGrep CONFIG_FILE [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
-        Usage via supplied .bat or .sh file: 
-        wgrep [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+        if (getParam('LOG_ENTRY_PATTERN') == null)
+        {
+            println "No log entry pattern. Can't split the log records."
+            return false
+        }
 
-        Examples:
+        if (getParam('FILTER_PATTERN') == null)
+        {
+            println "No filter pattern. To list all the file better use less"
+            return false
+        }
 
-        Using in Windows
-        wgrep -as \"SomethingINeedToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
-        wgrep -as \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log
-
-        Using on NIX 
-        wgrep -a --my_predefined_config --dtime 2011-11-11T11:10 2011-11-11T11:11 myapp.log 
-        wgrep -a --my_predefined_config myapp.log 
-        wgrep -a 'SomethingINeedToFind' myanotherapp.log 
-        wgrep -eas 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 
-        wgrep -ae 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' --dtime 2009-09-09T09:00 + thirdapp.log 
-        wgrep -as 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
-        """
-        println help
-        return -1
+        return true
     }
+
 }

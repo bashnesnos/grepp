@@ -86,7 +86,7 @@ class WGrepTest extends GroovyTestCase
     void testMoreComplexVarsProcessing()
     {
         cleanUp()
-        facade.processInVars(["-ts", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"   ])
+        facade.processInVars(["-ts", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
         assertTrue( facade.LOG_ENTRY_PATTERN == "stCommand" )
         assertTrue( facade.FILTER_PATTERN == "queryTime" )
         assertTrue( facade.FILES == ["cmd_only_1.log"] )
