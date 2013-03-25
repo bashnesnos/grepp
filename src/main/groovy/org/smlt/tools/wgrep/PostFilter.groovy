@@ -107,7 +107,7 @@ class PostFilter extends ModuleBase
 
     def processPostFilter(Matcher mtchResults)
     {
-        return mtchResults.group(1)
+        return mtchResults[0][1]
     }
 
     def processPostCounter(Matcher mtchResults)

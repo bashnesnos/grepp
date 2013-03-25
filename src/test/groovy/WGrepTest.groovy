@@ -71,7 +71,7 @@ class WGrepTest extends GroovyTestCase
     void testComplexVarsProcessing()
     {
         cleanUp()
-        facade.processInVars(["-t","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
+        facade.processInVars(["-","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
         assertTrue( facade.DATE_TIME_FILTER == "dtime" )
     }
 
@@ -86,7 +86,7 @@ class WGrepTest extends GroovyTestCase
     void testMoreComplexVarsProcessing()
     {
         cleanUp()
-        facade.processInVars(["-ts", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
+        facade.processInVars(["-s", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
         assertTrue( facade.LOG_ENTRY_PATTERN == "stCommand" )
         assertTrue( facade.FILTER_PATTERN == "queryTime" )
         assertTrue( facade.FILES == ["cmd_only_1.log"] )
@@ -102,10 +102,22 @@ class WGrepTest extends GroovyTestCase
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
         System.setOut(new PrintStream(pipeOut))
-        facade.startProcessing()
+
+        try
+        {
+            facade.startProcessing()
+        }
+        catch (Exception e) {
+            pipeOut.close()
+            System.setOut(oldStdout)
+            throw e
+        }
+        finally {
+            System.setOut(oldStdout)
+            pipeOut.close()
+        }
+
         def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-        System.setOut(oldStdout)
-        pipeOut.close()
 
         def line = '#'
         StringBuffer actualResult = new StringBuffer()
@@ -149,10 +161,22 @@ Voo
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
         System.setOut(new PrintStream(pipeOut))
-        facade.startProcessing()
+
+        try
+        {
+            facade.startProcessing()
+        }
+        catch (Exception e) {
+            pipeOut.close()
+            System.setOut(oldStdout)
+            throw e
+        }
+        finally {
+            System.setOut(oldStdout)
+            pipeOut.close()
+        }
+
         def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-        System.setOut(oldStdout)
-        pipeOut.close()
 
         def line = '#'
         StringBuffer actualResult = new StringBuffer()
@@ -184,10 +208,22 @@ Foo Man Chu
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
         System.setOut(new PrintStream(pipeOut))
-        facade.startProcessing()
+
+        try
+        {
+            facade.startProcessing()
+        }
+        catch (Exception e) {
+            pipeOut.close()
+            System.setOut(oldStdout)
+            throw e
+        }
+        finally {
+            System.setOut(oldStdout)
+            pipeOut.close()
+        }
+
         def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-        System.setOut(oldStdout)
-        pipeOut.close()
 
         def line = '#'
         StringBuffer actualResult = new StringBuffer()
@@ -222,10 +258,22 @@ Foo Man Chu
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
         System.setOut(new PrintStream(pipeOut))
-        facade.startProcessing()
+
+        try
+        {
+            facade.startProcessing()
+        }
+        catch (Exception e) {
+            pipeOut.close()
+            System.setOut(oldStdout)
+            throw e
+        }
+        finally {
+            System.setOut(oldStdout)
+            pipeOut.close()
+        }
+
         def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-        System.setOut(oldStdout)
-        pipeOut.close()
 
         def line = '#'
         StringBuffer actualResult = new StringBuffer()
@@ -246,6 +294,55 @@ Foo Koo
 
 """
     
+        assertTrue( expectedResult == actualResult.toString() )
+    }
+
+    void testPostFiltering()
+    {
+        cleanUp()
+        facade.processInVars(["-a", "oo", "--some_timings", HOME+"\\processing_report_test.log"])
+        def oldStdout = System.out
+        def pipeOut = new PipedOutputStream()
+        def pipeIn = new PipedInputStream(pipeOut)
+        System.setOut(new PrintStream(pipeOut))
+
+        try
+        {
+            facade.startProcessing()
+        }
+        catch (Exception e) {
+            pipeOut.close()
+            System.setOut(oldStdout)
+            throw e
+        }
+        finally {
+            System.setOut(oldStdout)
+            pipeOut.close()
+        }
+
+        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
+
+        def line = '#'
+        StringBuffer actualResult = new StringBuffer()
+
+        if (outputReader.ready())
+        {
+            while (line != null)
+            {
+                actualResult = actualResult.append(line).append('\n')
+                line = outputReader.readLine()
+            }
+        }
+
+        def expectedResult = """\
+#
+some_cmd,count_of_operands
+Foo,3
+Koo,1
+Boo
+
+"""
+
         assertTrue( expectedResult == actualResult.toString() )
     }
 }

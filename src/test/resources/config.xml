@@ -58,7 +58,7 @@
 		</thread_configs>
 		<pp_splitters>
 			<splitter col_name="some_cmd" order="1" tags="some_timings" type="filter">Command name="?(.*?)"</splitter>
-			<splitter col_name="some_time" order="2" tags="some_timings" type="filter">queryTime" value="?(.*?)"</splitter>
+			<splitter col_name="count_of_operands" order="2" tags="some_timings" type="counter">(operand)</splitter>
 		</pp_splitters>
 		<filters>
 			<filter tags="predef">Something::</filter>
