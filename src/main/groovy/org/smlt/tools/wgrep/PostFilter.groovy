@@ -1,6 +1,7 @@
 package org.smlt.tools.wgrep
 
 import groovy.xml.dom.DOMCategory
+import java.util.regex.Matcher
 
 class PostFilter extends ModuleBase
 {
@@ -99,17 +100,17 @@ class PostFilter extends ModuleBase
     def smartPostProcess(def ptrn, def val, def agg, def sep, def method)
     {
         if (isTraceEnabled()) trace(new StringBuffer('smart post processing, ptrn=') + ptrn + ' val=' + val + ' agg=' + agg + ' method=' + method)
-        def mtch = (val =~ ptrn)
-        if (mtch) return (agg.size() > 0)?agg.append(sep).append(this."$method"(mtch)):agg.append(this."$method"(mtch))
+        Matcher mtch = (val =~ ptrn)
+        if (mtch.size() > 0) return (agg.size() > 0)?agg.append(sep).append(this."$method"(mtch)):agg.append(this."$method"(mtch))
         return agg
     }
 
-    def processPostFilter(def mtchResults)
+    def processPostFilter(Matcher mtchResults)
     {
         return mtchResults.group(1)
     }
 
-    def processPostCounter(def mtchResults)
+    def processPostCounter(Matcher mtchResults)
     {
         return mtchResults.size()
     }

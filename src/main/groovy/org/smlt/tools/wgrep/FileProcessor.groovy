@@ -1,5 +1,7 @@
 package org.smlt.tools.wgrep
 
+import java.util.regex.Matcher
+
 class FileProcessor extends ModuleBase
 {
     //Reads logs files
@@ -104,19 +106,16 @@ class FileProcessor extends ModuleBase
     {
         if (data == null) return
         def endLine = null
-        data.eachLine { line ->
-            if (isTraceEnabled()) trace("curLine: " + curLine)
-            curLine += 1
-            if (endLine != null) 
-            {
-                processLine(endLine, logEntryPattern)
+        
+        try {
+            data.eachLine { line ->
+                if (isTraceEnabled()) trace("curLine: " + curLine)
+                curLine += 1
+                processLine(line, logEntryPattern)
             }
-            endLine = processLine(line, logEntryPattern)
         }
-
-        if (endLine != null) //if file ended with matching line
-        {
-            processLine(endLine, logEntryPattern)
+        catch(TimeToIsOverduedException e) {
+            if (isTraceEnabled()) trace("No point to read file further since supplied date TO is overdued")
         }
 
         if (isVerboseEnabled()) verbose("File ended. Lines processed: " + curLine)
@@ -126,10 +125,18 @@ class FileProcessor extends ModuleBase
 
     def processLine(def line, def pattern)
     {
-        def entry = (line =~ pattern);
-        if (entry)
+        Matcher entryMtchr = line =~ pattern
+        if ( entryMtchr.size() > 0 )
         {
-            if (!isBlockMatched && (dateTimeChecker == null || dateTimeChecker.check(entry[0])))
+            boolean isDateTimePassed = dateTimeChecker == null || dateTimeChecker.check(entryMtchr)
+            
+            if (!isDateTimePassed)
+            {
+                if (isTraceEnabled()) trace("Time not passed, invalidating")
+                isBlockMatched = false
+            }
+
+            if (!isBlockMatched && isDateTimePassed)
             {
                 isBlockMatched = true
                 if (isTraceEnabled()) trace("appending")
@@ -137,15 +144,10 @@ class FileProcessor extends ModuleBase
             }
             else if (isBlockMatched)
             {
-                isBlockMatched = false
                 if (isTraceEnabled()) trace("returning block")
                 returnBlock(curBlock.toString())
-                return line
-            }
-            else
-            {
-                if (isTraceEnabled()) trace("skipping")
-                return line
+                if (isTraceEnabled()) trace("appending end, since it is the start of new block")
+                appendCurBlock(line)
             }
         }
         else if (isBlockMatched)
@@ -153,7 +155,6 @@ class FileProcessor extends ModuleBase
             if (isTraceEnabled()) trace("appending")
             appendCurBlock(line)
         }
-        return
     }
 
     def processAll()

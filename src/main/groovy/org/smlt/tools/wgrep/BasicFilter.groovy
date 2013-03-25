@@ -1,5 +1,7 @@
 package org.smlt.tools.wgrep
 
+import java.util.regex.Matcher
+
 class BasicFilter extends ModuleBase{
 	private nextFilter
     private filterPtrn = getFacade().getParam('FILTER_PATTERN')
@@ -24,7 +26,8 @@ class BasicFilter extends ModuleBase{
     def filter(def blockData)
     {
         if (isTraceEnabled()) trace("Filtering with /" + filterPtrn + "/")
-        if (blockData =~ filterPtrn) 
+        Matcher blockMtchr = blockData =~ filterPtrn
+        if (blockMtchr.size() > 0) 
         {
         	if (nextFilter != null) 
         	{

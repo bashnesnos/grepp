@@ -1,5 +1,6 @@
 package org.smlt.tools.wgrep
 
+import java.util.regex.Matcher
 import groovy.xml.dom.DOMCategory
 
 class ComplexFilter extends ModuleBase
@@ -116,7 +117,8 @@ class ComplexFilter extends ModuleBase
                 curPattern + '\n')
         }
 
-        if (blockData =~ curPattern)
+        def blockMtchr = blockData =~ curPattern
+        if (blockMtchr.size() > 0)
         {
             extractThreadPatterns(blockData)
             if (nextFilter != null)

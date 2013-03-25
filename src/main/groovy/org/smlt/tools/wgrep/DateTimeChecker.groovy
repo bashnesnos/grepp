@@ -1,6 +1,7 @@
 package org.smlt.tools.wgrep
 
 import java.text.SimpleDateFormat
+import java.util.regex.Matcher
 import groovy.xml.dom.DOMCategory
 
 class DateTimeChecker extends ModuleBase
@@ -91,7 +92,8 @@ class DateTimeChecker extends ModuleBase
     def check(def data)
     {
         if (data instanceof File) checkFileTime(data)
-        else if (data instanceof String) checkEntryTime(data)
+        else if (data instanceof Matcher) checkEntryTime(data)
+        else throw new IllegalArgumentException("Unsupported type: " + data.getClass())
     }
 
     /**
@@ -103,15 +105,15 @@ class DateTimeChecker extends ModuleBase
 
     def checkFileTime(def file)
     {
-        if (file) if (isTraceEnabled()) trace("Checking file " + file.getName() + " if it suits " + FILE_DATE_FORMAT.format(FROM_DATE))
-        if (TO_DATE) if (isTraceEnabled()) trace(" and " +  FILE_DATE_FORMAT.format(TO_DATE))
+        if (file == null) return
 
         def fileTime = new Date(file.lastModified())
         if (isTraceEnabled()) trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
         if (FROM_DATE.compareTo(fileTime) <= 0)
         {
-            if (TO_DATE)
+            if (TO_DATE != null)
             {
+                if (isTraceEnabled()) trace(" Checking if file suits TO " +  FILE_DATE_FORMAT.format(TO_DATE))
                 if (TO_DATE.compareTo(fileTime) >= 0)
                 {
                     return true
@@ -144,15 +146,15 @@ class DateTimeChecker extends ModuleBase
     * @param entry A String to be checked
     */
     
-    def checkEntryTime(def entry)
+    def checkEntryTime(Matcher entry)
     {
-        if (entry && LOG_DATE_PATTERN)
+        if (entry != null && LOG_DATE_PATTERN != null)
         {
-            if (isTraceEnabled()) trace("Checking log entry " + entry + " for log date pattern |" + LOG_DATE_PATTERN + "| and formatting to |" +  LOG_DATE_FORMAT.toPattern() + "|")
-            def entryDate =  LOG_DATE_FORMAT.parse((entry =~ LOG_DATE_PATTERN)[0])
+            if (isTraceEnabled()) trace("Checking log entry " + entry[0][0] + " for log date pattern |" + LOG_DATE_PATTERN + "| and formatting to |" +  LOG_DATE_FORMAT.toPattern() + "|")
+            def entryDate =  LOG_DATE_FORMAT.parse(entry[0][1])
             if (FROM_DATE.compareTo(entryDate) <= 0)
             {
-                if (TO_DATE)
+                if (TO_DATE != null)
                 {
                     if (TO_DATE.compareTo(entryDate) >= 0)
                     {
@@ -162,7 +164,7 @@ class DateTimeChecker extends ModuleBase
                     else
                     {
                         if (isTraceEnabled()) trace("Not passed")
-                        return false
+                        throw new TimeToIsOverduedException(LOG_DATE_FORMAT.format(TO_DATE))
                     }
                 }
                 if (isTraceEnabled()) trace("Passed FROM_DATE only")
