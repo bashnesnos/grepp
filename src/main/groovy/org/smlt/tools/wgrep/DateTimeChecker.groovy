@@ -150,8 +150,8 @@ class DateTimeChecker extends ModuleBase
     {
         if (entry != null && LOG_DATE_PATTERN != null)
         {
-            if (isTraceEnabled()) trace("Checking log entry " + entry[0][0] + " for log date pattern |" + LOG_DATE_PATTERN + "| and formatting to |" +  LOG_DATE_FORMAT.toPattern() + "|")
-            def entryDate =  LOG_DATE_FORMAT.parse(entry[0][1])
+            if (isTraceEnabled()) trace("Checking log entry " + entry.group() + " for log date pattern |" + LOG_DATE_PATTERN + "| and formatting to |" +  LOG_DATE_FORMAT.toPattern() + "|")
+            def entryDate =  LOG_DATE_FORMAT.parse(entry.group(1))
             if (FROM_DATE.compareTo(entryDate) <= 0)
             {
                 if (TO_DATE != null)

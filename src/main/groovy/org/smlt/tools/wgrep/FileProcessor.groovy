@@ -126,7 +126,7 @@ class FileProcessor extends ModuleBase
     def processLine(def line, def pattern)
     {
         Matcher entryMtchr = line =~ pattern
-        if ( entryMtchr.size() > 0 )
+        if ( entryMtchr.find() )
         {
             boolean isDateTimePassed = dateTimeChecker == null || dateTimeChecker.check(entryMtchr)
             

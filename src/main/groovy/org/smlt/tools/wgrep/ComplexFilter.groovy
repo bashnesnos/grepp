@@ -66,7 +66,7 @@ class ComplexFilter extends ModuleBase
         Qualifier.each { qRegex += '%' + it + '%|' }
         qRegex = qRegex[0..qRegex.size()-2] //removing last |
         def mtch = (val =~ /$qRegex/)
-        if (mtch.size() > 0)
+        if (mtch.find())
         {
             if (isTraceEnabled()) trace('Processing complex pattern')
             mtch = val.tokenize("%")
@@ -118,7 +118,7 @@ class ComplexFilter extends ModuleBase
         }
 
         def blockMtchr = blockData =~ curPattern
-        if (blockMtchr.size() > 0)
+        if (blockMtchr.find())
         {
             extractThreadPatterns(blockData)
             if (nextFilter != null)
