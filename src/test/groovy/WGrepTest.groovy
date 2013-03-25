@@ -1,6 +1,7 @@
 import org.smlt.tools.wgrep.*
 
 import groovy.util.GroovyTestCase
+import java.text.SimpleDateFormat
 
 class WGrepTest extends GroovyTestCase
 {
@@ -36,7 +37,7 @@ class WGrepTest extends GroovyTestCase
         facade.PREDEF_TAG = null
         facade.additionalVarParsers = []
         facade.fProcessor = null
-
+        def extraParams = [:]
 
     }
     
@@ -253,7 +254,11 @@ Foo Man Chu
     void testTimeFiltering()
     {
         cleanUp()
-        facade.processInVars(["-a", "Foo", "--dtime", "2013-03-25T05", "2013-03-25T06", HOME+"\\processing_time_test.log"])
+        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
+        def testTimeString = dateFormat.format(fileTime)
+
+        facade.processInVars(["-a", "Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -289,7 +294,7 @@ Foo Man Chu
 
 def expectedResult = """\
 #
-2013-03-25 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+$testTimeString 05:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
 
 """

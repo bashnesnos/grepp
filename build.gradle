@@ -1,6 +1,7 @@
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
 import groovy.xml.XmlUtil
+import java.text.SimpleDateFormat
 
 apply plugin: 'groovy'
 
@@ -28,6 +29,13 @@ jar {
 
 test {
 	systemProperty 'wgrep.home', rootDir.getAbsolutePath()
+}
+
+processTestResources {
+    def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
+    filter { String line ->
+        line.replace('#TEST_TIME#', dateFormat.format(new Date()))
+    }   
 }
 
 task makeEmbeddedJar(dependsOn: build, type: Jar) {
