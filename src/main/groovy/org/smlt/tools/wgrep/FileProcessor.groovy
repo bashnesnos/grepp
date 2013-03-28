@@ -6,14 +6,12 @@ import java.lang.StringBuilder
 class FileProcessor extends ModuleBase
 {
     //Reads logs files
-    protected def fileList = []
-    protected int curLine = 0
-    protected boolean isBlockMatched = false;
-    protected StringBuilder curBlock = null;
-    protected def filterChain = null;
-    protected def dateTimeChecker = null;
-    protected def fSeparator = null;
-    protected def logEntryPattern = null;
+    private def fileList = []
+    private def curDir = null
+    private boolean isMerging = null
+    private int curLine = 0
+    private def filterChain = null
+    private def fSeparator = null
 
     static FileProcessor getInstance() 
     {
@@ -37,24 +35,23 @@ class FileProcessor extends ModuleBase
         {
             dateTimeChecker_ = new DateTimeChecker()
         } 
-        return new FileProcessor(filterChain_, dateTimeChecker_)
+        return new FileProcessor(filterChain_, getFacade().getParam('FILES'), getFacade().getParam('FOLDER_SEPARATOR'), getFacade().getParam('CWD'), getFacade.getParam('FILE_MERGING'))
     }
 
-    private FileProcessor(def filterChain_, def dateTimeChecker_) 
+    private FileProcessor(def filterChain_, def files_, def separator_, def curDir_, def merging_) 
     {
         filterChain = filterChain_
-        dateTimeChecker = dateTimeChecker_
-        fileList = getFacade().getParam('FILES')
-        fSeparator = getFacade().getParam('FOLDER_SEPARATOR')
-        logEntryPattern = getFacade().getParam('LOG_ENTRY_PATTERN')
+        fileList = files_
+        fSeparator = separator_
+        curDir = curDir_
+        isMerging = merging_ != null
         if (isVerboseEnabled()) verbose("Total files to analyze: " + this.fileList.size())
         this.analyzeList()
     }
 
 
-    protected def analyzeList()
+    private def analyzeList()
     {
-        def dir = getFacade().CWD
         def newFileList = []
         def removeFiles = []
         fileList.each
@@ -66,10 +63,10 @@ class FileProcessor extends ModuleBase
                 def flname = fil;
                 if (fil =~ fSeparator)
                 {
-                    dir = (fil =~/.*(?=$fSeparator)/)[0]
+                    curDir = (fil =~/.*(?=$fSeparator)/)[0]
                     flname = (fil =~ /.*$fSeparator(.*)/)[0][1]
                 }
-                def files = new File(dir).listFiles();
+                def files = new File(curDir).listFiles();
                 if (isTraceEnabled()) trace("files found " + files)
                 def ptrn = flname.replaceAll(/\*/) {it - '*' + '.*'};
                 files.each
@@ -88,9 +85,16 @@ class FileProcessor extends ModuleBase
         if (isTraceEnabled()) trace("Total files for wgrep: " + fileList)
     }
 
-    protected def openFile(def fName)
+    void processAll()
     {
-        if (isTraceEnabled()) trace("Opening " + fName)
+        fileList.each {
+            process(openFile(it))
+        }
+    }
+
+    private def openFile(def fName)
+    {
+        if (isVerboseEnabled()) trace("Opening " + fName)
         def fileObj = new File(fName)
         if (dateTimeChecker == null || dateTimeChecker.check(fileObj))
         {
@@ -112,7 +116,7 @@ class FileProcessor extends ModuleBase
             data.eachLine { String line ->
                 if (isTraceEnabled()) trace("curLine: " + curLine)
                 curLine += 1
-                processLine(line, logEntryPattern)
+                filterChain.filter(line)
             }
         }
         catch(TimeToIsOverduedException e) {
@@ -120,68 +124,5 @@ class FileProcessor extends ModuleBase
         }
 
         if (isVerboseEnabled()) verbose("File ended. Lines processed: " + curLine)
-        if (getFacade().getParam('FILE_MERGING') == null && isBlockMatched) returnBlock(curBlock.toString())
-        else (isVerboseEnabled() && !isBlockMatched) ? verbose("Block continues"): verbose("Matched block continues")
     }
-
-    void processLine(String line, String pattern)
-    {
-        Matcher entryMtchr = line =~ pattern
-        if ( entryMtchr.find() )
-        {
-            boolean isDateTimePassed = dateTimeChecker == null || dateTimeChecker.check(entryMtchr)
-            
-            if (!isDateTimePassed)
-            {
-                if (isTraceEnabled()) trace("Time not passed, invalidating")
-                isBlockMatched = false
-            }
-
-            if (!isBlockMatched && isDateTimePassed)
-            {
-                isBlockMatched = true
-                if (isTraceEnabled()) trace("appending")
-                appendCurBlock(line)
-            }
-            else if (isBlockMatched)
-            {
-                if (isTraceEnabled()) trace("returning block")
-                returnBlock(curBlock.toString())
-                if (isTraceEnabled()) trace("appending end, since it is the start of new block")
-                appendCurBlock(line)
-            }
-        }
-        else if (isBlockMatched)
-        {
-            if (isTraceEnabled()) trace("appending")
-            appendCurBlock(line)
-        }
-    }
-
-    void processAll()
-    {
-        fileList.each {
-            process(openFile(it))
-        }
-    }
-
-    protected void appendCurBlock(String line)
-    {
-        if (curBlock != null)
-        {
-            if (curBlock.length() != 0) curBlock = curBlock.append('\n')
-            curBlock = curBlock.append(line)
-        }
-        else 
-        {
-            curBlock = new StringBuilder(line)
-        }
-    }
-    
-    protected void returnBlock(def block)
-    {
-        filterChain.filter(block)
-        curBlock.setLength(0)
-    }
-
 }

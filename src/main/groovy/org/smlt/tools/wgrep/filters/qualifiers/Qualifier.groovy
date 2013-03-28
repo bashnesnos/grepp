@@ -1,3 +1,5 @@
+package org.smlt.tools.wgrep.filters.qualifiers
+
 enum Qualifier {
     and('.*'), or('|')
    	

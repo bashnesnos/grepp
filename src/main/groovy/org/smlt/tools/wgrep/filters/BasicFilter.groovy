@@ -1,13 +1,11 @@
-package org.smlt.tools.wgrep
+package org.smlt.tools.wgrep.filters
 
 import java.util.regex.Matcher
 
-class BasicFilter extends ModuleBase{
-	private nextFilter
-    private filterPtrn = getFacade().getParam('FILTER_PATTERN')
+class BasicFilter extends FilterBase{
 
 	BasicFilter(def nextOne) {
-		nextFilter = nextOne
+		super(nextOne, getFacade().getParam('FILTER_PATTERN'))
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 

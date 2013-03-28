@@ -1,11 +1,10 @@
-package org.smlt.tools.wgrep
+package org.smlt.tools.wgrep.filters
 
 import groovy.xml.dom.DOMCategory
 import java.util.regex.Matcher
 
-class PostFilter extends ModuleBase
-{
-    private nextFilter
+class PostFilter extends FilterBase {
+
     //Postprocessing stuff
     def POST_PROCESS_PTTRNS = []
     def POST_PROCESS_SEP = null
@@ -15,7 +14,7 @@ class PostFilter extends ModuleBase
 
     PostFilter(def nextOne)
     {
-        nextFilter = nextOne
+        super(nextOne, null)
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
         def pp_tag = getFacade().getParam('POST_PROCESSING')

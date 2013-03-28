@@ -1,10 +1,9 @@
-package org.smlt.tools.wgrep
+package org.smlt.tools.wgrep.filters
 
-class PrintFilter extends ModuleBase{
-	private nextFilter
+class PrintFilter extends FilterBase{
 
 	PrintFilter(def nextOne) {
-		nextFilter = nextOne
+		super(nextOne, null)
 	}
 
     /**

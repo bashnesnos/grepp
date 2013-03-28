@@ -1,10 +1,10 @@
-package org.smlt.tools.wgrep
+package org.smlt.tools.wgrep.filters
 
 import java.util.regex.Matcher
+import org.smlt.tools.wgrep.filters.qualifiers.*
 import groovy.xml.dom.DOMCategory
 
-class ComplexFilter extends ModuleBase
-{
+class ComplexFilter extends FilterBase {
     private nextFilter
     //Complex pattern processing and stuff
     def PATTERN = new StringBuilder()
@@ -18,7 +18,7 @@ class ComplexFilter extends ModuleBase
 
     ComplexFilter(def nextOne)
     {
-        nextFilter = nextOne
+        super(nextOne, )
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
         def pt_tag = getFacade().getParam('PRESERVE_THREAD')
         use(DOMCategory)
@@ -109,7 +109,7 @@ class ComplexFilter extends ModuleBase
 
     def filter(def blockData)
     {
-        def curPattern = PATTERN.toString()
+        setPattern(PATTERN.toString())
         if (isTraceEnabled()) 
         {
             trace('Data: ' + blockData + '\n' +
@@ -117,7 +117,7 @@ class ComplexFilter extends ModuleBase
                 curPattern + '\n')
         }
 
-        def blockMtchr = blockData =~ curPattern
+        def blockMtchr = blockData =~ filterPtrn
         if (blockMtchr.find())
         {
             extractThreadPatterns(blockData)
