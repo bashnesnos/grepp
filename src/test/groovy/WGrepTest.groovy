@@ -8,42 +8,22 @@ class WGrepTest extends GroovyTestCase
     WgrepFacade facade = null
     def BASE_HOME = System.getProperty("wgrep.home")
     def HOME = BASE_HOME + "\\build\\resources\\test"
+    def defalutOut = System.out
 
     void setUp() 
     {
         facade = WgrepFacade.getInstance([BASE_HOME + "\\build\\resources\\test\\config.xml"])
     }
     
-    void cleanUp()
+    void tearDown()
     {
-        //GENERAL
-        facade.LOG_ENTRY_PATTERN = null
-        facade.LEP_OVERRIDED = null
-        facade.FILTER_PATTERN = null
-        facade.FP_OVERRIDED = null
-        facade.FILES = []
-
-        //OPTIONS
-        facade.VERBOSE = null
-        facade.TRACE = null
-        facade.SPOOLING = null
-        facade.FILE_MERGING = null
-        facade.ATMTN_LEVEL = null
-        facade.EXTNDD_PATTERN = null
-        facade.PRESERVE_THREAD = null
-        facade.POST_PROCESSING = null
-        facade.DATE_TIME_FILTER = null
-        facade.paHelper = null
-        facade.PREDEF_TAG = null
-        facade.additionalVarParsers = []
-        facade.fProcessor = null
-        def extraParams = [:]
-
+        WgrepFacade.reset()
+        System.setOut(defalutOut)
     }
     
     void testMainVarsProcessing()
     {
-        cleanUp()
+        
         facade.processInVars(["-","test","test",HOME+"\\fpTest*"])
         assertTrue( facade.LOG_ENTRY_PATTERN == "test" )
         assertTrue( facade.FILTER_PATTERN == "test" )
@@ -54,7 +34,7 @@ class WGrepTest extends GroovyTestCase
 
     void testFailAutomationProcessing()
     {
-        cleanUp()
+        
         shouldFail(java.lang.IllegalArgumentException)
         {
             facade.processInVars(["-i","test", HOME+"\\test*"])
@@ -63,7 +43,7 @@ class WGrepTest extends GroovyTestCase
     
     void testExtendedPatternProcessing()
     {
-        cleanUp()
+        
         facade.processInVars(["-e","test","test%and%tets",HOME+"\\test*"])
         assertTrue( facade.EXTNDD_PATTERN == 'e')
         assertTrue( facade.FILTER_PATTERN == "test%and%tets" )
@@ -71,14 +51,14 @@ class WGrepTest extends GroovyTestCase
     
     void testComplexVarsProcessing()
     {
-        cleanUp()
+        
         facade.processInVars(["-","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
         assertTrue( facade.DATE_TIME_FILTER == "dtime" )
     }
 
     void testAutomationProcessing()
     {
-        cleanUp()
+        
         facade.processInVars(["-i","test", HOME+"\\test_*"])
         assertTrue( facade.LOG_ENTRY_PATTERN == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
         assertTrue( facade.getExtraParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
@@ -86,7 +66,7 @@ class WGrepTest extends GroovyTestCase
 
     void testMoreComplexVarsProcessing()
     {
-        cleanUp()
+        
         facade.processInVars(["-s", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
         assertTrue( facade.LOG_ENTRY_PATTERN == "stCommand" )
         assertTrue( facade.FILTER_PATTERN == "queryTime" )
@@ -97,7 +77,7 @@ class WGrepTest extends GroovyTestCase
 
     void testComplexFiltering()
     {
-        cleanUp()
+        
         facade.processInVars(["-i", "Foo", HOME+"\\processing_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
@@ -156,7 +136,7 @@ Voo
 
     void testComplexUserPatternFiltering()
     {
-        cleanUp()
+        
         facade.processInVars(["-ae", "Foo%and%Man Chu", HOME+"\\processing_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
@@ -203,7 +183,7 @@ Foo Man Chu
 
     void testBasicFiltering()
     {
-        cleanUp()
+        
         facade.processInVars(["-a", "Foo", HOME+"\\processing_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
@@ -253,7 +233,7 @@ Foo Man Chu
 
     void testTimeFiltering()
     {
-        cleanUp()
+        
         def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
         def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
         def testTimeString = dateFormat.format(fileTime)
@@ -302,9 +282,113 @@ Foo Koo
         assertTrue( expectedResult == actualResult.toString() )
     }
 
+    void testTimeRightBoundOnlyFiltering()
+    {
+        
+        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
+        def testTimeString = dateFormat.format(fileTime)
+
+        facade.processInVars(["-a", "Foo", "--dtime", testTimeString+"T05", "+", HOME+"\\processing_time_test.log"])
+        def oldStdout = System.out
+        def pipeOut = new PipedOutputStream()
+        def pipeIn = new PipedInputStream(pipeOut)
+        System.setOut(new PrintStream(pipeOut))
+
+        try
+        {
+            facade.startProcessing()
+        }
+        catch (Exception e) {
+            pipeOut.close()
+            System.setOut(oldStdout)
+            throw e
+        }
+        finally {
+            System.setOut(oldStdout)
+            pipeOut.close()
+        }
+
+        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
+
+        def line = '#'
+        StringBuffer actualResult = new StringBuffer()
+
+        if (outputReader.ready())
+        {
+            while (line != null)
+            {
+                actualResult = actualResult.append(line).append('\n')
+                line = outputReader.readLine()
+            }
+        }
+
+def expectedResult = """\
+#
+$testTimeString 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo Koo
+
+$testTimeString 07:05:56,951 [ACTIVE] ThreadStart: '1' 
+Foo Man Chu
+#basic
+"""
+    
+        assertTrue( expectedResult == actualResult.toString() )
+    }
+
+    void testTimeLeftBoundOnlyFiltering()
+    {
+        
+        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
+        def testTimeString = dateFormat.format(fileTime)
+
+        facade.processInVars(["-a", "Foo", "--dtime", "+", testTimeString+"T06", HOME+"\\processing_time_test.log"])
+        def oldStdout = System.out
+        def pipeOut = new PipedOutputStream()
+        def pipeIn = new PipedInputStream(pipeOut)
+        System.setOut(new PrintStream(pipeOut))
+
+        try
+        {
+            facade.startProcessing()
+        }
+        catch (Exception e) {
+            pipeOut.close()
+            System.setOut(oldStdout)
+            throw e
+        }
+        finally {
+            System.setOut(oldStdout)
+            pipeOut.close()
+        }
+
+        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
+
+        def line = '#'
+        StringBuffer actualResult = new StringBuffer()
+
+        if (outputReader.ready())
+        {
+            while (line != null)
+            {
+                actualResult = actualResult.append(line).append('\n')
+                line = outputReader.readLine()
+            }
+        }
+
+def expectedResult = """\
+#
+$testTimeString 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo Koo
+
+"""
+    
+        assertTrue( expectedResult == actualResult.toString() )
+    }
     void testPostFiltering()
     {
-        cleanUp()
+        
         facade.processInVars(["-a", "oo", "--some_timings", HOME+"\\processing_report_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()

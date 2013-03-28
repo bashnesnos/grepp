@@ -30,6 +30,17 @@ class WgrepFacade {
         return facadeInstance
     }
 
+    /**
+    * Nullifies facadeInstance. It allows to recreate the Facade. Used for test purposes.
+    * @param args Params needed for the facade initialization. Currently only path to the config.xml is expected.
+    * @return <code>facadeInstance</code>
+    */
+
+    static void reset()
+    {
+        facadeInstance = null        
+    }
+
     //GLOBAL
     def FOLDER_SEPARATOR = null
     def CWD = null

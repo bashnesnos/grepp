@@ -71,7 +71,7 @@ class PostFilter extends ModuleBase
 
     def filter(def blockData)
     {
-        StringBuffer rslt = new StringBuffer("")
+        StringBuilder rslt = new StringBuilder("")
         if (!HEADER_PRINTED) 
         {   
             HEADER_PRINTED = true
@@ -99,7 +99,7 @@ class PostFilter extends ModuleBase
 
     def smartPostProcess(def ptrn, def val, def agg, def sep, def method)
     {
-        if (isTraceEnabled()) trace(new StringBuffer('smart post processing, ptrn=') + ptrn + ' val=' + val + ' agg=' + agg + ' method=' + method)
+        if (isTraceEnabled()) trace(new StringBuilder('smart post processing, ptrn=') + ptrn + ' val=' + val + ' agg=' + agg + ' method=' + method)
         Matcher mtch = (val =~ ptrn)
         if (mtch.find()) return (agg.size() > 0)?agg.append(sep).append(this."$method"(mtch)):agg.append(this."$method"(mtch))
         return agg

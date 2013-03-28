@@ -1,6 +1,7 @@
 package org.smlt.tools.wgrep
 
 import java.util.regex.Matcher
+import java.lang.StringBuilder
 
 class FileProcessor extends ModuleBase
 {
@@ -8,7 +9,7 @@ class FileProcessor extends ModuleBase
     protected def fileList = []
     protected int curLine = 0
     protected boolean isBlockMatched = false;
-    protected StringBuffer curBlock = null;
+    protected StringBuilder curBlock = null;
     protected def filterChain = null;
     protected def dateTimeChecker = null;
     protected def fSeparator = null;
@@ -108,7 +109,7 @@ class FileProcessor extends ModuleBase
         def endLine = null
         
         try {
-            data.eachLine { line ->
+            data.eachLine { String line ->
                 if (isTraceEnabled()) trace("curLine: " + curLine)
                 curLine += 1
                 processLine(line, logEntryPattern)
@@ -123,7 +124,7 @@ class FileProcessor extends ModuleBase
         else (isVerboseEnabled() && !isBlockMatched) ? verbose("Block continues"): verbose("Matched block continues")
     }
 
-    def processLine(def line, def pattern)
+    void processLine(String line, String pattern)
     {
         Matcher entryMtchr = line =~ pattern
         if ( entryMtchr.find() )
@@ -157,29 +158,30 @@ class FileProcessor extends ModuleBase
         }
     }
 
-    def processAll()
+    void processAll()
     {
         fileList.each {
             process(openFile(it))
         }
     }
 
-    protected def appendCurBlock(def line)
+    protected void appendCurBlock(String line)
     {
         if (curBlock != null)
         {
-            curBlock = curBlock.append('\n').append(line)
+            if (curBlock.length() != 0) curBlock = curBlock.append('\n')
+            curBlock = curBlock.append(line)
         }
         else 
         {
-            curBlock = new StringBuffer(line)
+            curBlock = new StringBuilder(line)
         }
     }
     
-    protected def returnBlock(def block)
+    protected void returnBlock(def block)
     {
         filterChain.filter(block)
-        curBlock = null
+        curBlock.setLength(0)
     }
 
 }

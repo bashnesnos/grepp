@@ -7,7 +7,7 @@ class ComplexFilter extends ModuleBase
 {
     private nextFilter
     //Complex pattern processing and stuff
-    def PATTERN = new StringBuffer()
+    def PATTERN = new StringBuilder()
     def EXTNDD_PTTRNS = []
     def EXTNDD_PTTRN_DICT = [:]
 

@@ -16,6 +16,7 @@ class DateTimeChecker extends ModuleBase
     Date TO_DATE = null
     int LOG_FILE_THRESHOLD = 24
     int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
+    boolean isDateFromPassed = false
 
     DateTimeChecker(def dt_tag)
     {
@@ -29,6 +30,11 @@ class DateTimeChecker extends ModuleBase
             ptrns.sort { it.'@order' }.each {INPUT_DATE_PTTRNS.add(it.text())}
         }
         parseExtra()
+    }
+
+    def reset(def curFile)
+    {
+        isDateFromPassed = false
     }
 
     def parseExtra()
@@ -106,10 +112,10 @@ class DateTimeChecker extends ModuleBase
     def checkFileTime(def file)
     {
         if (file == null) return
-
+        reset()
         def fileTime = new Date(file.lastModified())
         if (isTraceEnabled()) trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
-        if (FROM_DATE.compareTo(fileTime) <= 0)
+        if (FROM_DATE == null || FROM_DATE.compareTo(fileTime) <= 0)
         {
             if (TO_DATE != null)
             {
@@ -151,9 +157,21 @@ class DateTimeChecker extends ModuleBase
         if (entry != null && LOG_DATE_PATTERN != null)
         {
             if (isTraceEnabled()) trace("Checking log entry " + entry.group() + " for log date pattern |" + LOG_DATE_PATTERN + "| and formatting to |" +  LOG_DATE_FORMAT.toPattern() + "|")
-            def entryDate =  LOG_DATE_FORMAT.parse(entry.group(1))
-            if (FROM_DATE.compareTo(entryDate) <= 0)
+            
+            def entryDate = null
+
+            if (!isDateFromPassed || TO_DATE != null)
             {
+                entryDate =  LOG_DATE_FORMAT.parse(entry.group(1))
+            }
+            else
+            {
+                return isDateFromPassed
+            }
+
+            if (entryDate != null && (FROM_DATE == null || FROM_DATE.compareTo(entryDate) <= 0))
+            {
+                isDateFromPassed = true
                 if (TO_DATE != null)
                 {
                     if (TO_DATE.compareTo(entryDate) >= 0)

@@ -18,43 +18,53 @@ WgrepFacade facade = WgrepFacade.getInstance([WGREP_CONFIG])
 //println entryMtchr.toString()
 //println entryMtchr.group()
 //println entryMtchr.groupCount()
-        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
-        def testTimeString = dateFormat.format(fileTime)
-facade.processInVars(["-a", "Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
+        facade.processInVars(["-a", "Foo", HOME+"\\processing_test.log"])
+        def oldStdout = System.out
+        def pipeOut = new PipedOutputStream()
+        def pipeIn = new PipedInputStream(pipeOut)
+        System.setOut(new PrintStream(pipeOut))
 
-//def oldStdout = System.out
-//def pipeOut = new PipedOutputStream()
-//def pipeIn = new PipedInputStream(pipeOut)
-//System.setOut(new PrintStream(pipeOut))
-facade.startProcessing()
-//def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-//System.setOut(oldStdout)
-//pipeOut.close()
+        try
+        {
+            facade.startProcessing()
+        }
+        catch (Exception e) {
+            pipeOut.close()
+            System.setOut(oldStdout)
+            throw e
+        }
+        finally {
+            System.setOut(oldStdout)
+            pipeOut.close()
+        }
 
-//def line = '#'
-//StringBuffer actualResult = new StringBuffer()
+        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
 
-//if (outputReader.ready())
-//{
-//    while (line != null)
-//    {
-//        actualResult = actualResult.append(line).append('\n')
-//        line = outputReader.readLine()
-//    }
-//}
+        def line = '#'
+        StringBuffer actualResult = new StringBuffer()
+
+        if (outputReader.ready())
+        {
+            while (line != null)
+            {
+                actualResult = actualResult.append(line).append('\n')
+                line = outputReader.readLine()
+            }
+        }
 
 def expectedResult = """\
 #
-some_cmd,count_of_operands
-Foo,3
-Koo,1
-Boo
+2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo Koo
 
+
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
+Foo Man Chu
+#basic
 """
 
-//println actualResult.toString()
-//println expectedResult == actualResult.toString()
+println actualResult.toString()
+println expectedResult == actualResult.toString()
 //println facade.LOG_ENTRY_PATTERN
 //println facade.FILTER_PATTERN 
 //println facade.FILES 
