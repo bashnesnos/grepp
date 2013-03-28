@@ -3,6 +3,7 @@ package org.smlt.tools.wgrep
 import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 import groovy.xml.dom.DOMCategory
+import org.smlt.tools.wgrep.filters.*
 
 class DateTimeChecker extends ModuleBase
 {
@@ -16,7 +17,7 @@ class DateTimeChecker extends ModuleBase
     Date TO_DATE = null
     int LOG_FILE_THRESHOLD = 24
     int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
-    boolean isDateFromPassed = false
+    EntryDateFilter filterInstance
 
     DateTimeChecker(def dt_tag)
     {
@@ -32,9 +33,13 @@ class DateTimeChecker extends ModuleBase
         parseExtra()
     }
 
-    def reset(def curFile)
+    EntryDateFilter getEDFInstance(FilterBase nextFilter_)
     {
-        isDateFromPassed = false
+        if (filterInstance == null)
+        {
+            filterInstance = new EntryDateFilter(nextFilter_, LOG_DATE_PATTERN, LOG_DATE_FORMAT, FROM_DATE, TO_DATE)       
+        }
+        return filterInstance
     }
 
     def parseExtra()
@@ -95,13 +100,6 @@ class DateTimeChecker extends ModuleBase
         else null
     }
 
-    def check(def data)
-    {
-        if (data instanceof File) checkFileTime(data)
-        else if (data instanceof Matcher) checkEntryTime(data)
-        else throw new IllegalArgumentException("Unsupported type: " + data.getClass())
-    }
-
     /**
     * Facade method to check if supplied filename, and corresponding {@link File} object suits desired date and time. 
     * Calls {@link dtChecker.check()} method if {@link DATE_TIME_FILTER} is not null.
@@ -112,7 +110,6 @@ class DateTimeChecker extends ModuleBase
     def checkFileTime(def file)
     {
         if (file == null) return
-        reset()
         def fileTime = new Date(file.lastModified())
         if (isTraceEnabled()) trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
         if (FROM_DATE == null || FROM_DATE.compareTo(fileTime) <= 0)
@@ -143,58 +140,6 @@ class DateTimeChecker extends ModuleBase
             if (isTraceEnabled()) trace("Not passed")
             return false
         }
-    }
-
-    /**
-    * Facade method to check if supplied entry suits desired date and time. 
-    * Calls {@link dtChecker.check()} method if {@link DATE_TIME_FILTER} and <code>entry</code> are not null.
-    *
-    * @param entry A String to be checked
-    */
-    
-    def checkEntryTime(Matcher entry)
-    {
-        if (entry != null && LOG_DATE_PATTERN != null)
-        {
-            if (isTraceEnabled()) trace("Checking log entry " + entry.group() + " for log date pattern |" + LOG_DATE_PATTERN + "| and formatting to |" +  LOG_DATE_FORMAT.toPattern() + "|")
-            
-            def entryDate = null
-
-            if (!isDateFromPassed || TO_DATE != null)
-            {
-                entryDate =  LOG_DATE_FORMAT.parse(entry.group(1))
-            }
-            else
-            {
-                return isDateFromPassed
-            }
-
-            if (entryDate != null && (FROM_DATE == null || FROM_DATE.compareTo(entryDate) <= 0))
-            {
-                isDateFromPassed = true
-                if (TO_DATE != null)
-                {
-                    if (TO_DATE.compareTo(entryDate) >= 0)
-                    {
-                        if (isTraceEnabled()) trace("Passed TO_DATE")
-                        return true
-                    }
-                    else
-                    {
-                        if (isTraceEnabled()) trace("Not passed")
-                        throw new TimeToIsOverduedException(LOG_DATE_FORMAT.format(TO_DATE))
-                    }
-                }
-                if (isTraceEnabled()) trace("Passed FROM_DATE only")
-                return true
-            }
-            else
-            {
-                if (isTraceEnabled()) trace("Not passed")
-                return false
-            }
-        }
-        return true
     }
 
 }

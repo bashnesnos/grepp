@@ -1,11 +1,13 @@
 package org.smlt.tools.wgrep.filters
 
+import org.smlt.tools.wgrep.ModuleBase
+
 class FilterBase extends ModuleBase {
     protected nextFilter
     protected filterPtrn
 
-    FilterBase(def nextFilter, def filterPtrn_) {
-        nextFilter = nextOne_
+    FilterBase(FilterBase nextFilter_, def filterPtrn_) {
+        nextFilter = nextFilter_
         filterPtrn = filterPtrn_
     }
 
@@ -15,5 +17,13 @@ class FilterBase extends ModuleBase {
 
     def filter(def blockData)  {
         throw new UnsupportedOperationException('Method of base class shoulnd\'t be used')
+    }
+
+    def clearState() {
+        if (isTraceEnabled()) trace("Dummy finalization")
+        if (nextFilter != null)
+        {
+            nextFilter.clearState()
+        }
     }
 }

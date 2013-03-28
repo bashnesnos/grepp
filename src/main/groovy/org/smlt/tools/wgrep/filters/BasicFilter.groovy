@@ -4,8 +4,8 @@ import java.util.regex.Matcher
 
 class BasicFilter extends FilterBase{
 
-	BasicFilter(def nextOne) {
-		super(nextOne, getFacade().getParam('FILTER_PATTERN'))
+	BasicFilter(FilterBase nextFilter_) {
+		super(nextFilter_, getFacade().getParam('FILTER_PATTERN'))
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 

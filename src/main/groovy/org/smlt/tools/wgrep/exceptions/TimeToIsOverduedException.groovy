@@ -1,4 +1,4 @@
-package org.smlt.tools.wgrep
+package org.smlt.tools.wgrep.exceptions
 
 class TimeToIsOverduedException extends Exception {
     private timeToString

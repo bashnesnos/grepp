@@ -5,7 +5,7 @@ import org.smlt.tools.wgrep.filters.qualifiers.*
 import groovy.xml.dom.DOMCategory
 
 class ComplexFilter extends FilterBase {
-    private nextFilter
+
     //Complex pattern processing and stuff
     def PATTERN = new StringBuilder()
     def EXTNDD_PTTRNS = []
@@ -16,9 +16,9 @@ class ComplexFilter extends FilterBase {
     def THRD_SKIP_END_PTTRNS = []
     def THRD_END_PTTRNS =[]
 
-    ComplexFilter(def nextOne)
+    ComplexFilter(FilterBase nextFilter_)
     {
-        super(nextOne, )
+        super(nextFilter_, null)
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
         def pt_tag = getFacade().getParam('PRESERVE_THREAD')
         use(DOMCategory)
@@ -114,7 +114,7 @@ class ComplexFilter extends FilterBase {
         {
             trace('Data: ' + blockData + '\n' +
                 'List of patterns:\n ' +    
-                curPattern + '\n')
+                filterPtrn + '\n')
         }
 
         def blockMtchr = blockData =~ filterPtrn

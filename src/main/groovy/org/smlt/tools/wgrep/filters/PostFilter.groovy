@@ -12,9 +12,9 @@ class PostFilter extends FilterBase {
     def POST_PROCESS_HEADER = null
     def HEADER_PRINTED = false
 
-    PostFilter(def nextOne)
+    PostFilter(FilterBase nextFilter_)
     {
-        super(nextOne, null)
+        super(nextFilter_, null)
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
         def pp_tag = getFacade().getParam('POST_PROCESSING')

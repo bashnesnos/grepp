@@ -1,15 +1,16 @@
 package org.smlt.tools.wgrep.filters
 
 import java.util.regex.Matcher
+import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
 
 class LogEntryFilter extends FilterBase{
 
     private boolean isBlockMatched = false;
     private StringBuilder curBlock = null;
-    protected def dateTimeChecker = null;
+    private def dateTimeChecker = null;
 
-    LogEntryFilter(def nextOne) {
-        super(nextOne, getFacade().getParam('LOG_ENTRY_PATTERN'))
+    LogEntryFilter(FilterBase nextFilter_) {
+        super(nextFilter_, getFacade().getParam('LOG_ENTRY_PATTERN'))
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
     }
 
@@ -27,29 +28,7 @@ class LogEntryFilter extends FilterBase{
 
     def filter(def blockData)
     {
-        if (isTraceEnabled()) trace("Filtering with /" + filterPtrn + "/")
-        Matcher blockMtchr = blockData =~ filterPtrn
-        if (blockMtchr.find()) 
-        {
-            if (nextFilter != null) 
-            {
-                if (isTraceEnabled()) trace("Passing to next filter")
-                nextFilter.filter(blockData)    
-            }
-            else 
-            {
-                throw new RuntimeException("BasicFilter shouldn't be the last in chain")
-            }
-        }
-        else
-        {
-            if (isTraceEnabled()) trace("BasicFilter not passed")
-        }  
-    }
-
-        void processLine(String line, String pattern)
-    {
-        Matcher entryMtchr = line =~ pattern
+        Matcher entryMtchr = blockData =~ filterPtrn
         if ( entryMtchr.find() )
         {
             boolean isDateTimePassed = dateTimeChecker == null || dateTimeChecker.check(entryMtchr)
@@ -64,24 +43,24 @@ class LogEntryFilter extends FilterBase{
             {
                 isBlockMatched = true
                 if (isTraceEnabled()) trace("appending")
-                appendCurBlock(line)
+                appendCurBlock(blockData)
             }
             else if (isBlockMatched)
             {
                 if (isTraceEnabled()) trace("returning block")
-                returnBlock(curBlock.toString())
+                returnBlock()
                 if (isTraceEnabled()) trace("appending end, since it is the start of new block")
-                appendCurBlock(line)
+                appendCurBlock(blockData)
             }
         }
         else if (isBlockMatched)
         {
             if (isTraceEnabled()) trace("appending")
-            appendCurBlock(line)
+            appendCurBlock(blockData)
         }
     }
 
-    protected void appendCurBlock(String line)
+    private void appendCurBlock(String line)
     {
         if (curBlock != null)
         {
@@ -94,10 +73,28 @@ class LogEntryFilter extends FilterBase{
         }
     }
     
-    protected void returnBlock(def block)
+    private void returnBlock(def block)
     {
-        filterChain.filter(block)
+        if (nextFilter != null) 
+        {
+            if (isTraceEnabled()) trace("Passing to next filter")
+            try {
+                nextFilter.filter(curBlock.toString())                
+            }
+            catch(TimeToIsOverduedException e) {
+                curBlock.setLength(0)
+                throw e
+            }
+        }
+        else 
+        {
+            throw new RuntimeException("LogEntryFilter shouldn't be the last in chain")
+        }
         curBlock.setLength(0)
     }
 
+    def clearState() {
+        returnBlock()
+        super.clearState()
+    }
 }

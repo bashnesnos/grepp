@@ -75,6 +75,17 @@ class WGrepTest extends GroovyTestCase
         assertTrue( facade.HOME_DIR != null )
     }
 
+    void testTraceForComplexProcessing()
+    {
+        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
+        def testTimeString = dateFormat.format(fileTime)
+
+        facade.processInVars(["-ate", "Command%or%Foo", "--dtime", testTimeString, "+", "--some_timings", HOME+"\\processing_report_test.log"])
+        facade.startProcessing()
+        assertTrue( true )
+    }
+
     void testComplexFiltering()
     {
         
@@ -282,7 +293,7 @@ Foo Koo
         assertTrue( expectedResult == actualResult.toString() )
     }
 
-    void testTimeRightBoundOnlyFiltering()
+    void testTimeLeftBoundOnlyFiltering()
     {
         
         def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
@@ -336,7 +347,7 @@ Foo Man Chu
         assertTrue( expectedResult == actualResult.toString() )
     }
 
-    void testTimeLeftBoundOnlyFiltering()
+    void testTimeRightBoundOnlyFiltering()
     {
         
         def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
@@ -429,7 +440,6 @@ some_cmd,count_of_operands
 Foo,3
 Koo,1
 Boo
-
 """
 
         assertTrue( expectedResult == actualResult.toString() )

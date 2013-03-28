@@ -2,8 +2,8 @@ package org.smlt.tools.wgrep.filters
 
 class PrintFilter extends FilterBase{
 
-	PrintFilter(def nextOne) {
-		super(nextOne, null)
+	PrintFilter(FilterBase nextFilter_) {
+		super(nextFilter_, null)
 	}
 
     /**

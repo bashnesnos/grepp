@@ -2,6 +2,7 @@ package org.smlt.tools.wgrep
 
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
+import org.smlt.tools.wgrep.varparsers.*
 
 /**
 * Facade-Singleton containing all the configuration and is linked with main modules.
