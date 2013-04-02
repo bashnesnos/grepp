@@ -128,12 +128,12 @@ class ComplexFilter extends FilterBase {
             }
             else
             {
-                throw new RuntimeException("ComplexFilter shouldn't be the last in chain")
+                throw new RuntimeException("shouldn't be the last in chain")
             }
         }
         else 
         {
-            if (isTraceEnabled()) trace("ComplexFilter not passed")
+            if (isTraceEnabled()) trace("not passed")
         }
     }
 

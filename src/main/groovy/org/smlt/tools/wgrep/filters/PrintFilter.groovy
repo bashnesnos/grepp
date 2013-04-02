@@ -26,7 +26,7 @@ class PrintFilter extends FilterBase{
         }
         else
         {
-            if (isTraceEnabled()) trace("PrintFilter not passed")
+            if (isTraceEnabled()) trace("not passed")
         }
     }
 

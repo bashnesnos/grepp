@@ -12,12 +12,19 @@ class EntryDateFilter extends FilterBase{
     private boolean isDateFromPassed = false
 
     EntryDateFilter(FilterBase nextFilter_) {
-		super(nextFilter_, getFacade().getParam('LOG_DATE_PATTERN'))
-        DATE_FORMAT = getFacade().getParam('LOG_DATE_FORMAT')
+		super(nextFilter_, null)
+        fillRefreshableParams()
         FROM_DATE = getFacade().getParam('FROM_DATE')
         TO_DATE = getFacade().getParam('TO_DATE')
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
+
+    def fillRefreshableParams()
+    {
+        setPattern(getFacade().getParam('LOG_DATE_PATTERN'))
+        def logDateFormatPtrn = getFacade().getParam('LOG_DATE_FORMAT')
+        if (logDateFormatPtrn != null) DATE_FORMAT = new SimpleDateFormat(logDateFormatPtrn)
+    }
 
     /**
     * Facade method to check if supplied entry suits desired date and time. 
@@ -36,19 +43,19 @@ class EntryDateFilter extends FilterBase{
             }
             else 
             {
-                throw new RuntimeException("EntryDateFilter shouldn't be the last in chain")
+                throw new RuntimeException("shouldn't be the last in chain")
             }
         }
         else
         {
-            if (isTraceEnabled()) trace("EntryDateFilter not passed")
+            if (isTraceEnabled()) trace("not passed")
         }  
     }
 
 
     def check(def blockData)
     {
-        if (blockData != null && filterPtrn != null)
+        if (blockData != null && filterPtrn != null && DATE_FORMAT != null)
         {
            
             def entryDate = null
@@ -123,8 +130,7 @@ class EntryDateFilter extends FilterBase{
     }
 
     def refresh() {
-        setPattern(getFacade().getParam('LOG_DATE_PATTERN'))
-        DATE_FORMAT = getFacade().getParam('LOG_DATE_FORMAT')
+        fillRefreshableParams()
         super.refresh()
     }
 }

@@ -88,7 +88,7 @@ class LogEntryFilter extends FilterBase{
         }
         else 
         {
-            throw new RuntimeException("LogEntryFilter shouldn't be the last in chain")
+            throw new RuntimeException("shouldn't be the last in chain")
         }
         curBlock.setLength(0)
     }

@@ -87,12 +87,12 @@ class PostFilter extends FilterBase {
             }
             else
             {
-                throw new RuntimeException("PostFilter shouldn't be the last in chain")
+                throw new RuntimeException("shouldn't be the last in chain")
             }
         }
         else
         {
-            if (isTraceEnabled()) trace("PostFilter not passed")
+            if (isTraceEnabled()) trace("not passed")
         }
     }
 

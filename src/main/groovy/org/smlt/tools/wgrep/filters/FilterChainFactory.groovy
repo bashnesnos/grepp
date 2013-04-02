@@ -35,4 +35,18 @@ class FilterChainFactory
         return filterChain_
     }
 
+    static FilterBase createFileFilterChainByFacade()
+    {
+        FilterBase filterChain_ = new FileSortFilter()
+        WgrepFacade facade = WgrepFacade.getInstance()
+        
+        if (facade.getParam('DATE_TIME_FILTER') != null)
+        {
+            filterChain_ = new FileDateFilter(filterChain_)
+        } 
+
+        filterChain_ = new FileNameFilter(filterChain_)   
+        return filterChain_
+    }
+
 }

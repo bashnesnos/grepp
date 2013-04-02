@@ -34,12 +34,12 @@ class BasicFilter extends FilterBase{
         	}
         	else 
         	{
-        		throw new RuntimeException("BasicFilter shouldn't be the last in chain")
+        		throw new RuntimeException("shouldn't be the last in chain")
         	}
         }
         else
         {
-        	if (isTraceEnabled()) trace("BasicFilter not passed")
+        	if (isTraceEnabled()) trace("not passed")
         }  
     }
 }

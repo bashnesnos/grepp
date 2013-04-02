@@ -1,89 +1,54 @@
-package org.smlt.tools.wgrep
+package org.smlt.tools.wgrep.filters
 
 import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 import groovy.xml.dom.DOMCategory
-import org.smlt.tools.wgrep.filters.*
 
-class DateTimeChecker extends ModuleBase
+class FileDateFilter extends FilterBase
 {
     //Checking dates everywhere
 
     SimpleDateFormat FILE_DATE_FORMAT = null
-    SimpleDateFormat LOG_DATE_FORMAT = null
     def INPUT_DATE_PTTRNS = []
     Date FROM_DATE = null
     Date TO_DATE = null
     int LOG_FILE_THRESHOLD = 24
     int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
-    EntryDateFilter filterInstance
 
-    DateTimeChecker(def dt_tag)
+    FileDateFilter(FilterBase nextFilter_)
     {
-        if (dt_tag == null)
-        {
-            dt_tag = getFacade().getParam('DATE_TIME_FILTER')
-        }
-        use(DOMCategory)
-        {
-            def ptrns = getRoot().date_time_config.pattern.findAll { it.'@tags' =~ dt_tag }
-            ptrns.sort { it.'@order' }.each {INPUT_DATE_PTTRNS.add(it.text())}
-        }
-        parseParams()
+        super(nextFilter_, null)
+        FROM_DATE = getFacade().getParam('FROM_DATE')
+        TO_DATE = getFacade().getParam('TO_DATE')
+        FILE_DATE_FORMAT = new SimpleDateFormat(getFacade().getParam('FILE_DATE_FORMAT'))
+        fillRefreshableParams()
     }
 
-    def refresh()
-    {
-        def frmt = getFacade().getParam('LOG_DATE_FORMAT') 
-        if (frmt != null) LOG_DATE_FORMAT = new SimpleDateFormat(frmt)
+    def fillRefreshableParams() {
         def trshld = getFacade().getParam('LOG_FILE_THRESHOLD') 
         if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(trshld)
-        getFacade().setParam('LOG_DATE_FORMAT', LOG_DATE_FORMAT)
     }
 
-    def parseParams()
-    {
-        refresh()
-        setDateFrom(getFacade().getParam('FROM_DATE'))
-        setDateTo(getFacade().getParam('TO_DATE'))
-        getFacade().setParam('FROM_DATE', FROM_DATE)
-        getFacade().setParam('TO_DATE', TO_DATE)
-    }
-
-    def setDateFrom(def date)
-    {
-        if (date != "+") FROM_DATE = parseInput(date)
-    }
-
-    def setDateTo(def date)
-    {
-        if (date != "+") TO_DATE = parseInput(date)
-    }
-
-    def setFileDateFormat(def format)
-    {
-        if (isTraceEnabled()) trace("FILE_DATE_FORMAT set to " + format)
-        FILE_DATE_FORMAT = new SimpleDateFormat(format)
-        return format
-    }
-
-    def parseInput(def dateStr)
-    {
-        def date = null
-        INPUT_DATE_PTTRNS.find { ptrn -> 
-            if (isTraceEnabled()) trace("trying date pattern="+ ptrn); 
-            try {
-                date = (new SimpleDateFormat(setFileDateFormat(ptrn))).parse(dateStr) 
-                if (isTraceEnabled()) trace("Pattern found")
-                true
-            }
-            catch(java.text.ParseException e)
+    def filter(def files) {
+        if (! files instanceof ArrayList<File> ) throw new IllegalArgumentException("FileDateFilter accepts file list only")
+        if (check(files))
+        {
+            if (nextFilter != null) 
             {
-                false
+                if (isTraceEnabled()) trace("Passing to next filter")
+                nextFilter.filter(files)    
+            }
+            else 
+            {
+                if (isTraceEnabled()) trace("passed")
+                return files
             }
         }
-        if (date != null) return date 
-        else null
+        else
+        {
+            if (isTraceEnabled()) trace("not passed")
+            return Collections.emptyList()
+        }  
     }
 
     /**
@@ -92,6 +57,9 @@ class DateTimeChecker extends ModuleBase
     *
     * @param fName A String with filename
     */
+    def check(ArrayList<File> files) {
+        return files.findAll { file -> checkFileTime(file) }
+    }
 
     def checkFileTime(def file)
     {
@@ -126,6 +94,12 @@ class DateTimeChecker extends ModuleBase
             if (isTraceEnabled()) trace("Not passed")
             return false
         }
+    }
+
+    def refresh()
+    {
+        fillRefreshableParams()
+        super.refresh()
     }
 
 }

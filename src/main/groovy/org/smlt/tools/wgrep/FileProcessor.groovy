@@ -8,64 +8,26 @@ import org.smlt.tools.wgrep.exceptions.*
 class FileProcessor extends ModuleBase
 {
     //Reads logs files
-    private def fileList = []
-    private def curDir = null
+    private ArrayList<File> fileList = []
+    
     private boolean isMerging = null
     private int curLine = 0
     private FilterBase filterChain = null
-    private def fSeparator = null
-    
-
+    private FilterBase filesFilterChain = null
+        
     static FileProcessor getInstance() 
     {
-        return new FileProcessor(FilterChainFactory.createFilterChainByFacade(), getFacade().getParam('FILES'), getFacade().getParam('FOLDER_SEPARATOR'), getFacade().getParam('CWD'), getFacade().getParam('FILE_MERGING'))
+        return new FileProcessor(FilterChainFactory.createFilterChainByFacade(), FilterChainFactory.createFileFilterChainByFacade(), getFacade().getParam('FILES'), getFacade().getParam('FILE_MERGING'))
     }
 
-    FileProcessor(def filterChain_, def files_, def separator_, def curDir_, def merging_) 
+    FileProcessor(def filterChain_, def filesFilterChain_, def files_, def merging_) 
     {
         filterChain = filterChain_
-        fileList = files_
-        fSeparator = separator_
-        curDir = curDir_
+        filesFilterChain = filesFilterChain_
+        if (isVerboseEnabled()) verbose("Total files to analyze: " + files_.size())
+        fileList = filesFilterChain.filter(files_)
         isMerging = merging_ != null
-        if (isVerboseEnabled()) verbose("Total files to analyze: " + this.fileList.size())
-        this.analyzeList()
-    }
 
-
-    private def analyzeList()
-    {
-        def newFileList = []
-        def removeFiles = []
-        fileList.each
-        { fil ->
-            if (isTraceEnabled()) trace("analyzing supplied file: " + fil);
-            if (fil =~ /\*/)
-            {
-                removeFiles.add(fil);
-                def flname = fil;
-                if (fil =~ fSeparator)
-                {
-                    curDir = (fil =~/.*(?=$fSeparator)/)[0]
-                    flname = (fil =~ /.*$fSeparator(.*)/)[0][1]
-                }
-                def files = new File(curDir).listFiles();
-                if (isTraceEnabled()) trace("files found " + files)
-                def ptrn = flname.replaceAll(/\*/) {it - '*' + '.*'};
-                files.each
-                {
-                    if (it.name ==~ /$ptrn/)
-                    {
-                        if (isTraceEnabled()) trace("adding file " + it)
-                        newFileList.add(it)
-                    }
-                }
-            }
-        }
-        
-        removeFiles.each { rmFil -> fileList.remove(rmFil)  }
-        if (newFileList.size() > 0) newFileList.sort() { it.lastModified() }.each { fileList.add(it.absolutePath) }
-        if (isTraceEnabled()) trace("Total files for wgrep: " + fileList)
     }
 
     void processAll()
@@ -75,28 +37,22 @@ class FileProcessor extends ModuleBase
         }
     }
 
-    private def openFile(def fName)
+    private def openFile(File file_)
     {
-        if (isVerboseEnabled()) trace("Opening " + fName)
-        def fileObj = new File(fName)
-        if (getFacade().checkFileTime(fileObj))
-        {
-            if (isTraceEnabled()) trace("Done.")
-            try {
-                if (getFacade().refreshConfigByFileName(fName))
-                {            
-                    filterChain = FilterChainFactory.createFilterChainByFacade()
-                }                
-            }
-            catch(IllegalArgumentException e) {
-                e.printStackTrace()
-                return null
-            }
-            curLine = 0
-            return fileObj
+        if (isVerboseEnabled()) trace("Opening " + file_.name)
+        try {
+            if (getFacade().refreshConfigByFileName(file_.name))
+            {            
+                filterChain = FilterChainFactory.createFilterChainByFacade()
+                filesFilterChain.refresh()
+            }                
         }
-        else
+        catch(IllegalArgumentException e) {
+            e.printStackTrace()
             return null
+        }   
+        curLine = 0
+        return file_
     }
 
     def process(def data)
@@ -117,5 +73,10 @@ class FileProcessor extends ModuleBase
 
         filterChain.finalize()
         if (isVerboseEnabled()) verbose("File ended. Lines processed: " + curLine)
+    }
+
+    def getFiles()
+    {
+        return fileList
     }
 }

@@ -65,7 +65,6 @@ class WgrepFacade {
     private FilterParser filterParser =  null 
     private FileNameParser fileNameParser =  null 
 
-    private DateTimeChecker dateTimeChecker
     private PatternAutomationHelper paHelper
     private FileProcessor fProcessor
 
@@ -147,11 +146,6 @@ class WgrepFacade {
         return hasField(field) ? this."$field" : this.params[field]
     }
 
-    def getDateTimeChecker()
-    {
-        return dateTimeChecker
-    }
-    
     def getPatternHelper()
     {
         return paHelper
@@ -218,7 +212,7 @@ class WgrepFacade {
     * @param val <code>String</code> value to be set
     */
 
-    def setFileName(def val)
+    def addFileName(def val)
     {
         if (val == null) return
         FILES.add(val)
@@ -524,7 +518,6 @@ class WgrepFacade {
 
     def moduleInit()
     {
-        dateTimeChecker = new DateTimeChecker()
         fProcessor = FileProcessor.getInstance()
         return 1
     }
@@ -562,19 +555,9 @@ class WgrepFacade {
     {
         if (paHelper != null)
         {
-            boolean ammended = paHelper.applySequenceByFileName(fileName)
-            if (ammended)
-            {
-                dateTimeChecker.refresh()
-            }
-            return ammended
+            return paHelper.applySequenceByFileName(fileName)
         }
         return false
-    }
-
-    boolean checkFileTime(File fileObj)
-    {
-        return dateTimeChecker == null || dateTimeChecker.checkFileTime(fileObj)
     }
 
     /**
