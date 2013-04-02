@@ -36,13 +36,14 @@
 	<custom>
 		<options>
 			<opt field="POST_PROCESSING" handler="setPostProcessing">some_timings</opt>
+			<opt field="PREDEF_TAG" handler="setPredefinedConfig">fake</opt>
 		</options>
 		<config id="to_test">
 			<date_format>yyyy-MM-dd HH:mm:ss</date_format>
 			<starter>####\[\D{1,}\].*</starter>
 			<date>(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})</date>
 			<log_threshold>4</log_threshold>
-			<pattern alevel="entry_pattern">test_</pattern>
+			<pattern alevel="entry_pattern">fpTest_</pattern>
 		</config>
 		<config id="pr_test">
 			<date_format>yyyy-MM-dd HH:mm:ss</date_format>

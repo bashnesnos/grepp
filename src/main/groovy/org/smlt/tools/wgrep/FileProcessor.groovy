@@ -12,46 +12,18 @@ class FileProcessor extends ModuleBase
     private def curDir = null
     private boolean isMerging = null
     private int curLine = 0
-    private def filterChain = null
+    private FilterBase filterChain = null
     private def fSeparator = null
-    private DateTimeChecker dateTimeChecker = null
+    
 
     static FileProcessor getInstance() 
     {
-        def filterChain_ = new PrintFilter()
-        def dateTimeChecker_ = null
-
-        if (getFacade().getParam('POST_PROCESSING') != null)
-        {
-            filterChain_ = new PostFilter(filterChain_)
-        } 
-        if (getFacade().getParam('DATE_TIME_FILTER') != null)
-        {
-            dateTimeChecker_ = new DateTimeChecker()
-            filterChain_ = dateTimeChecker_.getEDFInstance(filterChain_)
-        } 
-
-        if (getFacade().getParam('EXTNDD_PATTERN') != null || getFacade().getParam('PRESERVE_THREAD') != null)
-        {
-            filterChain_ = new ComplexFilter(filterChain_)
-        } 
-        else
-        {
-            filterChain_ = new BasicFilter(filterChain_)
-        }
-
-        if (getFacade().getParam('LOG_ENTRY_PATTERN'))
-        {
-            filterChain_ = new LogEntryFilter(filterChain_)
-        }
-        
-        return new FileProcessor(filterChain_, dateTimeChecker_, getFacade().getParam('FILES'), getFacade().getParam('FOLDER_SEPARATOR'), getFacade().getParam('CWD'), getFacade().getParam('FILE_MERGING'))
+        return new FileProcessor(FilterChainFactory.createFilterChainByFacade(), getFacade().getParam('FILES'), getFacade().getParam('FOLDER_SEPARATOR'), getFacade().getParam('CWD'), getFacade().getParam('FILE_MERGING'))
     }
 
-    FileProcessor(def filterChain_, def dateTimeChecker_, def files_, def separator_, def curDir_, def merging_) 
+    FileProcessor(def filterChain_, def files_, def separator_, def curDir_, def merging_) 
     {
         filterChain = filterChain_
-        dateTimeChecker = dateTimeChecker_
         fileList = files_
         fSeparator = separator_
         curDir = curDir_
@@ -107,10 +79,19 @@ class FileProcessor extends ModuleBase
     {
         if (isVerboseEnabled()) trace("Opening " + fName)
         def fileObj = new File(fName)
-        if (dateTimeChecker == null || dateTimeChecker.checkFileTime(fileObj))
+        if (getFacade().checkFileTime(fileObj))
         {
             if (isTraceEnabled()) trace("Done.")
-            getFacade().checkEntryPattern(fName)
+            try {
+                if (getFacade().refreshConfigByFileName(fName))
+                {            
+                    filterChain = FilterChainFactory.createFilterChainByFacade()
+                }                
+            }
+            catch(IllegalArgumentException e) {
+                e.printStackTrace()
+                return null
+            }
             curLine = 0
             return fileObj
         }

@@ -8,6 +8,7 @@ class PatternAutomationHelper extends ModuleBase
     def ATMTN_SEQ = []
     def ATMTN_DICT = [:]
     def currentConfigPtrn = null
+    boolean isAmmended = false
 
     static PatternAutomationHelper getInstance(){
         return getFacade().getParam('ATMTN_LEVEL') != null ? new PatternAutomationHelper() : null
@@ -21,40 +22,36 @@ class PatternAutomationHelper extends ModuleBase
             def levels = getRoot().automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
             levels.each { ATMTN_SEQ.add(it.'@handler'); ATMTN_DICT[it.'@handler'] = it.'@id' }
         }
-        
-        def predefnd = getFacade().getParam('PREDEF_TAG')
-        if (predefnd != null)
-        {
-            automateByTag(predefnd)
-        } 
+    }        
 
-        automateByFile(getFacade().getParam('FILES')[0])
-    }
-
-    def automateByFile(def filename)
+    boolean applySequenceByFileName(def filename)
     {
-        def rslt = null
+        def tag = null
+        isAmmended = false
         if (currentConfigPtrn != null)
         {
-            if (filename =~ currentConfigPtrn) return
+            if (filename =~ currentConfigPtrn) return isAmmended
         }
 
-        ATMTN_SEQ.each {
-            rslt = parse(ATMTN_DICT[it], filename, rslt, it)
+        ATMTN_SEQ.each { handler ->
+            tag = parse(ATMTN_DICT[handler], filename, tag, handler)
         }
+        return isAmmended
     }
 
-    def automateByTag(def tag)
+    boolean applySequenceByTag(def tag)
     {
-        ATMTN_SEQ.each {
-            parse(ATMTN_DICT[it], tag, tag, it)
+        isAmmended = false
+        ATMTN_SEQ.each { handler ->
+            parse(ATMTN_DICT[handler], null, tag, handler)
         }
+        return isAmmended
     }
 
     def parse(def level, def data, def tag_, def method)
     {
-        if (isTraceEnabled()) trace('Identifying pattern for data=' + data + ' and tag=' + tag_ + ' with method=' + method)
-        def tag = (tag_ != null) ? tag_ : findConfigByFileName(level, data)
+        if (isTraceEnabled()) trace('Identifying pattern for level=' + level + ' data=' + data + ' and tag=' + tag_ + ' with method=' + method)
+        def tag = (tag_ != null) ? tag_ : findConfigByData(level, data)
         if (tag == null)  
         {
             throw new IllegalArgumentException("Failed to identify tag")
@@ -74,16 +71,26 @@ class PatternAutomationHelper extends ModuleBase
                 getFacade().setParam('LOG_DATE_PATTERN', customCfg.date.text())
                 getFacade().setParam('LOG_DATE_FORMAT', customCfg.date_format.text())
                 getFacade().setParam('LOG_FILE_THRESHOLD', customCfg.log_threshold.text())
+                isAmmended = true
             }
             else
             {
                 if (isTraceEnabled()) trace("Entry config is undefined")
             }
+        }
+        return tag
+    }
+
+    def parseFilterConfig(def tag)
+    {
+        use(DOMCategory)
+        {
             def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
             if (customFilter != null)
             {
                 if (isTraceEnabled()) trace('Parsing filter config for ' + tag)
                 getFacade().setFilterPattern(getCDATA(customFilter))
+                isAmmended = true
             }
             else
             {
@@ -96,20 +103,27 @@ class PatternAutomationHelper extends ModuleBase
     def parseExecuteThreadConfig(def tag)
     {
         getFacade().setParam('PRESERVE_THREAD', tag)
+        isAmmended = true
         return tag
     }
 
-    def findConfigByFileName(def level, def fileName)
+    def findConfigByData(def level, def data)
     {
-        if (isTraceEnabled()) trace("findConfigByFileName started")
+        if (isTraceEnabled()) trace("findConfigByData started")
+
+        if (data == null)
+        {
+            throw new IllegalArgumentException("Data shouldn't be null")
+        }
+
         def tag = null
         use(DOMCategory)
         {
             def configs = getRoot().custom.config.findAll { it.pattern[0].'@alevel' ==~ level }
             def config = configs.find { config ->
                 currentConfigPtrn = getCDATA(config.pattern[0])
-                if (isTraceEnabled()) trace("ptrn=/" + currentConfigPtrn + "/ fileName='" + fileName + "'")
-                fileName =~ currentConfigPtrn
+                if (isTraceEnabled()) trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")
+                data =~ currentConfigPtrn
             }
             if (config != null) tag = config.'@id'
         }

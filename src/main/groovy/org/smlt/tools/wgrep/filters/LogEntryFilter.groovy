@@ -97,4 +97,9 @@ class LogEntryFilter extends FilterBase{
         returnBlock()
         super.clearState()
     }
+
+    def refresh() {
+        setPattern(getFacade().getParam('LOG_ENTRY_PATTERN'))
+        super.refresh()
+    }
 }

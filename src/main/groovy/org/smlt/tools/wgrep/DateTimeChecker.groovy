@@ -11,7 +11,6 @@ class DateTimeChecker extends ModuleBase
 
     SimpleDateFormat FILE_DATE_FORMAT = null
     SimpleDateFormat LOG_DATE_FORMAT = null
-    def LOG_DATE_PATTERN = null
     def INPUT_DATE_PTTRNS = []
     Date FROM_DATE = null
     Date TO_DATE = null
@@ -30,28 +29,25 @@ class DateTimeChecker extends ModuleBase
             def ptrns = getRoot().date_time_config.pattern.findAll { it.'@tags' =~ dt_tag }
             ptrns.sort { it.'@order' }.each {INPUT_DATE_PTTRNS.add(it.text())}
         }
-        parseExtra()
+        parseParams()
     }
 
-    EntryDateFilter getEDFInstance(FilterBase nextFilter_)
+    def refresh()
     {
-        if (filterInstance == null)
-        {
-            filterInstance = new EntryDateFilter(nextFilter_, LOG_DATE_PATTERN, LOG_DATE_FORMAT, FROM_DATE, TO_DATE)       
-        }
-        return filterInstance
-    }
-
-    def parseExtra()
-    {
-        def ptrn = getFacade().getParam('LOG_DATE_PATTERN') 
-        if (ptrn != null) LOG_DATE_PATTERN = ptrn
         def frmt = getFacade().getParam('LOG_DATE_FORMAT') 
         if (frmt != null) LOG_DATE_FORMAT = new SimpleDateFormat(frmt)
         def trshld = getFacade().getParam('LOG_FILE_THRESHOLD') 
         if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(trshld)
+        getFacade().setParam('LOG_DATE_FORMAT', LOG_DATE_FORMAT)
+    }
+
+    def parseParams()
+    {
+        refresh()
         setDateFrom(getFacade().getParam('FROM_DATE'))
         setDateTo(getFacade().getParam('TO_DATE'))
+        getFacade().setParam('FROM_DATE', FROM_DATE)
+        getFacade().setParam('TO_DATE', TO_DATE)
     }
 
     def setDateFrom(def date)
@@ -69,16 +65,6 @@ class DateTimeChecker extends ModuleBase
         if (isTraceEnabled()) trace("FILE_DATE_FORMAT set to " + format)
         FILE_DATE_FORMAT = new SimpleDateFormat(format)
         return format
-    }
-
-    def setLogDateFormat(def format)
-    {
-        LOG_DATE_FORMAT = new SimpleDateFormat(format)
-    }
-
-    def setLogDatePattern(def val)
-    {
-        LOG_DATE_PATTERN = val
     }
 
     def parseInput(def dateStr)

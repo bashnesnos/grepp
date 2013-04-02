@@ -11,11 +11,11 @@ class EntryDateFilter extends FilterBase{
     private Date TO_DATE
     private boolean isDateFromPassed = false
 
-    EntryDateFilter(FilterBase nextFilter_, def logDatePtrn_, def logDateFormat_, def from_, def to_) {
-		super(nextFilter_, logDatePtrn_)
-        DATE_FORMAT = logDateFormat_
-        FROM_DATE = from_
-        TO_DATE = to_
+    EntryDateFilter(FilterBase nextFilter_) {
+		super(nextFilter_, getFacade().getParam('LOG_DATE_PATTERN'))
+        DATE_FORMAT = getFacade().getParam('LOG_DATE_FORMAT')
+        FROM_DATE = getFacade().getParam('FROM_DATE')
+        TO_DATE = getFacade().getParam('TO_DATE')
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 
@@ -84,6 +84,7 @@ class EntryDateFilter extends FilterBase{
             }
             else
             {
+                if (isTraceEnabled()) trace("Date check was skipped, dateFromPassed=" + isDateFromPassed + ", TO_DATE=" + TO_DATE)
                 return isDateFromPassed
             }
 
@@ -112,11 +113,18 @@ class EntryDateFilter extends FilterBase{
                 return false
             }
         }
+        if (isTraceEnabled()) trace("Date check was totally skipped, filterPtrn=" + filterPtrn)
         return true
     }
 
     def clearState() {
         isDateFromPassed = false
         super.clearState()
+    }
+
+    def refresh() {
+        setPattern(getFacade().getParam('LOG_DATE_PATTERN'))
+        DATE_FORMAT = getFacade().getParam('LOG_DATE_FORMAT')
+        super.refresh()
     }
 }

@@ -40,4 +40,9 @@ class ModuleBase
         return getFacade().getCDATA(node)
     }
 
+    def refresh()
+    {
+        
+    }
+
 }

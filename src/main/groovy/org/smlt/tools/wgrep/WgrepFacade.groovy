@@ -13,8 +13,8 @@ import org.smlt.tools.wgrep.varparsers.*
 
 class WgrepFacade {
     //internal
-    def cfgDoc = null
-    def root = null
+    private def cfgDoc = null
+    private def root = null
     
     private static WgrepFacade facadeInstance
     
@@ -45,28 +45,29 @@ class WgrepFacade {
     }
 
     //GLOBAL
-    def FOLDER_SEPARATOR = null
-    def CWD = null
-    def HOME_DIR = null
-    def RESULTS_DIR = 'results'
-    def SPOOLING_EXT = 'log'
+    private def FOLDER_SEPARATOR = null
+    private def CWD = null
+    private def HOME_DIR = null
+    private def RESULTS_DIR = 'results'
+    private def SPOOLING_EXT = 'log'
 
     
     //GENERAL
-    def FILES = []
+    private def FILES = []
 
     //OPTIONS
-    def VERBOSE = null
-    def TRACE = null
-    def varParsers = [] //organized as LIFO
-    def params = [:] //all params as a Map
+    private def VERBOSE = null
+    private def TRACE = null
+    private def varParsers = [] //organized as LIFO
+    private def params = [:] //all params as a Map
 
-    LogEntryParser lentryParser = null 
-    FilterParser filterParser =  null 
-    FileNameParser fileNameParser =  null 
+    private LogEntryParser lentryParser = null 
+    private FilterParser filterParser =  null 
+    private FileNameParser fileNameParser =  null 
 
-    PatternAutomationHelper paHelper
-    FileProcessor fProcessor
+    private DateTimeChecker dateTimeChecker
+    private PatternAutomationHelper paHelper
+    private FileProcessor fProcessor
 
     /**
     * Constructor
@@ -145,7 +146,22 @@ class WgrepFacade {
         if (isTraceEnabled()) trace("Accessing param: " + field)
         return hasField(field) ? this."$field" : this.params[field]
     }
-   
+
+    def getDateTimeChecker()
+    {
+        return dateTimeChecker
+    }
+    
+    def getPatternHelper()
+    {
+        return paHelper
+    }
+
+    def getFileProcessor()
+    {
+        return fProcessor
+    }
+
     // Setters
 
     /**
@@ -252,6 +268,7 @@ class WgrepFacade {
     {
         lentryParser.unsubscribe()   
         setParam(field, val)
+        paHelper = PatternAutomationHelper.getInstance()
     }
 
     /**
@@ -259,10 +276,11 @@ class WgrepFacade {
     * @param field Field to be set
     * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
     */
-    def setPredefined(def field, def val)
+    def setPredefinedFilter(def field, def val)
     {
         filterParser.unsubscribe()   
         setParam(field, val)
+        paHelper.parseFilterConfig(val)
     }
 
     /**
@@ -272,9 +290,10 @@ class WgrepFacade {
     */
     def setPredefinedConfig(def field, def val)
     {
-        lentryParser.unsubscribe() 
-        if (getParam('ATMTN_LEVEL') == null) setParam('ATMTN_LEVEL', 'a')   
+        setAutomation('ATMTN_LEVEL', 'a')  
         setParam(field, val)
+        paHelper.applySequenceByTag(val)
+        paHelper = null //disabling pattern refresh
     }
 
     // INITIALIZATION    
@@ -410,7 +429,7 @@ class WgrepFacade {
     * @return <code>1</code> if check is passed. <code>null</code> otherwise.
     */
 
-    def checkVars()
+    def check()
     {
         
         if (FILES.isEmpty())
@@ -421,14 +440,12 @@ class WgrepFacade {
 
         if (getParam('LOG_ENTRY_PATTERN') == null)
         {
-            println "No log entry pattern. Can't split the log records."
-            return false
+            if (isTraceEnabled()) trace("No log entry pattern.")
         }
 
         if (getParam('FILTER_PATTERN') == null)
         {
-            println "No filter pattern. To list all the file better use less"
-            return false
+            if (isTraceEnabled()) trace("No filter pattern.")
         }
 
         return true
@@ -507,7 +524,7 @@ class WgrepFacade {
 
     def moduleInit()
     {
-        paHelper = PatternAutomationHelper.getInstance()
+        dateTimeChecker = new DateTimeChecker()
         fProcessor = FileProcessor.getInstance()
         return 1
     }
@@ -541,12 +558,23 @@ class WgrepFacade {
         fProcessor.processAll()
     }
 
-    def checkEntryPattern(def fileName)
+    boolean refreshConfigByFileName(def fileName)
     {
         if (paHelper != null)
         {
-            paHelper.automateByFile(fileName)
+            boolean ammended = paHelper.applySequenceByFileName(fileName)
+            if (ammended)
+            {
+                dateTimeChecker.refresh()
+            }
+            return ammended
         }
+        return false
+    }
+
+    boolean checkFileTime(File fileObj)
+    {
+        return dateTimeChecker == null || dateTimeChecker.checkFileTime(fileObj)
     }
 
     /**

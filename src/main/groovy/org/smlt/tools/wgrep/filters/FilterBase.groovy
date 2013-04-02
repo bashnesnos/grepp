@@ -19,11 +19,24 @@ class FilterBase extends ModuleBase {
         throw new UnsupportedOperationException('Method of base class shoulnd\'t be used')
     }
 
+    FilterBase getTail()
+    {
+        return nextFilter
+    }
+
     def clearState() {
         if (isTraceEnabled()) trace("Dummy finalization")
         if (nextFilter != null)
         {
             nextFilter.clearState()
         }
+    }
+
+    def refresh() {
+        if (isTraceEnabled()) trace("Dummy refresh")
+        if (nextFilter != null)
+        {
+            nextFilter.refresh()
+        }        
     }
 }

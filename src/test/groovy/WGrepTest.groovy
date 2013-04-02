@@ -35,10 +35,9 @@ class WGrepTest extends GroovyTestCase
     void testFailAutomationProcessing()
     {
         
-        shouldFail(java.lang.IllegalArgumentException)
-        {
-            facade.processInVars(["-i","test", HOME+"\\test*"])
-        }
+        facade.processInVars(["-i","test", HOME+"\\config*"])
+        facade.startProcessing()
+        assertTrue( true )
     }
     
     void testExtendedPatternProcessing()
@@ -59,9 +58,10 @@ class WGrepTest extends GroovyTestCase
     void testAutomationProcessing()
     {
         
-        facade.processInVars(["-i","test", HOME+"\\test_*"])
+        facade.processInVars(["-i","test", HOME+"\\fpTest_*"])
+        facade.refreshConfigByFileName(facade.getParam('FILES')[0])
         assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
-        assertTrue( facade.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
+        assertTrue( facade.getParam('LOG_DATE_FORMAT').toPattern() == "yyyy-MM-dd HH:mm:ss" )
     }
 
     void testMoreComplexVarsProcessing()

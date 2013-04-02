@@ -1,7 +1,7 @@
 <root>
     <custom>
 		<options>
-			<opt field="PREDEF_TAG" handler="setPredefined">your_predefined_tag</opt>
+			<opt field="PREDEF_TAG" handler="setPredefinedFilter">your_predefined_tag</opt>
 			<opt field="PREDEF_TAG" handler="setPredefinedConfig">your_config_id</opt>
 			<opt field="PRESERVE_THREAD" handler="setExtendedPattern">your_preserve_thread_tag</opt>
 			<opt field="POST_PROCESSING" handler="setPostProcessing">your_post_processing_tag</opt>
