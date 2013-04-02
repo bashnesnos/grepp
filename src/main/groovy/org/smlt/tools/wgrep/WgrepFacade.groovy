@@ -15,6 +15,7 @@ class WgrepFacade {
     //internal
     def cfgDoc = null
     def root = null
+    
     private static WgrepFacade facadeInstance
     
     /**
@@ -27,6 +28,7 @@ class WgrepFacade {
         if (facadeInstance == null) 
         {
             facadeInstance = new WgrepFacade(args)
+            facadeInstance.initParsers()
         }
         return facadeInstance
     }
@@ -47,30 +49,23 @@ class WgrepFacade {
     def CWD = null
     def HOME_DIR = null
     def RESULTS_DIR = 'results'
+    def SPOOLING_EXT = 'log'
+
     
     //GENERAL
-    def LOG_ENTRY_PATTERN = null
-    def LEP_OVERRIDED = null
-    def FILTER_PATTERN = null
-    def FP_OVERRIDED = null
     def FILES = []
 
     //OPTIONS
     def VERBOSE = null
     def TRACE = null
-    def SPOOLING = null
-        def SPOOLING_EXT = null
-    def FILE_MERGING = null
-    def ATMTN_LEVEL = null
-        PatternAutomationHelper paHelper
-    def PREDEF_TAG = null
-    def EXTNDD_PATTERN = null
-        def PRESERVE_THREAD = null
-    def POST_PROCESSING = null
-    def DATE_TIME_FILTER = null
-    def additionalVarParsers = []
-    def extraParams = [:]
+    def varParsers = [] //organized as LIFO
+    def params = [:] //all params as a Map
 
+    LogEntryParser lentryParser = null 
+    FilterParser filterParser =  null 
+    FileNameParser fileNameParser =  null 
+
+    PatternAutomationHelper paHelper
     FileProcessor fProcessor
 
     /**
@@ -86,6 +81,7 @@ class WgrepFacade {
         root = cfgDoc.documentElement
         CWD = System.getProperty("user.dir")
         this.loadDefaults()
+
     }
 
     /**
@@ -101,66 +97,14 @@ class WgrepFacade {
             setSpoolingExt(root.global.spooling[0].text())
         }
     }
-    //General
-    
-    /**
-    * Method prints out some help
-    * <p> 
-    * Actually it has the same date as in groovydoc.
-    */
-    def printHelp() 
-    {
-        def help = """\
-        CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
-
-        Usage: 
-        java -cp wgrep.jar org.smlt.tools.wgrep.WGrep CONFIG_FILE [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
-        Usage via supplied .bat or .sh file: 
-        wgrep [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
-
-        Examples:
-
-        Using in Windows
-        wgrep -as \"SomethingINeedToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
-        wgrep -as \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log
-
-        Using on NIX 
-        wgrep -a --my_predefined_config --dtime 2011-11-11T11:10 2011-11-11T11:11 myapp.log 
-        wgrep -a --my_predefined_config myapp.log 
-        wgrep -a 'SomethingINeedToFind' myanotherapp.log 
-        wgrep -eas 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 
-        wgrep -ae 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' --dtime 2009-09-09T09:00 + thirdapp.log 
-        wgrep -as 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
-        """
-        println help
-        return -1
-    }
-
-    /**
-    * Main method for printing a block. Checks if it is not null and prints to System.out.
-    * @param block Block to be printed
-    */
-
-    def printBlock(def block)
-    {
-        println block
-    }
-
-    /**
-    * Method to trigger processing of supplied files. Contains hook to start spooling.
-    */
-
-    def startProcessing()
-    {
-        spool()
-        fProcessor.processAll()
-    }
-
-    def moduleInit()
-    {
-        paHelper = PatternAutomationHelper.getInstance()
-        fProcessor = FileProcessor.getInstance()
-        return 1
+   
+    def initParsers() {
+        lentryParser = new LogEntryParser()
+        filterParser = new FilterParser()
+        fileNameParser = new FileNameParser()
+        fileNameParser.subscribe()
+        filterParser.subscribe()
+        lentryParser.subscribe() 
     }
 
     // Getters
@@ -191,29 +135,17 @@ class WgrepFacade {
     }
 
     /**
-    * Gets value of any field which exists in <code>WgrepFacade</code> via reflection.
-    * @param field Name of field of <code>WgrepFacade</code> which is needed to be get.
-    * @return Value of <code>WgrepFacade.'field'</code>
-    */
-
-    def getParam(def field)
-    {
-        if (isTraceEnabled()) trace("Accessing main param: " + field)
-        return this."$field"
-    }
-
-    /**
     * Gets value of the {@link this.extraParams} by key.
     * @param field Key for <code>extraParams</code> which is needed to be get.
     * @return Value set to the key <code>field</code>
     */
 
-    def getExtraParam(def field)
+    def getParam(def field)
     {
-        if (isTraceEnabled()) trace("Accessing extra param: " + field)
-        return this.extraParams[field]
+        if (isTraceEnabled()) trace("Accessing param: " + field)
+        return hasField(field) ? this."$field" : this.params[field]
     }
-
+   
     // Setters
 
     /**
@@ -224,20 +156,15 @@ class WgrepFacade {
 
     def setParam(def field, def val)
     {
-        if (isTraceEnabled()) trace("Setting main param: " + field + " val: " + val)
-        this."$field" = val
-    }
-
-    /**
-    * Adds/updates value of the {@link this.extraParams} by key.
-    * @param field Key for <code>extraParams</code> which is needed to be get.
-    * @param val Value to be set
-    */
-
-    def setExtraParam(def field, def val)
-    {
-        if (isTraceEnabled()) trace("Setting extra param: " + field + " val: " + val)
-        this.extraParams[field] = val
+        if (isTraceEnabled()) trace("Setting param: " + field + " val: " + val)
+        if (hasField(field))
+        {
+            this."$field" = val
+        }
+        else
+        {
+            this.params[field] = val
+        }
     }
 
     /**
@@ -312,7 +239,7 @@ class WgrepFacade {
     def setDateTimeFilter(def field, def val)
     {
         setParam(field, val)
-        new DateTimeVarParser().subscribe()
+        new DateTimeParser().subscribe()
     }
 
     /**
@@ -323,7 +250,7 @@ class WgrepFacade {
 
     def setAutomation(def field, def val)
     {
-        setParam('LEP_OVERRIDED', true)   
+        lentryParser.unsubscribe()   
         setParam(field, val)
     }
 
@@ -334,7 +261,7 @@ class WgrepFacade {
     */
     def setPredefined(def field, def val)
     {
-        setParam('FP_OVERRIDED', true)   
+        filterParser.unsubscribe()   
         setParam(field, val)
     }
 
@@ -345,28 +272,9 @@ class WgrepFacade {
     */
     def setPredefinedConfig(def field, def val)
     {
-        setParam('LEP_OVERRIDED', true)   
+        lentryParser.unsubscribe() 
         if (getParam('ATMTN_LEVEL') == null) setParam('ATMTN_LEVEL', 'a')   
         setParam(field, val)
-    }
-
-    /**
-    * Initializes spooling, i.e. redirects System.out to a file. 
-    * <p>
-    * File is created in the {@link this.HOME_DIR} folder with name compiled from {@link this.FILTER_PATTERN} and extension as {@link this.SPOOLING_EXT}
-    */
-
-    def spool()
-    {
-        if (SPOOLING != null)
-        {
-            def resultsDir = new File(HOME_DIR + FOLDER_SEPARATOR + RESULTS_DIR)
-            if (!resultsDir.exists()) resultsDir.mkdir()
-            def out_file = new File(resultsDir.getAbsolutePath() + FOLDER_SEPARATOR + FILTER_PATTERN.replaceAll("[^\\p{L}\\p{N}]", {""}) + SPOOLING_EXT)
-            if (isTraceEnabled()) trace("Creating new file: " + out_file.getAbsolutePath())
-            out_file.createNewFile()
-            System.setOut(new PrintStream(new FileOutputStream(out_file)))
-        }
     }
 
     // INITIALIZATION    
@@ -391,24 +299,16 @@ class WgrepFacade {
         {
             if (isTraceEnabled()) trace("Next argument " + arg)
 
-            def shouldContinue = processOptions(arg) 
-            if (shouldContinue == -1) return shouldContinue
-            if (shouldContinue > 0) continue
-            
-            if (!LEP_OVERRIDED && LOG_ENTRY_PATTERN == null)
+            switch (processOptions(arg))
             {
-                setLogEntryPattern(arg)
-                continue
+                case -1 : 
+                    return -1
+                    break
+                case 1:
+                    break
+                default :
+                    parseVar(arg)
             }
-
-            if (!FP_OVERRIDED && FILTER_PATTERN == null) 
-            {
-                setFilterPattern(arg)
-                continue
-            }
-
-            if (parseAdditionalVar(arg) != null) continue
-            setFileName(arg)
         }
         moduleInit()
     }
@@ -420,7 +320,7 @@ class WgrepFacade {
     * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>null</code> otherwise.
     */
 
-    def processOptions(def arg)
+    int processOptions(def arg)
     {
         if (arg ==~ /\?/) return printHelp()
         if (arg =~/^-(?!-)/)
@@ -487,24 +387,53 @@ class WgrepFacade {
     }
 
     /**
-    * Method for parsing 'additional' variables.
+    * Method for parsing variables.
     * <p>
-    * It gets first parser from {@link additionalVarParsers} array and calls it <code>parseVar</code> function with supplied <code>arg</code>
+    * It gets first parser from {@link varParsers} array and calls it <code>parseVar</code> function with supplied <code>arg</code>
     *
     * @param arg An argument to be parsed
     * @return <code>1</code> if <code>arg</code> was processed(i.e. if there was any {@link AdditionalVarParser} subscribed) <code>null</code> otherwise.
     */
 
-    def parseAdditionalVar(def arg)
+    def parseVar(def arg)
     {
-        if (isTraceEnabled()) trace("Parsing additional var: " + arg)
-        if (additionalVarParsers.size() > 0)
+        if (isTraceEnabled()) trace("attempting to parse with parsers: " + varParsers)
+        def nexParserIdx = varParsers.size() - 1
+        if (nexParserIdx >= 0)
         {
-            additionalVarParsers[0].parseVar(arg)
-            return 1
+            varParsers[nexParserIdx].parseVar(arg)
         }
-        return null
     }
+
+    /**
+    * Method checks if all the main vars are not nulls.
+    * @return <code>1</code> if check is passed. <code>null</code> otherwise.
+    */
+
+    def checkVars()
+    {
+        
+        if (FILES.isEmpty())
+        {
+            println "No file to wgrep"
+            return false
+        }
+
+        if (getParam('LOG_ENTRY_PATTERN') == null)
+        {
+            println "No log entry pattern. Can't split the log records."
+            return false
+        }
+
+        if (getParam('FILTER_PATTERN') == null)
+        {
+            println "No filter pattern. To list all the file better use less"
+            return false
+        }
+
+        return true
+    }
+
 
     /**
     * Method for subscribing additional parsers.
@@ -514,7 +443,7 @@ class WgrepFacade {
 
     def subscribeVarParsers(def parsers)
     {
-        additionalVarParsers.addAll(parsers)
+        varParsers.addAll(parsers)
     }
 
     /**
@@ -525,7 +454,7 @@ class WgrepFacade {
 
     def unsubscribeVarParsers(def parsers)
     {
-        additionalVarParsers.removeAll(parsers)
+        varParsers.removeAll(parsers)
     }
 
 
@@ -563,6 +492,55 @@ class WgrepFacade {
     }
 
    
+    //General
+
+    boolean hasField(def field)
+    {
+        try {
+            this.getClass().getDeclaredField(field)
+        }
+        catch (NoSuchFieldException e) {
+            return false
+        }
+        return true
+    }
+
+    def moduleInit()
+    {
+        paHelper = PatternAutomationHelper.getInstance()
+        fProcessor = FileProcessor.getInstance()
+        return 1
+    }
+
+/**
+    * Initializes spooling, i.e. redirects System.out to a file. 
+    * <p>
+    * File is created in the {@link this.HOME_DIR} folder with name compiled from {@link this.FILTER_PATTERN} and extension as {@link this.SPOOLING_EXT}
+    */
+
+    def spool()
+    {
+        if (getParam('SPOOLING') != null)
+        {
+            def resultsDir = new File(HOME_DIR + FOLDER_SEPARATOR + RESULTS_DIR)
+            if (!resultsDir.exists()) resultsDir.mkdir()
+            def out_file = new File(resultsDir.getAbsolutePath() + FOLDER_SEPARATOR + getParam('FILTER_PATTERN').replaceAll("[^\\p{L}\\p{N}]", {""}) + getParams('SPOOLING_EXT'))
+            if (isTraceEnabled()) trace("Creating new file: " + out_file.getAbsolutePath())
+            out_file.createNewFile()
+            System.setOut(new PrintStream(new FileOutputStream(out_file)))
+        }
+    }
+
+    /**
+    * Method to trigger processing of supplied files. Contains hook to start spooling.
+    */
+
+    def startProcessing()
+    {
+        spool()
+        fProcessor.processAll()
+    }
+
     def checkEntryPattern(def fileName)
     {
         if (paHelper != null)
@@ -572,32 +550,47 @@ class WgrepFacade {
     }
 
     /**
-    * Method checks if all the main vars are not nulls.
-    * @return <code>1</code> if check is passed. <code>null</code> otherwise.
+    * Method prints out some help
+    * <p> 
+    * Actually it has the same date as in groovydoc.
+    */
+    int printHelp() 
+    {
+        def help = """\
+        CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
+
+        Usage: 
+        java -cp wgrep.jar org.smlt.tools.wgrep.WGrep CONFIG_FILE [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+        Usage via supplied .bat or .sh file: 
+        wgrep [-[:option:]] [--:filter_option:] [LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+
+        Examples:
+
+        Using in Windows
+        wgrep -as \"SomethingINeedToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
+        wgrep -as \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log
+
+        Using on NIX 
+        wgrep -a --my_predefined_config --dtime 2011-11-11T11:10 2011-11-11T11:11 myapp.log 
+        wgrep -a --my_predefined_config myapp.log 
+        wgrep -a 'SomethingINeedToFind' myanotherapp.log 
+        wgrep -eas 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 
+        wgrep -ae 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' --dtime 2009-09-09T09:00 + thirdapp.log 
+        wgrep -as 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
+        """
+        println help
+        return -1
+    }
+
+    /**
+    * Main method for printing a block. Checks if it is not null and prints to System.out.
+    * @param block Block to be printed
     */
 
-    def checkVars()
+    def printBlock(def block)
     {
-        
-        if (FILES.isEmpty())
-        {
-            println "No file to wgrep"
-            return false
-        }
-
-        if (getParam('LOG_ENTRY_PATTERN') == null)
-        {
-            println "No log entry pattern. Can't split the log records."
-            return false
-        }
-
-        if (getParam('FILTER_PATTERN') == null)
-        {
-            println "No filter pattern. To list all the file better use less"
-            return false
-        }
-
-        return true
+        println block
     }
+
 
 }

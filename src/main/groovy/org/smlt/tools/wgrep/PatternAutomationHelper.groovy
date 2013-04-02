@@ -71,9 +71,9 @@ class PatternAutomationHelper extends ModuleBase
             {
                 if (isTraceEnabled()) trace('Parsing entry config for ' + tag)
                 getFacade().setLogEntryPattern(customCfg.starter.text() + customCfg.date.text())
-                getFacade().setExtraParam('LOG_DATE_PATTERN', customCfg.date.text())
-                getFacade().setExtraParam('LOG_DATE_FORMAT', customCfg.date_format.text())
-                getFacade().setExtraParam('LOG_FILE_THRESHOLD', customCfg.log_threshold.text())
+                getFacade().setParam('LOG_DATE_PATTERN', customCfg.date.text())
+                getFacade().setParam('LOG_DATE_FORMAT', customCfg.date_format.text())
+                getFacade().setParam('LOG_FILE_THRESHOLD', customCfg.log_threshold.text())
             }
             else
             {

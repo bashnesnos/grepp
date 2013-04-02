@@ -48,7 +48,7 @@ class FileProcessor extends ModuleBase
         return new FileProcessor(filterChain_, dateTimeChecker_, getFacade().getParam('FILES'), getFacade().getParam('FOLDER_SEPARATOR'), getFacade().getParam('CWD'), getFacade().getParam('FILE_MERGING'))
     }
 
-    private FileProcessor(def filterChain_, def dateTimeChecker_, def files_, def separator_, def curDir_, def merging_) 
+    FileProcessor(def filterChain_, def dateTimeChecker_, def files_, def separator_, def curDir_, def merging_) 
     {
         filterChain = filterChain_
         dateTimeChecker = dateTimeChecker_

@@ -44,14 +44,14 @@ class DateTimeChecker extends ModuleBase
 
     def parseExtra()
     {
-        def ptrn = getFacade().getExtraParam('LOG_DATE_PATTERN') 
+        def ptrn = getFacade().getParam('LOG_DATE_PATTERN') 
         if (ptrn != null) LOG_DATE_PATTERN = ptrn
-        def frmt = getFacade().getExtraParam('LOG_DATE_FORMAT') 
+        def frmt = getFacade().getParam('LOG_DATE_FORMAT') 
         if (frmt != null) LOG_DATE_FORMAT = new SimpleDateFormat(frmt)
-        def trshld = getFacade().getExtraParam('LOG_FILE_THRESHOLD') 
+        def trshld = getFacade().getParam('LOG_FILE_THRESHOLD') 
         if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(trshld)
-        setDateFrom(getFacade().getExtraParam('FROM_DATE'))
-        setDateTo(getFacade().getExtraParam('TO_DATE'))
+        setDateFrom(getFacade().getParam('FROM_DATE'))
+        setDateTo(getFacade().getParam('TO_DATE'))
     }
 
     def setDateFrom(def date)

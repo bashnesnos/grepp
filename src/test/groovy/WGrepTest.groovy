@@ -25,11 +25,11 @@ class WGrepTest extends GroovyTestCase
     {
         
         facade.processInVars(["-","test","test",HOME+"\\fpTest*"])
-        assertTrue( facade.LOG_ENTRY_PATTERN == "test" )
-        assertTrue( facade.FILTER_PATTERN == "test" )
-        assertTrue( facade.FILES == [HOME+"\\fpTest_test.log"] )
-        assertTrue( facade.FOLDER_SEPARATOR == "\\\\" )
-        assertTrue( facade.HOME_DIR != null )
+        assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == "test" )
+        assertTrue( facade.getParam('FILTER_PATTERN') == "test" )
+        assertTrue( facade.getParam('FILES') == [HOME+"\\fpTest_test.log"] )
+        assertTrue( facade.getParam('FOLDER_SEPARATOR') == "\\\\" )
+        assertTrue( facade.getParam('HOME_DIR') != null )
     }
 
     void testFailAutomationProcessing()
@@ -45,34 +45,34 @@ class WGrepTest extends GroovyTestCase
     {
         
         facade.processInVars(["-e","test","test%and%tets",HOME+"\\test*"])
-        assertTrue( facade.EXTNDD_PATTERN == 'e')
-        assertTrue( facade.FILTER_PATTERN == "test%and%tets" )
+        assertTrue( facade.getParam('EXTNDD_PATTERN') == 'e')
+        assertTrue( facade.getParam('FILTER_PATTERN') == "test%and%tets" )
     }
     
     void testComplexVarsProcessing()
     {
         
         facade.processInVars(["-","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
-        assertTrue( facade.DATE_TIME_FILTER == "dtime" )
+        assertTrue( facade.getParam('DATE_TIME_FILTER') == "dtime" )
     }
 
     void testAutomationProcessing()
     {
         
         facade.processInVars(["-i","test", HOME+"\\test_*"])
-        assertTrue( facade.LOG_ENTRY_PATTERN == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
-        assertTrue( facade.getExtraParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
+        assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
+        assertTrue( facade.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
     }
 
     void testMoreComplexVarsProcessing()
     {
         
         facade.processInVars(["-s", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
-        assertTrue( facade.LOG_ENTRY_PATTERN == "stCommand" )
-        assertTrue( facade.FILTER_PATTERN == "queryTime" )
-        assertTrue( facade.FILES == ["cmd_only_1.log"] )
-        assertTrue( facade.FOLDER_SEPARATOR == "\\\\" )
-        assertTrue( facade.HOME_DIR != null )
+        assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
+        assertTrue( facade.getParam('FILTER_PATTERN') == "queryTime" )
+        assertTrue( facade.getParam('FILES') == ["cmd_only_1.log"] )
+        assertTrue( facade.getParam('FOLDER_SEPARATOR') == "\\\\" )
+        assertTrue( facade.getParam('HOME_DIR') != null )
     }
 
     void testTraceForComplexProcessing()
