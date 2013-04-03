@@ -11,27 +11,28 @@ class FilterChainFactory
         WgrepFacade facade = WgrepFacade.getInstance()
         if (facade.getParam('POST_PROCESSING') != null)
         {
-            filterChain_ = new PostFilter(filterChain_)
+            filterChain_ = new PostFilter(filterChain_, facade.getParam('POST_PROCESSING'))
         } 
         
         if (facade.getParam('DATE_TIME_FILTER') != null)
         {
-            filterChain_ = new EntryDateFilter(filterChain_)
+            filterChain_ = new EntryDateFilter(filterChain_, facade.getParam('FROM_DATE'), facade.getParam('TO_DATE'))
         } 
 
         if (facade.getParam('EXTNDD_PATTERN') != null || facade.getParam('PRESERVE_THREAD') != null)
         {
-            filterChain_ = new ComplexFilter(filterChain_)
+            filterChain_ = new ComplexFilter(filterChain_, facade.getParam('FILTER_PATTERN'), facade.getParam('PRESERVE_THREAD'))
         } 
         else
         {
-            filterChain_ = new BasicFilter(filterChain_)
+            filterChain_ = new BasicFilter(filterChain_, facade.getParam('FILTER_PATTERN'))
         }
 
         if (facade.getParam('LOG_ENTRY_PATTERN'))
         {
-            filterChain_ = new LogEntryFilter(filterChain_)
+            filterChain_ = new LogEntryFilter(filterChain_, facade.getParam('LOG_ENTRY_PATTERN'))
         }
+
         return filterChain_
     }
 
@@ -42,10 +43,10 @@ class FilterChainFactory
         
         if (facade.getParam('DATE_TIME_FILTER') != null)
         {
-            filterChain_ = new FileDateFilter(filterChain_)
+            filterChain_ = new FileDateFilter(filterChain_,  facade.getParam('FILE_DATE_FORMAT'), facade.getParam('FROM_DATE'), facade.getParam('TO_DATE'))
         } 
 
-        filterChain_ = new FileNameFilter(filterChain_)   
+        filterChain_ = new FileNameFilter(filterChain_, facade.getParam('FOLDER_SEPARATOR'), facade.getParam('CWD'))
         return filterChain_
     }
 

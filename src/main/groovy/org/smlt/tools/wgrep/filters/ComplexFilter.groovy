@@ -16,11 +16,10 @@ class ComplexFilter extends FilterBase {
     def THRD_SKIP_END_PTTRNS = []
     def THRD_END_PTTRNS =[]
 
-    ComplexFilter(FilterBase nextFilter_)
+    ComplexFilter(FilterBase nextFilter_, def filterPtrn_, def pt_tag)
     {
-        super(nextFilter_, null)
+        super(nextFilter_, filterPtrn_)
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
-        def pt_tag = getFacade().getParam('PRESERVE_THREAD')
         use(DOMCategory)
         {
             if (pt_tag != null)
@@ -31,7 +30,7 @@ class ComplexFilter extends FilterBase {
                 pttrns.each { this."${it.'@clct'}".add(it.text()) }
             }
         }
-        processExtendedPattern(getFacade().getParam('FILTER_PATTERN'))
+        processExtendedPattern(filterPtrn)
     }
 
     def addExtendedFilterPattern(def val, def qualifier)

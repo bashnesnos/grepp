@@ -9,8 +9,8 @@ class LogEntryFilter extends FilterBase{
     private StringBuilder curBlock = null;
     private def dateTimeChecker = null;
 
-    LogEntryFilter(FilterBase nextFilter_) {
-        super(nextFilter_, getFacade().getParam('LOG_ENTRY_PATTERN'))
+    LogEntryFilter(FilterBase nextFilter_, def filterPtrn_) {
+        super(nextFilter_, filterPtrn_)
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
     }
 
@@ -85,12 +85,15 @@ class LogEntryFilter extends FilterBase{
                 curBlock.setLength(0)
                 throw e
             }
+            finally
+            {
+                curBlock.setLength(0)
+            }
         }
         else 
         {
             throw new RuntimeException("shouldn't be the last in chain")
         }
-        curBlock.setLength(0)
     }
 
     def clearState() {

@@ -249,7 +249,7 @@ class WgrepFacade {
     def setDateTimeFilter(def field, def val)
     {
         setParam(field, val)
-        new DateTimeParser().subscribe()
+        new DateTimeParser(val).subscribe()
     }
 
     /**

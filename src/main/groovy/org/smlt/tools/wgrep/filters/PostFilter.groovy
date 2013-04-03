@@ -12,12 +12,12 @@ class PostFilter extends FilterBase {
     def POST_PROCESS_HEADER = null
     def HEADER_PRINTED = false
 
-    PostFilter(FilterBase nextFilter_)
+    PostFilter(FilterBase nextFilter_, def pp_tag)
     {
         super(nextFilter_, null)
+        if (pp_tag == null) throw new IllegalArgumentException("There should be some post processing tag specified")
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
-        def pp_tag = getFacade().getParam('POST_PROCESSING')
         use(DOMCategory)
         {
             if (isTraceEnabled()) trace("Looking for splitters of type=" + pp_tag)

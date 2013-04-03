@@ -15,12 +15,21 @@ class FileDateFilter extends FilterBase
     int LOG_FILE_THRESHOLD = 24
     int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
 
-    FileDateFilter(FilterBase nextFilter_)
+    FileDateFilter(FilterBase nextFilter_, def logFileThreshold_, def fileDateFormat_, def from_, def to_)
     {
         super(nextFilter_, null)
-        FROM_DATE = getFacade().getParam('FROM_DATE')
-        TO_DATE = getFacade().getParam('TO_DATE')
-        FILE_DATE_FORMAT = new SimpleDateFormat(getFacade().getParam('FILE_DATE_FORMAT'))
+        FROM_DATE = from_
+        TO_DATE = to_
+        FILE_DATE_FORMAT = new SimpleDateFormat(fileDateFormat_)
+        if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(logFileThreshold_)
+    }
+
+    FileDateFilter(FilterBase nextFilter_, def fileDateFormat_, def from_, def to_)
+    {
+        super(nextFilter_, null)
+        FROM_DATE = from_
+        TO_DATE = to_
+        FILE_DATE_FORMAT = new SimpleDateFormat(fileDateFormat_)
         fillRefreshableParams()
     }
 

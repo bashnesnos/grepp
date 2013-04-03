@@ -9,9 +9,9 @@ class DateTimeParser extends DefaultVarParser
     private boolean isFromParsed = false
     private boolean isToParsed = false
 
-    DateTimeParser() 
+    DateTimeParser(def dt_tag)
     {
-        def dt_tag = getFacade().getParam('DATE_TIME_FILTER')
+        if (dt_tag == null) throw new IllegalArgumentException("There should be some date time tag specified")
         use(DOMCategory)
         {
             def ptrns = getRoot().date_time_config.pattern.findAll { it.'@tags' =~ dt_tag }

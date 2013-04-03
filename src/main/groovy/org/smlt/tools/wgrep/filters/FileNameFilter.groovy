@@ -7,13 +7,12 @@ class FileNameFilter extends FilterBase
     private def fSeparator = null
     private def curDir = null
 
-    FileNameFilter(FilterBase nextFilter_) 
+    FileNameFilter(FilterBase nextFilter_, def fSeparator_, def cwd_) 
     {
         super(nextFilter_, null)
-        fSeparator = getFacade().getParam('FOLDER_SEPARATOR')
-        curDir = getFacade().getParam('CWD')
+        fSeparator = fSeparator_
+        curDir = cwd_
     }
-
 
     def filter(def fileNames) {
         if (! fileNames instanceof ArrayList<String> ) throw new IllegalArgumentException("FileNameFilter accepts string list only")

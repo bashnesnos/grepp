@@ -11,13 +11,21 @@ class EntryDateFilter extends FilterBase{
     private Date TO_DATE
     private boolean isDateFromPassed = false
 
-    EntryDateFilter(FilterBase nextFilter_) {
-		super(nextFilter_, null)
-        fillRefreshableParams()
-        FROM_DATE = getFacade().getParam('FROM_DATE')
-        TO_DATE = getFacade().getParam('TO_DATE')
+    EntryDateFilter(FilterBase nextFilter_, def logDatePtrn_, def logDateFormat_, def from_, def to_) {
+		super(nextFilter_, logDatePtrn_)
+        if (logDateFormat_ != null) DATE_FORMAT = new SimpleDateFormat(logDateFormat_)
+        FROM_DATE = from_
+        TO_DATE = to_
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
+
+    EntryDateFilter(FilterBase nextFilter_, def from_, def to_) {
+        super(nextFilter_, null)
+        fillRefreshableParams()
+        FROM_DATE = from_
+        TO_DATE = to_
+        if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+    }
 
     def fillRefreshableParams()
     {

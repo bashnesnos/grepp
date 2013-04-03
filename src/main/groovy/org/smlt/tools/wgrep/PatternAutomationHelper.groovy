@@ -11,12 +11,12 @@ class PatternAutomationHelper extends ModuleBase
     boolean isAmmended = false
 
     static PatternAutomationHelper getInstance(){
-        return getFacade().getParam('ATMTN_LEVEL') != null ? new PatternAutomationHelper() : null
+        return getFacade().getParam('ATMTN_LEVEL') != null ? new PatternAutomationHelper(getFacade().getParam('ATMTN_LEVEL')) : null
     }
 
-    private PatternAutomationHelper()
+    private PatternAutomationHelper(def lv_tag)
     {
-        def lv_tag = getFacade().getParam('ATMTN_LEVEL')
+        if (lv_tag == null) throw new IllegalArgumentException("There should be some level specified")
         use(DOMCategory)
         {
             def levels = getRoot().automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
