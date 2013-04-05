@@ -28,7 +28,7 @@ class WgrepFacade {
         if (facadeInstance == null) 
         {
             facadeInstance = new WgrepFacade(args)
-            facadeInstance.initParsers()
+            facadeInstance.init()
         }
         return facadeInstance
     }
@@ -61,7 +61,6 @@ class WgrepFacade {
     private def varParsers = [] //organized as LIFO
     private def params = [:] //all params as a Map
 
-    private LogEntryParser lentryParser = null 
     private FilterParser filterParser =  null 
     private FileNameParser fileNameParser =  null 
 
@@ -95,16 +94,16 @@ class WgrepFacade {
         use(DOMCategory)
         {
             setSpoolingExt(root.global.spooling[0].text())
+            setParam('ATMTN_LEVEL', root.global.automation_level[0].text()) //setting default automation level
         }
     }
    
-    def initParsers() {
-        lentryParser = new LogEntryParser()
+    def init() {
+        paHelper = PatternAutomationHelper.getInstance()
         filterParser = new FilterParser()
         fileNameParser = new FileNameParser()
         fileNameParser.subscribe()
         filterParser.subscribe()
-        lentryParser.subscribe() 
     }
 
     // Getters
@@ -252,6 +251,13 @@ class WgrepFacade {
         new DateTimeParser(val).subscribe()
     }
 
+    def setUserLEPattern(def field, def val)
+    {
+        new LogEntryParser().subscribe()
+        setParam(field, val)
+        disableAutomation()
+    }
+
     /**
     * Enables <code>LOG_ENTRY_PATTERN</code>, <code>FILTER_PATTERN</code>, <code>PRESERVE_THREAD</code> auto-identification based on supplied <code>level</code>. Initializes {@link PatternAutomationHelper}.
     * @param field Field to be set
@@ -260,7 +266,7 @@ class WgrepFacade {
 
     def setAutomation(def field, def val)
     {
-        lentryParser.unsubscribe()   
+        //lentryParser.unsubscribe()   
         setParam(field, val)
         paHelper = PatternAutomationHelper.getInstance()
     }
@@ -282,12 +288,24 @@ class WgrepFacade {
     * @param field Field to be set
     * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
     */
+    def setPredefinedBulkFilter(def field, def val)
+    {
+        filterParser.unsubscribe()   
+        setParam(field, val)
+        paHelper.parseBulkFilterConfig(val)
+    }
+
+    /**
+    * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
+    * @param field Field to be set
+    * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+    */
     def setPredefinedConfig(def field, def val)
     {
         setAutomation('ATMTN_LEVEL', 'a')  
         setParam(field, val)
         paHelper.applySequenceByTag(val)
-        paHelper = null //disabling pattern refresh
+        disableAutomation()
     }
 
     // INITIALIZATION    
@@ -560,6 +578,11 @@ class WgrepFacade {
         return false
     }
 
+    def disableAutomation()
+    {
+        paHelper = null
+    }
+
     /**
     * Method prints out some help
     * <p> 
@@ -592,16 +615,5 @@ class WgrepFacade {
         println help
         return -1
     }
-
-    /**
-    * Main method for printing a block. Checks if it is not null and prints to System.out.
-    * @param block Block to be printed
-    */
-
-    def printBlock(def block)
-    {
-        println block
-    }
-
 
 }

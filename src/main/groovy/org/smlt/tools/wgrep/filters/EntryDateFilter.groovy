@@ -3,6 +3,7 @@ package org.smlt.tools.wgrep.filters
 import java.util.regex.Matcher
 import java.text.SimpleDateFormat
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
+import org.smlt.tools.wgrep.filters.enums.Event
 
 class EntryDateFilter extends FilterBase{
 
@@ -132,13 +133,16 @@ class EntryDateFilter extends FilterBase{
         return true
     }
 
-    def clearState() {
-        isDateFromPassed = false
-        super.clearState()
+    def processEvent(def event) {
+        switch (event)
+        {
+            case Event.FILE_ENDED:
+                isDateFromPassed = false
+                break
+            default:
+                break
+        }
+        super.processEvent(event)
     }
 
-    def refresh() {
-        fillRefreshableParams()
-        super.refresh()
-    }
 }

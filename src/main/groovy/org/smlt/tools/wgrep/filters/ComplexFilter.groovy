@@ -1,7 +1,7 @@
 package org.smlt.tools.wgrep.filters
 
 import java.util.regex.Matcher
-import org.smlt.tools.wgrep.filters.qualifiers.*
+import org.smlt.tools.wgrep.filters.enums.*
 import groovy.xml.dom.DOMCategory
 
 class ComplexFilter extends FilterBase {
@@ -11,15 +11,17 @@ class ComplexFilter extends FilterBase {
     def EXTNDD_PTTRNS = []
     def EXTNDD_PTTRN_DICT = [:]
 
+    def pt_tag = null
     def THRD_START_EXTRCTRS =[:]
     def THRD_START_PTTRNS = []
     def THRD_SKIP_END_PTTRNS = []
     def THRD_END_PTTRNS =[]
 
-    ComplexFilter(FilterBase nextFilter_, def filterPtrn_, def pt_tag)
+    ComplexFilter(FilterBase nextFilter_, def filterPtrn_, def pt_tag_)
     {
         super(nextFilter_, filterPtrn_)
         if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        pt_tag = pt_tag_
         use(DOMCategory)
         {
             if (pt_tag != null)
@@ -53,9 +55,12 @@ class ComplexFilter extends FilterBase {
       def ptrn = (qlfr ? qlfr.getPattern() : '') + val
       def ptrnIndex = PATTERN.indexOf(ptrn)
       if (isTraceEnabled()) trace('to delete:/' + ptrn +'/ index:' + ptrnIndex)
-      PATTERN = PATTERN.delete(ptrnIndex, ptrnIndex + ptrn.length())
-      EXTNDD_PTTRNS.remove(val)
-      EXTNDD_PTTRN_DICT.remove(val)
+      if (ptrnIndex != -1)
+      {
+        PATTERN = PATTERN.delete(ptrnIndex, ptrnIndex + ptrn.length())
+        EXTNDD_PTTRNS.remove(val)
+        EXTNDD_PTTRN_DICT.remove(val)
+      }
     }
 
     def processExtendedPattern(def val)
@@ -111,29 +116,29 @@ class ComplexFilter extends FilterBase {
         setPattern(PATTERN.toString())
         if (isTraceEnabled()) 
         {
-            trace('Data: ' + blockData + '\n' +
-                'List of patterns:\n ' +    
-                filterPtrn + '\n')
+            trace('DATA:[' + blockData + ']\n' +
+                'List of patterns:\n ' + filterPtrn + '\n')
         }
 
         def blockMtchr = blockData =~ filterPtrn
         if (blockMtchr.find())
         {
-            extractThreadPatterns(blockData)
-            if (nextFilter != null)
+            if (isThreadPreserveEnabled())
             {
-                if (isTraceEnabled()) trace('Returning data')
-                nextFilter.filter(blockData)
+                extractThreadPatterns(blockData)
             }
-            else
-            {
-                throw new RuntimeException("shouldn't be the last in chain")
-            }
+            
+            super.filter(blockData)
         }
         else 
         {
             if (isTraceEnabled()) trace("not passed")
         }
+    }
+
+    boolean isThreadPreserveEnabled()
+    {
+        return pt_tag != null
     }
 
     def extractThreadPatterns(def data)

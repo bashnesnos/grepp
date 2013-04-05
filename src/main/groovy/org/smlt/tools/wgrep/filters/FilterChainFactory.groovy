@@ -19,14 +19,10 @@ class FilterChainFactory
             filterChain_ = new EntryDateFilter(filterChain_, facade.getParam('FROM_DATE'), facade.getParam('TO_DATE'))
         } 
 
-        if (facade.getParam('EXTNDD_PATTERN') != null || facade.getParam('PRESERVE_THREAD') != null)
+        if (facade.getParam('FILTER_PATTERN'))
         {
             filterChain_ = new ComplexFilter(filterChain_, facade.getParam('FILTER_PATTERN'), facade.getParam('PRESERVE_THREAD'))
         } 
-        else
-        {
-            filterChain_ = new BasicFilter(filterChain_, facade.getParam('FILTER_PATTERN'))
-        }
 
         if (facade.getParam('LOG_ENTRY_PATTERN'))
         {

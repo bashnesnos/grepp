@@ -36,6 +36,16 @@ processTestResources {
     filter { String line ->
         line.replace('#TEST_TIME#', dateFormat.format(new Date()))
     }   
+    doLast {
+        def cfgDoc = DOMBuilder.parse(new FileReader('build/resources/main/config.xml'))
+        def customDoc = DOMBuilder.parse(new FileReader('build/resources/test/config.custom'))
+        def root = cfgDoc.documentElement
+        use(DOMCategory) {
+            root.appendChild(cfgDoc.importNode(customDoc.documentElement.custom[0], true))
+        }
+        cfgDoc.normalizeDocument()
+        XmlUtil.serialize(root, new FileWriter('build/resources/test/config.xml'))
+    }
 }
 
 task makeEmbeddedJar(dependsOn: build, type: Jar) {

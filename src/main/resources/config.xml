@@ -1,6 +1,7 @@
 <root>
 	<global>
         <spooling>.log</spooling>
+        <automation_level>a</automation_level>
 	</global>
 	<options>
 		<opt field="VERBOSE" handler="setParam">v</opt>
@@ -8,6 +9,7 @@
 		<opt field="SPOOLING" handler="setParam">s</opt>
 		<opt field="FILE_MERGING" handler="setParam">m</opt>
 		<opt field="EXTNDD_PATTERN" handler="setExtendedPattern">e</opt>
+		<opt field="USER_ENTRY_PATTERN" handler="setUserLEPattern">L</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">a</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">i</opt>
 		<opt field="DATE_TIME_FILTER" handler="setDateTimeFilter">dtime</opt>
@@ -16,6 +18,8 @@
 		<pp_splitter_types>
 			<splitter_type handler="processPostFilter" id="filter"/>
 			<splitter_type handler="processPostCounter" id="counter"/>
+			<splitter_type handler="processPostGroup" id="group"/>
+			<splitter_type handler="processPostAverage" id="avg" handler_type="group_method"/>
 		</pp_splitter_types>
 		<pp_separators>
 			<separator id="csv" spool=".csv">,</separator>

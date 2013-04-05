@@ -24,7 +24,7 @@ class WGrepTest extends GroovyTestCase
     void testMainVarsProcessing()
     {
         
-        facade.processInVars(["-","test","test",HOME+"\\fpTest*"])
+        facade.processInVars(["-L","test","test",HOME+"\\fpTest*"])
         assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == "test" )
         assertTrue( facade.getParam('FILTER_PATTERN') == "test" )
         //assertTrue( facade.getParam('FILES') == [HOME+"\\fpTest_test.log"] )
@@ -43,15 +43,14 @@ class WGrepTest extends GroovyTestCase
     void testExtendedPatternProcessing()
     {
         
-        facade.processInVars(["-e","test","test%and%tets",HOME+"\\test*"])
-        assertTrue( facade.getParam('EXTNDD_PATTERN') == 'e')
+        facade.processInVars(["-L","test","test%and%tets",HOME+"\\test*"])
         assertTrue( facade.getParam('FILTER_PATTERN') == "test%and%tets" )
     }
     
     void testComplexVarsProcessing()
     {
         
-        facade.processInVars(["-","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
+        facade.processInVars(["-L","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
         assertTrue( facade.getParam('DATE_TIME_FILTER') == "dtime" )
     }
 
@@ -67,7 +66,7 @@ class WGrepTest extends GroovyTestCase
     void testMoreComplexVarsProcessing()
     {
         
-        facade.processInVars(["-s", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
+        facade.processInVars(["-sL", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
         assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
         assertTrue( facade.getParam('FILTER_PATTERN') == "queryTime" )
         assertTrue( facade.getParam('FILES') == ["cmd_only_1.log"] )
@@ -81,7 +80,7 @@ class WGrepTest extends GroovyTestCase
         def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
         def testTimeString = dateFormat.format(fileTime)
 
-        facade.processInVars(["-ate", "Command%or%Foo", "--dtime", testTimeString, "+", "--some_timings", HOME+"\\processing_report_test.log"])
+        facade.processInVars(["-t", "Command%or%Foo", "--dtime", testTimeString, "+", "--some_timings", HOME+"\\processing_report_test.log"])
         facade.startProcessing()
         assertTrue( true )
     }
@@ -148,7 +147,7 @@ Voo
     void testComplexUserPatternFiltering()
     {
         
-        facade.processInVars(["-ae", "Foo%and%Man Chu", HOME+"\\processing_test.log"])
+        facade.processInVars(["Foo%and%Man Chu", HOME+"\\processing_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -195,7 +194,7 @@ Foo Man Chu
     void testBasicFiltering()
     {
         
-        facade.processInVars(["-a", "Foo", HOME+"\\processing_test.log"])
+        facade.processInVars(["Foo", HOME+"\\processing_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -249,7 +248,7 @@ Foo Man Chu
         def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
         def testTimeString = dateFormat.format(fileTime)
 
-        facade.processInVars(["-a", "Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
+        facade.processInVars(["Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -300,7 +299,7 @@ Foo Koo
         def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
         def testTimeString = dateFormat.format(fileTime)
 
-        facade.processInVars(["-a", "Foo", "--dtime", testTimeString+"T05", "+", HOME+"\\processing_time_test.log"])
+        facade.processInVars(["Foo", "--dtime", testTimeString+"T05", "+", HOME+"\\processing_time_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -354,7 +353,7 @@ Foo Man Chu
         def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
         def testTimeString = dateFormat.format(fileTime)
 
-        facade.processInVars(["-a", "Foo", "--dtime", "+", testTimeString+"T06", HOME+"\\processing_time_test.log"])
+        facade.processInVars(["Foo", "--dtime", "+", testTimeString+"T06", HOME+"\\processing_time_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -400,7 +399,7 @@ Foo Koo
     void testPostFiltering()
     {
         
-        facade.processInVars(["-a", "oo", "--some_timings", HOME+"\\processing_report_test.log"])
+        facade.processInVars(["oo", "--some_timings", HOME+"\\processing_report_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -439,7 +438,6 @@ Foo Koo
 some_cmd,count_of_operands
 Foo,3
 Koo,1
-Boo
 """
 
         assertTrue( expectedResult == actualResult.toString() )

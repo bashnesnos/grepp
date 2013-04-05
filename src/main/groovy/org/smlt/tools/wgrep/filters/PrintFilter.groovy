@@ -18,7 +18,7 @@ class PrintFilter extends FilterBase{
     {
         if (blockData != null) 
         {
-            getFacade().printBlock(blockData)
+            println blockData
             if (nextFilter != null)
             {
                 nextFilter.filter(blockData)

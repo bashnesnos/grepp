@@ -67,7 +67,18 @@ class PatternAutomationHelper extends ModuleBase
             if (customCfg != null)
             {
                 if (isTraceEnabled()) trace('Parsing entry config for ' + tag)
-                getFacade().setLogEntryPattern(customCfg.starter.text() + customCfg.date.text())
+                
+                def starter = getCDATA(customCfg.starter[0])
+                def date = getCDATA(customCfg.date[0])
+                if (starter != null || date != null)
+                {
+                    getFacade().setLogEntryPattern( ((starter != null) ? starter : "") + ((date != null) ? date : "" ) )   
+                }
+                else
+                {
+                    throw new IllegalArgumentException("Either <starter> or <date> should filled for config: " + tag)
+                }
+                
                 getFacade().setParam('LOG_DATE_PATTERN', customCfg.date.text())
                 getFacade().setParam('LOG_DATE_FORMAT', customCfg.date_format.text())
                 getFacade().setParam('LOG_FILE_THRESHOLD', customCfg.log_threshold.text())
@@ -85,10 +96,10 @@ class PatternAutomationHelper extends ModuleBase
     {
         use(DOMCategory)
         {
+            if (isTraceEnabled()) trace('Parsing filter config for ' + tag)
             def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
             if (customFilter != null)
             {
-                if (isTraceEnabled()) trace('Parsing filter config for ' + tag)
                 getFacade().setFilterPattern(getCDATA(customFilter))
                 isAmmended = true
             }
@@ -98,6 +109,19 @@ class PatternAutomationHelper extends ModuleBase
             }
         }
         return tag
+    }
+
+    def parsePostFilterConfig(def tag)
+    {
+        getFacade().setParam('POST_PROCESSING', tag)
+        isAmmended = true
+        return tag
+    }
+
+    def parseBulkFilterConfig(def tag)
+    {
+        parseFilterConfig(tag)
+        parsePostFilterConfig(tag)
     }
 
     def parseExecuteThreadConfig(def tag)

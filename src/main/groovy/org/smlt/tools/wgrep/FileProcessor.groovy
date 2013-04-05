@@ -3,6 +3,7 @@ package org.smlt.tools.wgrep
 import java.util.regex.Matcher
 import java.lang.StringBuilder
 import org.smlt.tools.wgrep.filters.*
+import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.exceptions.*
 
 class FileProcessor extends ModuleBase
@@ -35,6 +36,7 @@ class FileProcessor extends ModuleBase
         fileList.each {
             process(openFile(it))
         }
+        filterChain.processEvent(Event.ALL_FILES_PROCESSED)
     }
 
     private def openFile(File file_)
@@ -44,7 +46,7 @@ class FileProcessor extends ModuleBase
             if (getFacade().refreshConfigByFileName(file_.name))
             {            
                 filterChain = FilterChainFactory.createFilterChainByFacade()
-                filesFilterChain.refresh()
+                filesFilterChain.processEvent(Event.CONFIG_REFRESHED)
             }                
         }
         catch(IllegalArgumentException e) {
@@ -71,7 +73,7 @@ class FileProcessor extends ModuleBase
             if (isTraceEnabled()) trace("No point to read file further since supplied date TO is overdued")
         }
 
-        filterChain.finalize()
+        filterChain.processEvent(Event.FILE_ENDED)
         if (isVerboseEnabled()) verbose("File ended. Lines processed: " + curLine)
     }
 

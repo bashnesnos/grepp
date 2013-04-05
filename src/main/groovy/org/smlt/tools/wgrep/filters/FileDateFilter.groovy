@@ -3,6 +3,7 @@ package org.smlt.tools.wgrep.filters
 import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 import groovy.xml.dom.DOMCategory
+import org.smlt.tools.wgrep.filters.enums.Event
 
 class FileDateFilter extends FilterBase
 {
@@ -40,17 +41,19 @@ class FileDateFilter extends FilterBase
 
     def filter(def files) {
         if (! files instanceof ArrayList<File> ) throw new IllegalArgumentException("FileDateFilter accepts file list only")
-        if (check(files))
+        def newFiles = check(files)
+        if (isTraceEnabled()) trace("total files after:" + newFiles.size())
+        if (newFiles != null)
         {
             if (nextFilter != null) 
             {
                 if (isTraceEnabled()) trace("Passing to next filter")
-                nextFilter.filter(files)    
+                nextFilter.filter(newFiles)    
             }
             else 
             {
                 if (isTraceEnabled()) trace("passed")
-                return files
+                return newFiles
             }
         }
         else
@@ -67,10 +70,11 @@ class FileDateFilter extends FilterBase
     * @param fName A String with filename
     */
     def check(ArrayList<File> files) {
+        if (isTraceEnabled()) trace("total files:" + files.size())
         return files.findAll { file -> checkFileTime(file) }
     }
 
-    def checkFileTime(def file)
+    boolean checkFileTime(def file)
     {
         if (file == null) return
         def fileTime = new Date(file.lastModified())
@@ -105,10 +109,16 @@ class FileDateFilter extends FilterBase
         }
     }
 
-    def refresh()
-    {
-        fillRefreshableParams()
-        super.refresh()
+    def processEvent(def event) {
+        switch (event)
+        {
+            case Event.CONFIG_REFRESHED:
+                fillRefreshableParams()
+                break
+            default:
+                break
+        }
+        super.processEvent(event)
     }
 
 }

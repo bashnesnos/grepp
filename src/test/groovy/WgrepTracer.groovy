@@ -10,8 +10,5 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 
 WgrepFacade facade = WgrepFacade.getInstance([WGREP_CONFIG])
 
-facade.processInVars(["-ae", "incoming.CWMS.SYNCHRONIZATION.NotifyScheduleUpdate%and%Procesing", "--nbup_times", "--dtime", "2012-12-01T07", "2012-12-01T18", "D:\\alse\\20130320\\clust*.log*"])
-
-//facade.getFileProcessor().getFiles().each { println it.name }
-        //println actualResult.toString()
-        //println expectedResult == actualResult.toString() 
+        facade.processInVars(["-t", "--nbup_times", "--dtime", "2012-12-01T18", "2012-12-01T18:01", "D:\\alse\\20130320\\clust*.log*"])
+//	println actualResult.toString()

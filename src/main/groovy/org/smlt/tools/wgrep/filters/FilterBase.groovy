@@ -1,14 +1,23 @@
 package org.smlt.tools.wgrep.filters
 
 import org.smlt.tools.wgrep.ModuleBase
+import org.smlt.tools.wgrep.filters.enums.*
 
 class FilterBase extends ModuleBase {
     protected nextFilter
     protected filterPtrn
+    protected boolean isLast
 
     FilterBase(FilterBase nextFilter_, def filterPtrn_) {
         nextFilter = nextFilter_
         filterPtrn = filterPtrn_
+        isLast = false
+    }
+
+    FilterBase(FilterBase nextFilter_, def filterPtrn_, boolean isLast_) {
+        nextFilter = nextFilter_
+        filterPtrn = filterPtrn_
+        isLast = isLast_
     }
 
     def setPattern(def ptrn) {
@@ -16,7 +25,20 @@ class FilterBase extends ModuleBase {
     }
 
     def filter(def blockData)  {
-        throw new UnsupportedOperationException('Method of base class shoulnd\'t be used')
+        passNext(blockData)
+    }
+
+    def passNext(def passingVal)
+    {
+        if (isTraceEnabled()) trace("attempting to pass to next filter")
+        if (nextFilter != null)
+        {
+            nextFilter.filter(passingVal)
+        }
+        else
+        {
+            if (!isLast) throw new RuntimeException("shouldn't be the last in chain")
+        }
     }
 
     FilterBase getTail()
@@ -24,19 +46,11 @@ class FilterBase extends ModuleBase {
         return nextFilter
     }
 
-    def clearState() {
-        if (isTraceEnabled()) trace("Dummy finalization")
+    def processEvent(def event) {
+        if (isTraceEnabled()) trace("Passing event: " + event)
         if (nextFilter != null)
         {
-            nextFilter.clearState()
+            nextFilter.processEvent(event)
         }
-    }
-
-    def refresh() {
-        if (isTraceEnabled()) trace("Dummy refresh")
-        if (nextFilter != null)
-        {
-            nextFilter.refresh()
-        }        
     }
 }

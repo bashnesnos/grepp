@@ -2,6 +2,7 @@ package org.smlt.tools.wgrep.filters
 
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
+import org.smlt.tools.wgrep.filters.enums.Event
 
 class LogEntryFilter extends FilterBase{
 
@@ -96,13 +97,19 @@ class LogEntryFilter extends FilterBase{
         }
     }
 
-    def clearState() {
-        returnBlock()
-        super.clearState()
+    def processEvent(def event) {
+        switch (event)
+        {
+            case Event.FILE_ENDED:
+                returnBlock()
+                break
+            case Event.CONFIG_REFRESHED:
+                fillRefreshableParams()
+                break
+            default:
+                break
+        }
+        super.processEvent(event)
     }
 
-    def refresh() {
-        setPattern(getFacade().getParam('LOG_ENTRY_PATTERN'))
-        super.refresh()
-    }
 }

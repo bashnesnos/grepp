@@ -1,0 +1,34 @@
+<root>
+	<custom>
+		<options>
+			<opt field="POST_PROCESSING" handler="setPostProcessing">some_timings</opt>
+			<opt field="PREDEF_TAG" handler="setPredefinedConfig">fake</opt>
+		</options>
+		<config id="to_test">
+			<date_format>yyyy-MM-dd HH:mm:ss</date_format>
+			<starter>####\[\D{1,}\].*</starter>
+			<date>(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})</date>
+			<log_threshold>4</log_threshold>
+			<pattern alevel="entry_pattern">fpTest_</pattern>
+		</config>
+		<config id="pr_test">
+			<date_format>yyyy-MM-dd HH:mm:ss</date_format>
+			<date>(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})</date>
+			<log_threshold>24</log_threshold>
+			<pattern alevel="entry_pattern">processing_</pattern>
+		</config>
+		<thread_configs alevel="execute_thread" type="findPatternByTag">
+			<extractor qlfr="or" tags="to_test, pr_test">ThreadStart: '\d{1,}'</extractor>
+			<pattern clct="THRD_SKIP_END_PTTRNS" tags="to_test, pr_test">SkipPattern</pattern>
+			<pattern clct="THRD_END_PTTRNS" tags="to_test, pr_test">ThreadEnd1</pattern>
+			<pattern clct="THRD_END_PTTRNS" tags="to_test, pr_test">ThreadEnd2</pattern>
+		</thread_configs>
+		<pp_splitters>
+			<splitter col_name="some_cmd" order="1" tags="some_timings" type="filter">Command name="?(.*?)"</splitter>
+			<splitter col_name="count_of_operands" order="2" tags="some_timings" type="counter">(operand)</splitter>
+		</pp_splitters>
+		<filters>
+			<filter tags="predef">Something::</filter>
+		</filters>
+	</custom>
+</root>

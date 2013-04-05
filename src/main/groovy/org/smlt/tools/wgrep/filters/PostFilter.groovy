@@ -2,6 +2,7 @@ package org.smlt.tools.wgrep.filters
 
 import groovy.xml.dom.DOMCategory
 import java.util.regex.Matcher
+import org.smlt.tools.wgrep.filters.enums.Event
 
 class PostFilter extends FilterBase {
 
@@ -10,6 +11,10 @@ class PostFilter extends FilterBase {
     def POST_PROCESS_SEP = null
     def POST_PROCESS_DICT = [:]
     def POST_PROCESS_HEADER = null
+    def POST_GROUPS = [:]
+    def currentGroup = null
+    def groupMethod = null
+    def POST_GROUPS_METHODS = []
     def HEADER_PRINTED = false
 
     PostFilter(FilterBase nextFilter_, def pp_tag)
@@ -30,7 +35,13 @@ class PostFilter extends FilterBase {
                     def pttrn = getCDATA(ptrn_node)
                     setSeparator(ptrn_node.'@sep')
                     POST_PROCESS_PTTRNS.add(pttrn);
-                    POST_PROCESS_DICT[pttrn] = (getRoot().pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }).'@handler'
+                    def splitter_type = getRoot().pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
+                    def handler = splitter_type.'@handler'
+                    POST_PROCESS_DICT[pttrn] = handler
+                    if (splitter_type.'@handler_type' ==~ "group_method")
+                    {
+                        POST_GROUPS_METHODS.add(handler)
+                    }
                     POST_PROCESS_HEADER = (POST_PROCESS_HEADER) ? POST_PROCESS_HEADER + POST_PROCESS_SEP + ptrn_node.'@col_name' : ptrn_node.'@col_name'
                 }
             }
@@ -71,24 +82,13 @@ class PostFilter extends FilterBase {
     def filter(def blockData)
     {
         StringBuilder rslt = new StringBuilder("")
-        if (!HEADER_PRINTED) 
-        {   
-            HEADER_PRINTED = true
-            getFacade().printBlock(POST_PROCESS_HEADER)
-        }
+        printHeader()
         POST_PROCESS_PTTRNS.each { ptrn -> rslt = smartPostProcess(ptrn, blockData, rslt, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn])} //TODO: new handlers model is needed
-        def result = rslt.toString()
-        
-        if (result != null) 
+
+
+        if (rslt != null) 
         {
-            if (nextFilter != null)
-            {
-                nextFilter.filter(result)
-            }
-            else
-            {
-                throw new RuntimeException("shouldn't be the last in chain")
-            }
+            super.filter(rslt.toString())
         }
         else
         {
@@ -100,8 +100,25 @@ class PostFilter extends FilterBase {
     {
         if (isTraceEnabled()) trace(new StringBuilder('smart post processing, ptrn=') + ptrn + ' val=' + val + ' agg=' + agg + ' method=' + method)
         Matcher mtch = (val =~ ptrn)
-        if (mtch.find()) return (agg.size() > 0)?agg.append(sep).append(this."$method"(mtch)):agg.append(this."$method"(mtch))
-        return agg
+        if (mtch.find()) 
+        {
+            if (isTraceEnabled()) trace("mtch found")
+            def mtchResult = this."$method"(mtch)
+            if (agg != null && mtchResult != null) //omitting printing since one of the results was null. Might be a grouping
+            {
+                return aggregatorAppend(agg, sep, mtchResult)
+            }
+            else
+            {
+                return null
+            }
+        }
+        return null
+    }
+
+    def aggregatorAppend(def agg, def sep, def val)
+    {
+        return (agg.size() > 0) ? agg.append(sep).append(val):agg.append(val)
     }
 
     def processPostFilter(Matcher mtchResults)
@@ -113,4 +130,78 @@ class PostFilter extends FilterBase {
     {
         return mtchResults.size()
     }
+
+    def processPostGroup(Matcher mtchResults)
+    {
+        def newGroup = mtchResults.group(1)
+        def existingGroup = POST_GROUPS[newGroup]
+        if (existingGroup == null)
+        {
+            POST_GROUPS[newGroup] = [:]
+            existingGroup = POST_GROUPS[newGroup]
+        }
+        currentGroup = existingGroup
+        return null
+    }
+
+    def processPostAverage(Matcher mtchResults)
+    {
+        def newIntVal = Integer.valueOf(mtchResults.group(1))
+        def averageAgg = currentGroup["averageAgg"]
+        if (averageAgg != null)
+        {
+            averageAgg.add(newIntVal)
+        }
+        else
+        {
+            currentGroup["averageAgg"] = [newIntVal]
+        }
+        if (isTraceEnabled()) trace ("added new val: " + newIntVal)
+        return null
+    }
+
+    def processPostAverage(Map group)
+    {
+        if (isTraceEnabled()) trace ("average group: " + group)
+        def averageAgg = group["averageAgg"]
+        if (averageAgg == null || averageAgg.size() == 0) return 0
+        Integer sum = 0
+        averageAgg.each { Integer val ->
+            sum += val
+        }
+        return sum/averageAgg.size()
+    }
+
+    def processGroups()
+    {
+        POST_GROUPS.each { group ->
+            def rslt = new StringBuilder(group.getKey())
+            POST_GROUPS_METHODS.each { method ->
+                rslt = aggregatorAppend(rslt, POST_PROCESS_SEP, this."$method"(group.getValue()))
+            }
+            super.filter(rslt.toString())
+        }
+    }
+
+    def printHeader()
+    {
+        if (!HEADER_PRINTED) 
+        {   
+            HEADER_PRINTED = true
+            nextFilter.filter(POST_PROCESS_HEADER) //if next filter won't allow to pass the header, that's ok. Flexibility though.
+        }
+    }
+
+    def processEvent(def event) {
+        switch (event)
+        {
+            case Event.ALL_FILES_PROCESSED:
+                processGroups()
+                break
+            default:
+                break
+        }
+        super.processEvent(event)
+    }
+
 }
