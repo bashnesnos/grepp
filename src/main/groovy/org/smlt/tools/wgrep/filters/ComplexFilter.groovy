@@ -7,7 +7,7 @@ import groovy.xml.dom.DOMCategory
 class ComplexFilter extends FilterBase {
 
     //Complex pattern processing and stuff
-    def PATTERN = new StringBuilder()
+    def PATTERN = new StringBuilder("(?ms)") //for multiline support
     def EXTNDD_PTTRNS = []
     def EXTNDD_PTTRN_DICT = [:]
 
@@ -114,11 +114,6 @@ class ComplexFilter extends FilterBase {
     def filter(def blockData)
     {
         setPattern(PATTERN.toString())
-        if (isTraceEnabled()) 
-        {
-            trace('DATA:[' + blockData + ']\n' +
-                'List of patterns:\n ' + filterPtrn + '\n')
-        }
 
         def blockMtchr = blockData =~ filterPtrn
         if (blockMtchr.find())

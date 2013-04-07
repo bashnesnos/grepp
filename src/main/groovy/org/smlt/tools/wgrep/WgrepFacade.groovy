@@ -15,6 +15,7 @@ class WgrepFacade {
     //internal
     private def cfgDoc = null
     private def root = null
+    private Date startTime
     
     private static WgrepFacade facadeInstance
     
@@ -80,6 +81,7 @@ class WgrepFacade {
         root = cfgDoc.documentElement
         CWD = System.getProperty("user.dir")
         this.loadDefaults()
+        startTime = new Date()
 
     }
 
@@ -517,7 +519,7 @@ class WgrepFacade {
 
     def trace(def text)
     {
-        if (isTraceEnabled()) println '###TRACE### ' + text
+        if (isTraceEnabled()) println '###TRACE##' + new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS") + '## ' + text
     }
 
    
@@ -567,6 +569,7 @@ class WgrepFacade {
     {
         spool()
         fProcessor.processAll()
+        if (isVerboseEnabled()) verbose("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
     }
 
     boolean refreshConfigByFileName(def fileName)

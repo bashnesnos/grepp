@@ -22,6 +22,7 @@ class FilterBase extends ModuleBase {
 
     def setPattern(def ptrn) {
         filterPtrn = ptrn
+        if (isTraceEnabled()) trace("Set filter pattern to /" + filterPtrn + "/")
     }
 
     def filter(def blockData)  {

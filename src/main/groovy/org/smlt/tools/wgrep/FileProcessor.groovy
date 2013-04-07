@@ -25,7 +25,7 @@ class FileProcessor extends ModuleBase
     {
         filterChain = filterChain_
         filesFilterChain = filesFilterChain_
-        if (isVerboseEnabled()) verbose("Total files to analyze: " + files_.size())
+        if (isTraceEnabled()) trace("Total files to analyze: " + files_.size())
         fileList = filesFilterChain.filter(files_)
         isMerging = merging_ != null
 
@@ -41,7 +41,7 @@ class FileProcessor extends ModuleBase
 
     private def openFile(File file_)
     {
-        if (isVerboseEnabled()) trace("Opening " + file_.name)
+        if (isVerboseEnabled()) verbose("Opening " + file_.name)
         try {
             if (getFacade().refreshConfigByFileName(file_.name))
             {            

@@ -1,14 +1,14 @@
 2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22'
-Command name="Foo"
+Command name="Foo" time="100"
 operand
 operand
 operand
 
 2013-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
-Command name="Koo"
+Command name="Koo" time="200"
 operand
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '5'
-Command name="Boo"
+Command name="Foo" time="200"
 
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '7'
 Moo

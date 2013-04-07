@@ -12,7 +12,7 @@ class ModuleBase
 
     def isVerboseEnabled()
     {
-        return isTraceEnabled
+        return isVerboseEnabled
     }
 
     def verbose(def text)
@@ -22,7 +22,7 @@ class ModuleBase
 
     def isTraceEnabled()
     {
-        return isVerboseEnabled
+        return isTraceEnabled
     }
     
     def trace(def text)
