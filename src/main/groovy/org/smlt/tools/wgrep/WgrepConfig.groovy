@@ -9,30 +9,32 @@ import groovy.util.logging.Slf4j
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
 import org.smlt.tools.wgrep.varparsers.*
+import org.w3c.dom.Document
+import org.w3c.dom.Element
 
 @Slf4j
 class WgrepConfig {
 	//internal
-	private def cfgDoc = null
-	private def root = null
+	private Document cfgDoc = null
+	private Element root = null
 	//GLOBAL
-	private def FOLDER_SEPARATOR = null
-	private def CWD = null
-	private def HOME_DIR = null
-	private def RESULTS_DIR = 'results'
-	private def SPOOLING_EXT = 'log'
+	private String FOLDER_SEPARATOR = null
+	private String CWD = null
+	private String HOME_DIR = null
+	private String RESULTS_DIR = 'results'
+	private String SPOOLING_EXT = 'log'
 
 
 	//GENERAL
-	private def FILES = []
+	private List FILES = []
 
 	//OPTIONS
 	private FilterParser filterParser =  null
 	private FileNameParser fileNameParser =  null
 	private PatternAutomationHelper paHelper = null
 
-	private def varParsers = [] //organized as LIFO
-	private def params = [:] //all params as a Map
+	private List<ParserBase> varParsers = [] //organized as LIFO
+	private Map params = [:] //all params as a Map
 
 	/**
 	 * Constructor
@@ -41,7 +43,7 @@ class WgrepConfig {
 	 *
 	 * @param args Params needed for the facade initialization. Currently only path to the config.xml is expected.
 	 */
-	WgrepConfig(def configFile)
+	WgrepConfig(String configFile)
 	{
 		cfgDoc = DOMBuilder.parse(new FileReader(configFile))
 		root = cfgDoc.documentElement
@@ -72,7 +74,7 @@ class WgrepConfig {
 	 * @return <code>node.text()</code> if the node has text. Value of CDATA element i.e. <code>node.getFirstChild().getNodeValue()</code> otherwise.
 	 */
 
-	def getCDATA(def node)
+	String getCDATA(Node node)
 	{
 		if (node == null) return
 			use(DOMCategory)
@@ -88,7 +90,7 @@ class WgrepConfig {
 	 * @return Value set to the key <code>field</code>
 	 */
 
-	def getParam(def field)
+	def getParam(String field)
 	{
 		return hasField(field) ? this."$field" : this.params[field]
 	}
@@ -99,7 +101,7 @@ class WgrepConfig {
 	 * @param val Value to be set
 	 */
 
-	def setParam(def field, def val)
+	void setParam(String field, def val)
 	{
 		if (field == 'FILES')
 		{
@@ -115,7 +117,7 @@ class WgrepConfig {
 		}
 	}
 
-	private boolean hasField(def field)
+	private boolean hasField(String field)
 	{
 		try {
 			this.getClass().getDeclaredField(field)
@@ -141,15 +143,15 @@ class WgrepConfig {
 	 * @param args Array of strings containing arguments for parsing.
 	 */
 
-	def processInVars(def args)
+	int processInVars(def args)
 	{
-		if (args ==null || args.size() == 0) throw new IllegalArgumentException("Invalid arguments")
-		
-		filterParser = new FilterParser()
-		fileNameParser = new FileNameParser()
+		if (args == null || args.size() == 0) throw new IllegalArgumentException("Invalid arguments")
+
+		filterParser = new FilterParser(this)
+		fileNameParser = new FileNameParser(this)
 		subscribeVarParsers([fileNameParser, filterParser])
 
-		paHelper = PatternAutomationHelper.getInstance()
+		paHelper = new PatternAutomationHelper(this)
 
 		for (arg in args)
 		{
@@ -158,12 +160,12 @@ class WgrepConfig {
 
 			switch (processOptions(arg))
 			{
-				case -1 :
+				case -1:
 					return -1
 					break
 				case 1:
 					break
-				default :
+				default:
 					parseVar(arg)
 			}
 		}
@@ -177,7 +179,7 @@ class WgrepConfig {
 	 * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>null</code> otherwise.
 	 */
 
-	private int processOptions(def arg)
+	private int processOptions(String arg)
 	{
 		if (arg =~/^-(?!-)/)
 		{
@@ -200,7 +202,7 @@ class WgrepConfig {
 	 *
 	 * @param arg An argument to be parsed
 	 */
-	private def processSimpleArg(def arg)
+	private void processSimpleArg(String arg)
 	{
 		(arg =~ /./).each{opt -> processOption(opt)}
 	}
@@ -212,7 +214,7 @@ class WgrepConfig {
 	 * @param arg An argument to be parsed
 	 */
 
-	private def processComlpexArg(def arg)
+	private void processComlpexArg(String arg)
 	{
 		(arg =~ /.*/).each{opt -> if(opt) processOption(opt)}
 	}
@@ -227,7 +229,7 @@ class WgrepConfig {
 	 * @throws IllegalArgumentException If the supplied <code>arg</code> is not configured, i.e. cannot be found in the config.xml.
 	 */
 
-	private def processOption(def opt)
+	private void processOption(String opt)
 	{
 		use(DOMCategory)
 		{
@@ -251,12 +253,16 @@ class WgrepConfig {
 	 * @return <code>1</code> if <code>arg</code> was processed(i.e. if there was any {@link AdditionalVarParser} subscribed) <code>null</code> otherwise.
 	 */
 
-	private def parseVar(def arg)
+	private void parseVar(String arg)
 	{
-		log.debug("passing to parser")
-		def nextParserIdx = varParsers.size() - 1
+		if (varParsers == null) {
+			return
+		}
+
+		int nextParserIdx = varParsers.size() - 1
 		if (nextParserIdx >= 0)
 		{
+			log.debug("passing to parser")
 			varParsers[nextParserIdx].parseVar(arg)
 		}
 	}
@@ -267,7 +273,7 @@ class WgrepConfig {
 	 * @param parsers Collection of {@link AdditionalVarParser} objects.
 	 */
 
-	def subscribeVarParsers(def parsers)
+	void subscribeVarParsers(List<ParserBase> parsers)
 	{
 		varParsers.addAll(parsers)
 	}
@@ -278,7 +284,7 @@ class WgrepConfig {
 	 * @param parsers Collection of {@link AdditionalVarParser} objects.
 	 */
 
-	def unsubscribeVarParsers(def parsers)
+	void unsubscribeVarParsers(List<ParserBase> parsers)
 	{
 		varParsers.removeAll(parsers)
 	}
@@ -289,7 +295,7 @@ class WgrepConfig {
 	 * @param val <code>String</code> value to be set. Either <code>e</code> if it just enabling, and a valid config preset tag from <code>thread_configs</code> section otherwise.
 	 */
 
-	private def setExtendedPattern(def field, def val)
+	private void setExtendedPattern(String field, def val)
 	{
 		setParam(field, val)
 	}
@@ -300,7 +306,7 @@ class WgrepConfig {
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
 	 */
 
-	private def setPostProcessing(def field, def val)
+	private void setPostProcessing(String field, def val)
 	{
 		setParam(field, val)
 	}
@@ -311,16 +317,16 @@ class WgrepConfig {
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>date_time_config</code> section is expected here.
 	 */
 
-	private def setDateTimeFilter(def field, def val)
+	private void setDateTimeFilter(String field, def val)
 	{
 		setParam(field, val)
-		new DateTimeParser(val).subscribe()
+		new DateTimeParser(this).subscribe()
 	}
 
-	private def setUserLEPattern(def field, def val)
+	private void setUserLEPattern(String field, def val)
 	{
-		new LogEntryParser().subscribe()
 		setParam(field, val)
+		new LogEntryParser(this).subscribe()
 		disableAutomation()
 	}
 
@@ -330,7 +336,7 @@ class WgrepConfig {
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
 
-	private def setAutomation(def field, def val)
+	private void setAutomation(String field, def val)
 	{
 		setParam(field, val)
 		paHelper = PatternAutomationHelper.getInstance() //refreshing instance
@@ -341,7 +347,7 @@ class WgrepConfig {
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
-	private def setPredefinedFilter(def field, def val)
+	private void setPredefinedFilter(String field, def val)
 	{
 		filterParser.unsubscribe()
 		setParam(field, val)
@@ -353,7 +359,7 @@ class WgrepConfig {
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
-	private def setPredefinedBulkFilter(def field, def val)
+	private void setPredefinedBulkFilter(String field, def val)
 	{
 		filterParser.unsubscribe()
 		setParam(field, val)
@@ -365,15 +371,14 @@ class WgrepConfig {
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
-	private def setPredefinedConfig(def field, def val)
+	private void setPredefinedConfig(String field, def val)
 	{
-		setAutomation('ATMTN_LEVEL', 'a')
 		setParam(field, val)
 		paHelper.applySequenceByTag(val)
 		disableAutomation()
 	}
 
-	private def disableAutomation()
+	private void disableAutomation()
 	{
 		paHelper = null
 	}
@@ -384,7 +389,7 @@ class WgrepConfig {
 	 * <p>
 	 * Actually it has the same date as in groovydoc.
 	 */
-	private void printHelp(def field, def arg)
+	private void printHelp(String field, def arg)
 	{
 		unsubscribeVarParsers(varParsers); //unsubscribing all
 		def help = """\
@@ -412,7 +417,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 		println help
 	}
 
-	def enforceTrace(def field, def val)
+	void enforceTrace(String field, def val)
 	{
 		log.debug("Enabling trace")
 		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -433,19 +438,19 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 </configuration>
 """
 		try {
-		  JoranConfigurator configurator = new JoranConfigurator();
-		  configurator.setContext(context);
-		  // Call context.reset() to clear any previous configuration, e.g. default
-		  // configuration. For multi-step configuration, omit calling context.reset().
-		  context.reset();
-		  configurator.doConfigure(new ByteArrayInputStream(traceConfig.getBytes()));
+			JoranConfigurator configurator = new JoranConfigurator();
+			configurator.setContext(context);
+			// Call context.reset() to clear any previous configuration, e.g. default
+			// configuration. For multi-step configuration, omit calling context.reset().
+			context.reset();
+			configurator.doConfigure(new ByteArrayInputStream(traceConfig.getBytes()));
 		} catch (JoranException je) {
-		  // StatusPrinter will handle this
+			// StatusPrinter will handle this
 		}
 		StatusPrinter.printInCaseOfErrorsOrWarnings(context);
 	}
 
-	def enforceInfo(def field, def val)
+	void enforceInfo(String field, def val)
 	{
 		log.debug("Redirecting info to STDOUT")
 		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -466,16 +471,25 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 </configuration>
 """
 		try {
-		  JoranConfigurator configurator = new JoranConfigurator();
-		  configurator.setContext(context);
-		  // Call context.reset() to clear any previous configuration, e.g. default
-		  // configuration. For multi-step configuration, omit calling context.reset().
-		  context.reset();
-		  configurator.doConfigure(new ByteArrayInputStream(traceConfig.getBytes()));
+			JoranConfigurator configurator = new JoranConfigurator();
+			configurator.setContext(context);
+			// Call context.reset() to clear any previous configuration, e.g. default
+			// configuration. For multi-step configuration, omit calling context.reset().
+			context.reset();
+			configurator.doConfigure(new ByteArrayInputStream(traceConfig.getBytes()));
 		} catch (JoranException je) {
-		  // StatusPrinter will handle this
+			// StatusPrinter will handle this
 		}
 		StatusPrinter.printInCaseOfErrorsOrWarnings(context);
 	}
-	
+
+	boolean refreshConfigByFileName(String fileName)
+	{
+		if ( paHelper != null)
+		{
+			return paHelper.applySequenceByFileName(fileName)
+		}
+		return false
+	}
+
 }

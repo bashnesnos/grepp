@@ -7,17 +7,15 @@ import groovy.xml.dom.DOMCategory
 class PatternAutomationHelper extends ModuleBase
 {
 
-    def ATMTN_SEQ = []
-    def ATMTN_DICT = [:]
-    def currentConfigPtrn = null
+    List ATMTN_SEQ = []
+    Map ATMTN_DICT = [:]
+    String currentConfigPtrn = null
     boolean isAmmended = false
 
-    static PatternAutomationHelper getInstance(){
-        return getFacade().getParam('ATMTN_LEVEL') != null ? new PatternAutomationHelper(getFacade().getParam('ATMTN_LEVEL')) : null
-    }
-
-    private PatternAutomationHelper(def lv_tag)
+    PatternAutomationHelper(WgrepConfig config)
     {
+		super(config)
+		def lv_tag = configInstance.getParam('ATMTN_LEVEL')
         if (lv_tag == null) throw new IllegalArgumentException("There should be some level specified")
         use(DOMCategory)
         {
@@ -26,9 +24,9 @@ class PatternAutomationHelper extends ModuleBase
         }
     }        
 
-    boolean applySequenceByFileName(def filename)
+    boolean applySequenceByFileName(String filename)
     {
-        def tag = null
+        String tag = null
         isAmmended = false
         if (currentConfigPtrn != null)
         {
@@ -41,7 +39,7 @@ class PatternAutomationHelper extends ModuleBase
         return isAmmended
     }
 
-    boolean applySequenceByTag(def tag)
+    boolean applySequenceByTag(String tag)
     {
         isAmmended = false
         ATMTN_SEQ.each { handler ->
@@ -50,10 +48,10 @@ class PatternAutomationHelper extends ModuleBase
         return isAmmended
     }
 
-    def parse(def level, def data, def tag_, def method)
+    String parse(String level, String data, String tag_, String method)
     {
         log.trace('Identifying pattern for level=' + level + ' data=' + data + ' and tag=' + tag_ + ' with method=' + method)
-        def tag = (tag_ != null) ? tag_ : findConfigByData(level, data)
+        def tag = (tag_ != null) ? tag_ : findConfigTagByData(level, data)
         if (tag == null)  
         {
             throw new IllegalArgumentException("Failed to identify tag")
@@ -61,7 +59,7 @@ class PatternAutomationHelper extends ModuleBase
         return this."$method"(tag)
     }
 
-    def parseEntryConfig(def tag)
+    String parseEntryConfig(String tag)
     {
         use(DOMCategory)
         {
@@ -70,20 +68,20 @@ class PatternAutomationHelper extends ModuleBase
             {
                 log.trace('Parsing entry config for ' + tag)
                 
-                def starter = getCDATA(customCfg.starter[0])
-                def date = getCDATA(customCfg.date[0])
+                String starter = getCDATA(customCfg.starter[0])
+                String date = getCDATA(customCfg.date[0])
                 if (starter != null || date != null)
                 {
-                    getFacade().setLogEntryPattern( ((starter != null) ? starter : "") + ((date != null) ? date : "" ) )   
+                    setLogEntryPattern( ((starter != null) ? starter : "") + ((date != null) ? date : "" ) )   
                 }
                 else
                 {
                     throw new IllegalArgumentException("Either <starter> or <date> should filled for config: " + tag)
                 }
                 
-                getFacade().setParam('LOG_DATE_PATTERN', customCfg.date.text())
-                getFacade().setParam('LOG_DATE_FORMAT', customCfg.date_format.text())
-                getFacade().setParam('LOG_FILE_THRESHOLD', customCfg.log_threshold.text())
+                setParam('LOG_DATE_PATTERN', customCfg.date.text())
+                setParam('LOG_DATE_FORMAT', customCfg.date_format.text())
+                setParam('LOG_FILE_THRESHOLD', customCfg.log_threshold.text())
                 isAmmended = true
             }
             else
@@ -94,7 +92,7 @@ class PatternAutomationHelper extends ModuleBase
         return tag
     }
 
-    def parseFilterConfig(def tag)
+    String parseFilterConfig(String tag)
     {
         use(DOMCategory)
         {
@@ -102,7 +100,7 @@ class PatternAutomationHelper extends ModuleBase
             def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
             if (customFilter != null)
             {
-                getFacade().setFilterPattern(getCDATA(customFilter))
+                setFilterPattern(getCDATA(customFilter))
                 isAmmended = true
             }
             else
@@ -113,27 +111,27 @@ class PatternAutomationHelper extends ModuleBase
         return tag
     }
 
-    def parsePostFilterConfig(def tag)
+    String parsePostFilterConfig(String tag)
     {
-        getFacade().setParam('POST_PROCESSING', tag)
+        setParam('POST_PROCESSING', tag)
         isAmmended = true
         return tag
     }
 
-    def parseBulkFilterConfig(def tag)
+    String parseBulkFilterConfig(String tag)
     {
         parseFilterConfig(tag)
         parsePostFilterConfig(tag)
     }
 
-    def parseExecuteThreadConfig(def tag)
+    String parseExecuteThreadConfig(String tag)
     {
-        getFacade().setParam('PRESERVE_THREAD', tag)
+        setParam('PRESERVE_THREAD', tag)
         isAmmended = true
         return tag
     }
 
-    def findConfigByData(def level, def data)
+    String findConfigTagByData(String level, String data)
     {
         log.trace("findConfigByData started")
 
@@ -142,7 +140,7 @@ class PatternAutomationHelper extends ModuleBase
             throw new IllegalArgumentException("Data shouldn't be null")
         }
 
-        def tag = null
+        String tag = null
         use(DOMCategory)
         {
             def configs = getRoot().custom.config.findAll { it.pattern[0].'@alevel' ==~ level }

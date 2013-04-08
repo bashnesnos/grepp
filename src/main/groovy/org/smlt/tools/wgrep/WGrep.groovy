@@ -30,10 +30,13 @@ class WGrep
 	public static void main(String[] args)
 	{
 		log.debug(args.toString())
-		if (args.size() == 1) return
+		if (args == null) return
+		int argsToParseCount = args.size() - 1
+		if ( argsToParseCount == 0) return
+		
 		def WGREP_CONFIG = args[0]
-		WgrepFacade facade = WgrepFacade.getInstance()
-		facade.initConfig(WGREP_CONFIG)
-		facade.startProcessing(args[1..args.size()-1])
+		WgrepConfig config = new WgrepConfig(WGREP_CONFIG)
+		WgrepFacade facade = new WgrepFacade(config)
+		facade.startProcessing(args[1..argsToParseCount])
 	}
 }

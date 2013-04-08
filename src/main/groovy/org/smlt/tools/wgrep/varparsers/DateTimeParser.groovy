@@ -1,19 +1,21 @@
 package org.smlt.tools.wgrep.varparsers
 
 import java.text.SimpleDateFormat
-
+import org.smlt.tools.wgrep.WgrepConfig
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 
 @Slf4j
-class DateTimeParser extends DefaultVarParser
+class DateTimeParser extends ParserBase
 {
     private def INPUT_DATE_PTTRNS = []
     private boolean isFromParsed = false
     private boolean isToParsed = false
 
-    DateTimeParser(def dt_tag)
+    DateTimeParser(WgrepConfig config)
     {
+		super(config)
+		def dt_tag = getParam('DATE_TIME_FILTER')
         if (dt_tag == null) throw new IllegalArgumentException("There should be some date time tag specified")
         use(DOMCategory)
         {
@@ -22,7 +24,7 @@ class DateTimeParser extends DefaultVarParser
         }
     }
 
-    def parseVar(def arg)
+    void parseVar(def arg)
     {
         log.trace("Additional var: " + arg)
         if (!isFromParsed) setDateFrom(arg)
@@ -54,20 +56,20 @@ class DateTimeParser extends DefaultVarParser
 
     def setDateFrom(def date)
     {
-        if (date != "+") getFacade().setParam('FROM_DATE', parseInput(date))
+        if (date != "+") setParam('FROM_DATE', parseInput(date))
         isFromParsed = true
     }
 
     def setDateTo(def date)
     {
-        if (date != "+") getFacade().setParam('TO_DATE', parseInput(date))
+        if (date != "+") setParam('TO_DATE', parseInput(date))
         isToParsed = true
     }
 
     def setFileDateFormat(def format)
     {
         log.trace("FILE_DATE_FORMAT set to " + format)
-        getFacade().setParam('FILE_DATE_FORMAT', format)
+        setParam('FILE_DATE_FORMAT', format)
         return format
     }
 

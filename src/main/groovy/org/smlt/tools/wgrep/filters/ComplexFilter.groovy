@@ -1,6 +1,7 @@
 package org.smlt.tools.wgrep.filters
 
 import java.util.regex.Matcher
+import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.*
 
 import groovy.util.logging.Slf4j;
@@ -10,21 +11,22 @@ import groovy.xml.dom.DOMCategory
 class ComplexFilter extends FilterBase {
 
     //Complex pattern processing and stuff
-    def PATTERN = new StringBuilder("(?ms)") //for multiline support
-    def EXTNDD_PTTRNS = []
-    def EXTNDD_PTTRN_DICT = [:]
+    StringBuilder PATTERN = new StringBuilder("(?ms)") //for multiline support
+    List EXTNDD_PTTRNS = []
+    Map EXTNDD_PTTRN_DICT = [:]
 
-    def pt_tag = null
-    def THRD_START_EXTRCTRS =[:]
-    def THRD_START_PTTRNS = []
-    def THRD_SKIP_END_PTTRNS = []
-    def THRD_END_PTTRNS =[]
+    String pt_tag = null
+    Map THRD_START_EXTRCTRS =[:]
+    List THRD_START_PTTRNS = []
+    List THRD_SKIP_END_PTTRNS = []
+    List THRD_END_PTTRNS =[]
 
-    ComplexFilter(FilterBase nextFilter_, def filterPtrn_, def pt_tag_)
+    ComplexFilter(FilterBase nextFilter_, WgrepConfig config)
     {
-        super(nextFilter_, filterPtrn_)
+        super(nextFilter_, config)
+		setPattern(getFilterPattern())
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
-        pt_tag = pt_tag_
+        pt_tag = getParam('PRESERVE_THREAD')
         use(DOMCategory)
         {
             if (pt_tag != null)
@@ -38,7 +40,7 @@ class ComplexFilter extends FilterBase {
         processExtendedPattern(filterPtrn)
     }
 
-    def addExtendedFilterPattern(def val, def qualifier)
+    void addExtendedFilterPattern(String val, String qualifier)
     {
       log.trace("adding complex pattern: val=" + val + " qual=" + qualifier)
       
@@ -52,11 +54,11 @@ class ComplexFilter extends FilterBase {
       log.trace(EXTNDD_PTTRN_DICT.toString())
     }
 
-    def removeExtendedFilterPattern(def val)
+    void removeExtendedFilterPattern(String val)
     {
-      def qlfr = EXTNDD_PTTRN_DICT[val]
-      def ptrn = (qlfr ? qlfr.getPattern() : '') + val
-      def ptrnIndex = PATTERN.indexOf(ptrn)
+      Qualifier qlfr = EXTNDD_PTTRN_DICT[val]
+      String ptrn = (qlfr ? qlfr.getPattern() : '') + val
+      int ptrnIndex = PATTERN.indexOf(ptrn)
       log.trace('to delete:/' + ptrn +'/ index:' + ptrnIndex)
       if (ptrnIndex != -1)
       {
@@ -66,28 +68,28 @@ class ComplexFilter extends FilterBase {
       }
     }
 
-    def processExtendedPattern(def val)
+    void processExtendedPattern(String val)
     {
-        def filterPattern = null
-        def qRegex = ""
+        String filterPattern = null
+        String qRegex = ""
         Qualifier.each { qRegex += '%' + it + '%|' }
         qRegex = qRegex[0..qRegex.size()-2] //removing last |
-        def mtch = (val =~ /$qRegex/)
-        if (mtch.find())
+        Matcher qualifierMatcher = (val =~ /$qRegex/) //matching any qualifiers with % signs
+        if (qualifierMatcher.find())
         {
             log.trace('Processing complex pattern')
-            mtch = val.tokenize("%")
-            def nextQualifier = null
-            if (mtch != null)
+            List tokens = val.tokenize("%")
+            String nextQualifier = null
+            if (tokens != null)
             {
-                qRegex = qRegex.replaceAll(/%/, "")
-                for (grp in mtch)
+                qRegex = qRegex.replaceAll(/%/, "") //matching only qualifier names
+                for (grp in tokens)
                 {
                     log.trace('Next group in match: ' + grp)
-                    def qualifier = (grp =~ /$qRegex/)
-                    if (qualifier)
+                    qualifierMatcher = (grp =~ /$qRegex/)
+                    if (qualifierMatcher.find())
                     {
-                        nextQualifier = qualifier[0]
+                        nextQualifier = qualifierMatcher[0]
                         continue
                     }
 
@@ -110,23 +112,23 @@ class ComplexFilter extends FilterBase {
     * <p> 
     * Is called against each block.
     *
-    * @param blockData A String to be filtered.
+    * @param data A String to be filtered.
     *
     */
 
-    def filter(def blockData)
+    def filter(def data)
     {
         setPattern(PATTERN.toString())
 
-        def blockMtchr = blockData =~ filterPtrn
+        Matcher blockMtchr = data =~ filterPtrn
         if (blockMtchr.find())
         {
             if (isThreadPreserveEnabled())
             {
-                extractThreadPatterns(blockData)
+                extractThreadPatterns(data)
             }
             
-            super.filter(blockData)
+            super.filter(data)
         }
         else 
         {
@@ -139,7 +141,7 @@ class ComplexFilter extends FilterBase {
         return pt_tag != null
     }
 
-    def extractThreadPatterns(def data)
+    void extractThreadPatterns(String data)
     {
         if (searchThreadEnds(data)) 
         { 
@@ -152,22 +154,22 @@ class ComplexFilter extends FilterBase {
         }
     }
 
-    def extractThreadStarts(def data, def method)
+    void extractThreadStarts(String data, String method)
     {
         THRD_START_EXTRCTRS.each
         {extrctr, qlfr -> 
             log.trace(extrctr);
-            def srch = (data =~ extrctr);
-            if (srch)
+            Matcher extractorMatcher = (data =~ extrctr);
+            if (extractorMatcher)
             {
-                def start = srch[0]
+                def start = extractorMatcher[0]
                 log.trace("extracted; " + start)
                 this."$method"(start, qlfr)
             }
         }
     }
 
-    def searchThreadEnds(def data)
+    boolean searchThreadEnds(String data)
     {
         if (!shouldBeSkipped(data))
         {
@@ -181,7 +183,7 @@ class ComplexFilter extends FilterBase {
         return false
     }
 
-    def shouldBeSkipped(def data)
+    boolean shouldBeSkipped(String data)
     {
         def decision = THRD_SKIP_END_PTTRNS.find
         {skip->
@@ -191,7 +193,7 @@ class ComplexFilter extends FilterBase {
         return decision != null
     }
 
-    def addThreadStart(def start, def qlfr)
+    void addThreadStart(String start, String qlfr)
     {
       log.trace("adding thread start: " + start);
       if (!THRD_START_PTTRNS.contains(start))
@@ -202,7 +204,7 @@ class ComplexFilter extends FilterBase {
       else log.trace("Start exists")
     }
 
-    def removeThreadStart(def start, def qlfr)
+    void removeThreadStart(String start, String qlfr)
     {
       log.trace("removing thread start: " + start);
       THRD_START_PTTRNS.remove(start);

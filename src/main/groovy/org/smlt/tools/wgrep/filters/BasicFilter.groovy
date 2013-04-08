@@ -21,19 +21,19 @@ class BasicFilter extends FilterBase{
     * <li>3. Passes block to {@link postProcessBlockData} method</li>
     * <li>4. Passes the result of step 3 to {@link printBlock} method</li>
     *
-    * @param blockData A String to be filtered.
+    * @param data A String to be filtered.
     */
 
-    def filter(def blockData)
+    def filter(def data)
     {
         log.trace("Filtering with /" + filterPtrn + "/")
-        Matcher blockMtchr = blockData =~ filterPtrn
+        Matcher blockMtchr = data =~ filterPtrn
         if (blockMtchr.find()) 
         {
         	if (nextFilter != null) 
         	{
         		log.trace("Passing to next filter")
-        		nextFilter.filter(blockData)	
+        		nextFilter.filter(data)	
         	}
         	else 
         	{

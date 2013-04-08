@@ -4,6 +4,7 @@ import groovy.util.logging.Slf4j;
 
 import java.util.regex.Matcher
 import java.text.SimpleDateFormat
+import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
 import org.smlt.tools.wgrep.filters.enums.Event
 
@@ -15,26 +16,18 @@ class EntryDateFilter extends FilterBase{
     private Date TO_DATE
     private boolean isDateFromPassed = false
 
-    EntryDateFilter(FilterBase nextFilter_, def logDatePtrn_, def logDateFormat_, def from_, def to_) {
-		super(nextFilter_, logDatePtrn_)
-        if (logDateFormat_ != null) DATE_FORMAT = new SimpleDateFormat(logDateFormat_)
-        FROM_DATE = from_
-        TO_DATE = to_
+    EntryDateFilter(FilterBase nextFilter_, WgrepConfig config) {
+		super(nextFilter_, null, config)
+		fillRefreshableParams()        
+		FROM_DATE = configInstance.getParam('FROM')
+        TO_DATE = configInstance.getParam('TO')
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 
-    EntryDateFilter(FilterBase nextFilter_, def from_, def to_) {
-        super(nextFilter_, null)
-        fillRefreshableParams()
-        FROM_DATE = from_
-        TO_DATE = to_
-        log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
-    }
-
     def fillRefreshableParams()
     {
-        setPattern(getFacade().getParam('LOG_DATE_PATTERN'))
-        def logDateFormatPtrn = getFacade().getParam('LOG_DATE_FORMAT')
+        setPattern(getParam('LOG_DATE_PATTERN'))
+        def logDateFormatPtrn = getParam('LOG_DATE_FORMAT')
         if (logDateFormatPtrn != null) DATE_FORMAT = new SimpleDateFormat(logDateFormatPtrn)
     }
 
@@ -45,13 +38,13 @@ class EntryDateFilter extends FilterBase{
     * @param entry A String to be checked
     */
 
-    def filter(def blockData) {
-        if (check(blockData))
+    def filter(def data) {
+        if (check(data))
         {
             if (nextFilter != null) 
             {
                 log.trace("Passing to next filter")
-                nextFilter.filter(blockData)    
+                nextFilter.filter(data)    
             }
             else 
             {
@@ -65,23 +58,23 @@ class EntryDateFilter extends FilterBase{
     }
 
 
-    def check(def blockData)
+    boolean check(String blockData)
     {
         if (blockData != null && filterPtrn != null && DATE_FORMAT != null)
         {
            
-            def entryDate = null
+            Date entryDate = null
 
             if (!isDateFromPassed || TO_DATE != null)
             {
-                def timeString = null
+                String timeString = null
                 if (blockData instanceof String) 
                 {
                     log.trace("Checking log entry " + blockData + " for log date pattern |" + filterPtrn + "| and formatting to |" +  DATE_FORMAT.toPattern() + "|")
-                    Matcher entry = (blockData =~ filterPtrn)
-                    if (entry.find())
+                    Matcher entryDateMatcher = (blockData =~ filterPtrn)
+                    if (entryDateMatcher.find())
                     {
-                        timeString = entry.group(1)
+                        timeString = entryDateMatcher.group(1)
                     }
                     else
                     {

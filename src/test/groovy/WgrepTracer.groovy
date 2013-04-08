@@ -8,8 +8,8 @@ def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
 //def WGREP_CONFIG = BASE_HOME + "\\dev\\config.xml"
 def HOME = BASE_HOME + "\\build\\resources\\test"
 
-WgrepFacade facade = WgrepFacade.getInstance()
-facade.initConfig(WGREP_CONFIG)
+WgrepConfig config = new WgrepConfig(WGREP_CONFIG)
+WgrepFacade facade = new WgrepFacade(config)
 
 //        def oldStdout = System.out
 //        def pipeOut = new PipedOutputStream()
@@ -18,7 +18,7 @@ facade.initConfig(WGREP_CONFIG)
 //
 //        try
 //        {
-            facade.startProcessing(["Foo%and%Man Chu", HOME+"\\processing_test.log"])
+            facade.startProcessing(["-t", "Foo%and%Man Chu", HOME+"\\processing_test.log"])
 //        }
 //        catch (Exception e) {
 //            pipeOut.close()

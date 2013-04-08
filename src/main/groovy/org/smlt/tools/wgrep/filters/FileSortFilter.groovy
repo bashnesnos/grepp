@@ -10,9 +10,9 @@ class FileSortFilter extends FilterBase {
 	}
 
 	def filter(def files) {
-		if (! files instanceof ArrayList<File> ) throw new IllegalArgumentException("FileSortFilter accepts file list only")
+		if (! files instanceof List<File> ) throw new IllegalArgumentException("FileSortFilter accepts file list only")
 
-		def files_ = sortFiles(files)
+		List<File> files_ = sortFiles(files)
 
 		if (files_ != null) {
 			if (nextFilter != null) {
@@ -30,7 +30,7 @@ class FileSortFilter extends FilterBase {
 		}
 	}
 
-	def sortFiles(ArrayList<File> files) {
+	List<File> sortFiles(List<File> files) {
 		if (files == null) return files
 		if (files.size() < 2) return files
 		def fileList = files.clone()

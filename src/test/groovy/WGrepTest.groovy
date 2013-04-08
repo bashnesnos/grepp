@@ -5,31 +5,32 @@ import java.text.SimpleDateFormat
 class WGrepTest extends GroovyTestCase
 {
     WgrepFacade facade = null
+	WgrepConfig config = null
     def BASE_HOME = System.getProperty("wgrep.home")
     def HOME = BASE_HOME + "\\build\\resources\\test"
+	def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
     def defalutOut = System.out
 
     void setUp() 
     {
-        facade = WgrepFacade.getInstance()
-		facade.initConfig(BASE_HOME + "\\build\\resources\\test\\config.xml")
+		config = new WgrepConfig(WGREP_CONFIG)
+		facade = new WgrepFacade(config)
     }
     
     void tearDown()
     {
-        WgrepFacade.reset()
         System.setOut(defalutOut)
     }
     
     void testMainVarsProcessing()
     {
         
-        facade.getConfig().processInVars(["-L","test","test",HOME+"\\fpTest*"])
-        assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == "test" )
-        assertTrue( facade.getParam('FILTER_PATTERN') == "test" )
-        //assertTrue( facade.getParam('FILES') == [HOME+"\\fpTest_test.log"] )
-        assertTrue( facade.getParam('FOLDER_SEPARATOR') == "\\\\" )
-        assertTrue( facade.getParam('HOME_DIR') != null )
+        config.processInVars(["-L","test","test",HOME+"\\fpTest*"])
+        assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "test" )
+        assertTrue( config.getParam('FILTER_PATTERN') == "test" )
+        assertTrue( config.getParam('FILES') == [HOME+"\\fpTest_test.log"] )
+        assertTrue( config.getParam('FOLDER_SEPARATOR') == "\\\\" )
+        assertTrue( config.getParam('HOME_DIR') != null )
     }
 
     void testFailAutomationProcessing()
@@ -41,35 +42,35 @@ class WGrepTest extends GroovyTestCase
     void testExtendedPatternProcessing()
     {
         
-        facade.getConfig().processInVars(["-L","test","test%and%tets",HOME+"\\test*"])
-        assertTrue( facade.getParam('FILTER_PATTERN') == "test%and%tets" )
+		config.processInVars(["-L","test","test%and%tets",HOME+"\\test*"])
+        assertTrue( config.getParam('FILTER_PATTERN') == "test%and%tets" )
     }
     
     void testComplexVarsProcessing()
     {
         
-        facade.getConfig().processInVars(["-L","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
-        assertTrue( facade.getParam('DATE_TIME_FILTER') == "dtime" )
+        config.processInVars(["-L","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
+        assertTrue( config.getParam('DATE_TIME_FILTER') == "dtime" )
     }
 
     void testAutomationProcessing()
     {
         
-        facade.getConfig().processInVars(["-i","test", HOME+"\\fpTest_*"])
-        facade.refreshConfigByFileName(facade.getParam('FILES')[0])
-        assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
-        assertTrue( facade.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
+        config.processInVars(["-i","test", HOME+"\\fpTest_*"])
+        config.refreshConfigByFileName(config.getParam('FILES')[0])
+        assertTrue( config.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
+        assertTrue( config.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
     }
 
     void testMoreComplexVarsProcessing()
     {
         
-        facade.getConfig().processInVars(["-sL", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
-        assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
-        assertTrue( facade.getParam('FILTER_PATTERN') == "queryTime" )
-        assertTrue( facade.getParam('FILES') == ["cmd_only_1.log"] )
-        assertTrue( facade.getParam('FOLDER_SEPARATOR') == "\\\\" )
-        assertTrue( facade.getParam('HOME_DIR') != null )
+        config.processInVars(["-sL", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
+        assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
+        assertTrue( config.getParam('FILTER_PATTERN') == "queryTime" )
+        assertTrue( config.getParam('FILES') == ["cmd_only_1.log"] )
+        assertTrue( config.getParam('FOLDER_SEPARATOR') == "\\\\" )
+        assertTrue( config.getParam('HOME_DIR') != null )
     }
 
     void testComplexFiltering()

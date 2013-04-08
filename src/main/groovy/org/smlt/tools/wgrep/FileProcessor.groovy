@@ -19,18 +19,20 @@ class FileProcessor extends ModuleBase
     private FilterBase filterChain = null
     private FilterBase filesFilterChain = null
         
-    static FileProcessor getInstance() 
+    static FileProcessor getInstance(WgrepConfig config) 
     {
-        return new FileProcessor(FilterChainFactory.createFilterChainByFacade(), FilterChainFactory.createFileFilterChainByFacade(), getFacade().getParam('FILES'), getFacade().getParam('FILE_MERGING'))
+        return new FileProcessor(config, FilterChainFactory.createFilterChainByFacade(), FilterChainFactory.createFileFilterChainByFacade())
     }
 
-    FileProcessor(def filterChain_, def filesFilterChain_, def files_, def merging_) 
+    FileProcessor(WgrepConfig config, FilterBase filterChain_, FilterBase filesFilterChain_) 
     {
-        filterChain = filterChain_
+        super(config)
+		filterChain = filterChain_
         filesFilterChain = filesFilterChain_
+		List<String> files_ = getParam('FILES')
         log.trace("Total files to analyze: " + files_.size())
         fileList = filesFilterChain.filter(files_)
-        isMerging = merging_ != null
+        isMerging = getParam('FILE_MERGING') != null
 
     }
 
@@ -42,11 +44,11 @@ class FileProcessor extends ModuleBase
         filterChain.processEvent(Event.ALL_FILES_PROCESSED)
     }
 
-    private def openFile(File file_)
+    private File openFile(File file_)
     {
         log.info("Opening " + file_.name)
         try {
-            if (getFacade().refreshConfigByFileName(file_.name))
+            if (refreshConfigByFileName(file_.name))
             {            
                 filterChain = FilterChainFactory.createFilterChainByFacade()
                 filesFilterChain.processEvent(Event.CONFIG_REFRESHED)
@@ -60,7 +62,7 @@ class FileProcessor extends ModuleBase
         return file_
     }
 
-    def process(def data)
+    void process(String data)
     {
         if (data == null) return
         def endLine = null
@@ -76,11 +78,11 @@ class FileProcessor extends ModuleBase
             log.trace("No point to read file further since supplied date TO is overdued")
         }
 		
-		if (getFacade().getParam('FILE_MERGING') == null) filterChain.processEvent(Event.FILE_ENDED)
+		if (!isMerging) filterChain.processEvent(Event.FILE_ENDED)
         log.info("File ended. Lines processed: " + curLine)
     }
 
-    def getFiles()
+    List<File> getFiles()
     {
         return fileList
     }

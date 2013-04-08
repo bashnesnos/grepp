@@ -3,26 +3,48 @@ package org.smlt.tools.wgrep.filters
 import groovy.util.logging.Slf4j;
 
 import org.smlt.tools.wgrep.ModuleBase
+import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.*
 
 @Slf4j
 class FilterBase extends ModuleBase {
-    protected nextFilter
-    protected filterPtrn
+    protected FilterBase nextFilter
+    protected def filterPtrn
     protected boolean isLast
 
-    FilterBase(FilterBase nextFilter_, def filterPtrn_) {
-        nextFilter = nextFilter_
+    FilterBase(FilterBase nextFilter_, def filterPtrn_, WgrepConfig config) {
+        super(config)
+		nextFilter = nextFilter_
         filterPtrn = filterPtrn_
         isLast = false
     }
 
-    FilterBase(FilterBase nextFilter_, def filterPtrn_, boolean isLast_) {
-        nextFilter = nextFilter_
+	FilterBase(FilterBase nextFilter_, WgrepConfig config) {
+		super(config)
+		nextFilter = nextFilter_
+		isLast = false
+	}
+	
+	FilterBase(FilterBase nextFilter_, def filterPtrn_) {
+		nextFilter = nextFilter_
+		filterPtrn = filterPtrn_
+		isLast = false
+	}
+	
+    FilterBase(FilterBase nextFilter_, def filterPtrn_, WgrepConfig config, boolean isLast_) {
+		super(config)
+		nextFilter = nextFilter_
         filterPtrn = filterPtrn_
         isLast = isLast_
     }
 
+	FilterBase(FilterBase nextFilter_, def filterPtrn_, boolean isLast_) {
+		nextFilter = nextFilter_
+		filterPtrn = filterPtrn_
+		isLast = isLast_
+	}
+
+	
     def setPattern(def ptrn) {
         filterPtrn = ptrn
         log.trace("Set filter pattern to /" + filterPtrn + "/")

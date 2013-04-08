@@ -3,6 +3,7 @@ package org.smlt.tools.wgrep.filters
 import groovy.util.logging.Slf4j;
 
 import java.util.regex.Matcher
+import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
 import org.smlt.tools.wgrep.filters.enums.Event
 
@@ -13,10 +14,15 @@ class LogEntryFilter extends FilterBase{
     private StringBuilder curBlock = null;
     private def dateTimeChecker = null;
 
-    LogEntryFilter(FilterBase nextFilter_, def filterPtrn_) {
-        super(nextFilter_, filterPtrn_)
+    LogEntryFilter(FilterBase nextFilter_, WgrepConfig config) {
+        super(nextFilter_, config)
+		fillRefreshableParams()
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
     }
+	
+	void fillRefreshableParams() {
+		setPattern(getParam('LOG_ENTRY_PATTERN'))
+	}
 
     /**
     * Basic filter method.

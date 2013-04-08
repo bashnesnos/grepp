@@ -2,50 +2,48 @@ package org.smlt.tools.wgrep.filters
 
 import groovy.util.logging.Slf4j;
 
-import org.smlt.tools.wgrep.WgrepFacade
+import org.smlt.tools.wgrep.WgrepConfig
 
 @Slf4j
 class FilterChainFactory
 {
 
-    static FilterBase createFilterChainByFacade()
+    static FilterBase createFilterChainByConfig(WgrepConfig config)
     {
         FilterBase filterChain_ = new PrintFilter()
-        WgrepFacade facade = WgrepFacade.getInstance()
-        if (facade.getParam('POST_PROCESSING') != null)
+        if (config.getParam('POST_PROCESSING') != null)
         {
-            filterChain_ = new PostFilter(filterChain_, facade.getParam('POST_PROCESSING'))
+            filterChain_ = new PostFilter(filterChain_, config)
         } 
         
-        if (facade.getParam('DATE_TIME_FILTER') != null)
+        if (config.getParam('DATE_TIME_FILTER') != null)
         {
-            filterChain_ = new EntryDateFilter(filterChain_, facade.getParam('FROM_DATE'), facade.getParam('TO_DATE'))
+            filterChain_ = new EntryDateFilter(filterChain_, config)
         } 
 
-        if (facade.getParam('FILTER_PATTERN'))
+        if (config.getParam('FILTER_PATTERN'))
         {
-            filterChain_ = new ComplexFilter(filterChain_, facade.getParam('FILTER_PATTERN'), facade.getParam('PRESERVE_THREAD'))
+            filterChain_ = new ComplexFilter(filterChain_, config)
         } 
 
-        if (facade.getParam('LOG_ENTRY_PATTERN'))
+        if (config.getParam('LOG_ENTRY_PATTERN'))
         {
-            filterChain_ = new LogEntryFilter(filterChain_, facade.getParam('LOG_ENTRY_PATTERN'))
+            filterChain_ = new LogEntryFilter(filterChain_, config)
         }
 
         return filterChain_
     }
 
-    static FilterBase createFileFilterChainByFacade()
+    static FilterBase createFileFilterChainByConfig(WgrepConfig config)
     {
         FilterBase filterChain_ = new FileSortFilter()
-        WgrepFacade facade = WgrepFacade.getInstance()
         
-        if (facade.getParam('DATE_TIME_FILTER') != null)
+        if (config.getParam('DATE_TIME_FILTER') != null)
         {
-            filterChain_ = new FileDateFilter(filterChain_,  facade.getParam('FILE_DATE_FORMAT'), facade.getParam('FROM_DATE'), facade.getParam('TO_DATE'))
+            filterChain_ = new FileDateFilter(filterChain_,  config)
         } 
 
-        filterChain_ = new FileNameFilter(filterChain_, facade.getParam('FOLDER_SEPARATOR'), facade.getParam('CWD'))
+        filterChain_ = new FileNameFilter(filterChain_, config.getParam('FOLDER_SEPARATOR'), config.getParam('CWD'))
         return filterChain_
     }
 

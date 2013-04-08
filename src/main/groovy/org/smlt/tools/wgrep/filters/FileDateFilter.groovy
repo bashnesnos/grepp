@@ -5,6 +5,7 @@ import java.util.regex.Matcher
 
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
+import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.Event
 
 @Slf4j
@@ -13,37 +14,28 @@ class FileDateFilter extends FilterBase
     //Checking dates everywhere
 
     SimpleDateFormat FILE_DATE_FORMAT = null
-    def INPUT_DATE_PTTRNS = []
+    List INPUT_DATE_PTTRNS = []
     Date FROM_DATE = null
     Date TO_DATE = null
     int LOG_FILE_THRESHOLD = 24
     int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
 
-    FileDateFilter(FilterBase nextFilter_, def logFileThreshold_, def fileDateFormat_, def from_, def to_)
+    FileDateFilter(FilterBase nextFilter_, WgrepConfig config)
     {
-        super(nextFilter_, null)
-        FROM_DATE = from_
-        TO_DATE = to_
-        FILE_DATE_FORMAT = new SimpleDateFormat(fileDateFormat_)
-        if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(logFileThreshold_)
+        super(nextFilter_, null, config)
+        FROM_DATE = getParam('FROM')
+        TO_DATE = getParam('TO')
+        FILE_DATE_FORMAT = new SimpleDateFormat(getParam('FILE_DATE_FORMAT'))
+		fillRefreshableParams()
     }
 
-    FileDateFilter(FilterBase nextFilter_, def fileDateFormat_, def from_, def to_)
-    {
-        super(nextFilter_, null)
-        FROM_DATE = from_
-        TO_DATE = to_
-        FILE_DATE_FORMAT = new SimpleDateFormat(fileDateFormat_)
-        fillRefreshableParams()
-    }
-
-    def fillRefreshableParams() {
-        def trshld = getFacade().getParam('LOG_FILE_THRESHOLD') 
+    void fillRefreshableParams() {
+        def trshld = getParam('LOG_FILE_THRESHOLD') 
         if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(trshld)
     }
 
     def filter(def files) {
-        if (! files instanceof ArrayList<File> ) throw new IllegalArgumentException("FileDateFilter accepts file list only")
+        if (! files instanceof List<File> ) throw new IllegalArgumentException("FileDateFilter accepts file list only")
         def newFiles = check(files)
         log.trace("total files after:" + newFiles.size())
         if (newFiles != null)
@@ -72,7 +64,7 @@ class FileDateFilter extends FilterBase
     *
     * @param fName A String with filename
     */
-    def check(ArrayList<File> files) {
+    List<File> check(List<File> files) {
         log.trace("total files:" + files.size())
         return files.findAll { file -> checkFileTime(file) }
     }
@@ -80,7 +72,7 @@ class FileDateFilter extends FilterBase
     boolean checkFileTime(def file)
     {
         if (file == null) return
-        def fileTime = new Date(file.lastModified())
+        Date fileTime = new Date(file.lastModified())
         log.trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
         if (FROM_DATE == null || FROM_DATE.compareTo(fileTime) <= 0)
         {

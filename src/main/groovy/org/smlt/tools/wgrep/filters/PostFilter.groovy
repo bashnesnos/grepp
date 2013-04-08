@@ -3,6 +3,7 @@ package org.smlt.tools.wgrep.filters
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 import java.util.regex.Matcher
+import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.enums.Qualifier
 
@@ -21,9 +22,10 @@ class PostFilter extends FilterBase {
     def POST_GROUPS_METHODS = []
     def HEADER_PRINTED = false
 
-    PostFilter(FilterBase nextFilter_, def pp_tag)
+    PostFilter(FilterBase nextFilter_, WgrepConfig config)
     {
-        super(nextFilter_, null)
+        super(nextFilter_, config)
+		def pp_tag = getParam('POST_PROCESSING')
         if (pp_tag == null) throw new IllegalArgumentException("There should be some post processing tag specified")
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
@@ -36,7 +38,7 @@ class PostFilter extends FilterBase {
             {
                 pttrns.sort { it.'@order' }
                 pttrns.each { ptrn_node ->
-                    def pttrn = getCDATA(ptrn_node)
+                    String pttrn = getCDATA(ptrn_node)
                     setSeparator(ptrn_node.'@sep')
                     POST_PROCESS_PTTRNS.add(pttrn)
                     PATTERN.append(pttrn).append(Qualifier.and.getPattern())
@@ -55,7 +57,7 @@ class PostFilter extends FilterBase {
     }
 
 
-    def setSeparator(def sep_tag)
+    void setSeparator(String sep_tag)
     {
         if (POST_PROCESS_SEP != null) return
 
@@ -90,11 +92,11 @@ class PostFilter extends FilterBase {
         StringBuilder rslt = null
         setPattern(PATTERN.toString())
         printHeader()
-        Matcher mtchr = blockData =~ filterPtrn
-        if (mtchr.find()) //bulk matching all patterns. If any is absent nothing will be returned
+        Matcher postPPatternMatcher = blockData =~ filterPtrn
+        if (postPPatternMatcher.find()) //bulk matching all patterns. If any is absent nothing will be returned
         {
             rslt = new StringBuilder("")
-            POST_PROCESS_PTTRNS.each { ptrn -> rslt = smartPostProcess(mtchr, rslt, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn], POST_PROCESS_PTTRNS.indexOf(ptrn) + 1)} //TODO: new handlers model is needed
+            POST_PROCESS_PTTRNS.each { ptrn -> rslt = smartPostProcess(postPPatternMatcher, rslt, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn], POST_PROCESS_PTTRNS.indexOf(ptrn) + 1)} //TODO: new handlers model is needed
         }
 
         if (rslt != null) 
@@ -107,7 +109,7 @@ class PostFilter extends FilterBase {
         }
     }
 
-    def smartPostProcess(def mtchr, def agg, def sep, def method, def groupIdx)
+    StringBuilder smartPostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, String groupIdx)
     {
         log.trace(new StringBuilder('smart post processing, agg=') + ' agg=' + agg + ' method=' + method + ' groupIdx=' + groupIdx)
         log.trace("mtch found")
@@ -122,7 +124,7 @@ class PostFilter extends FilterBase {
         }
     }
 
-    def aggregatorAppend(def agg, def sep, def val)
+    StringBuilder aggregatorAppend(StringBuilder agg, String sep, def val)
     {
         return (agg.size() > 0) ? agg.append(sep).append(val):agg.append(val)
     }
@@ -134,8 +136,8 @@ class PostFilter extends FilterBase {
 
     def processPostCounter(Matcher mtchResults, def groupIdx)
     {
-        def currentPattern = mtchResults.group(groupIdx)
-        def countableMatcher = mtchResults.group() =~ currentPattern
+        String currentPattern = mtchResults.group(groupIdx)
+        Matcher countableMatcher = mtchResults.group() =~ currentPattern
         if (countableMatcher.find()) {
             return countableMatcher.size()    
         }
@@ -148,8 +150,8 @@ class PostFilter extends FilterBase {
 
     def processPostGroup(Matcher mtchResults, def groupIdx)
     {
-        def newGroup = mtchResults.group(groupIdx)
-        def existingGroup = POST_GROUPS[newGroup]
+        String newGroup = mtchResults.group(groupIdx)
+        Map existingGroup = POST_GROUPS[newGroup]
         if (existingGroup == null)
         {
             POST_GROUPS[newGroup] = [:]
@@ -170,7 +172,7 @@ class PostFilter extends FilterBase {
             newIntVal = processPostCounter(mtchResults, groupIdx)
         }
 
-        def averageAgg = currentGroup["averageAgg"]
+        List<Integer> averageAgg = currentGroup["averageAgg"]
         if (averageAgg != null)
         {
             averageAgg.add(newIntVal)
@@ -186,7 +188,7 @@ class PostFilter extends FilterBase {
     def processPostAverage(Map group)
     {
         log.trace ("average group: " + group)
-        def averageAgg = group["averageAgg"]
+        List<Integer> averageAgg = group["averageAgg"]
         if (averageAgg == null || averageAgg.size() == 0) return 0
         Integer sum = 0
         averageAgg.each { Integer val ->
@@ -198,7 +200,7 @@ class PostFilter extends FilterBase {
     def processGroups()
     {
         POST_GROUPS.each { group ->
-            def rslt = new StringBuilder(group.getKey())
+            StringBuilder rslt = new StringBuilder(group.getKey())
             POST_GROUPS_METHODS.each { method ->
                 rslt = aggregatorAppend(rslt, POST_PROCESS_SEP, this."$method"(group.getValue()))
             }
