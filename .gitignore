@@ -22,3 +22,7 @@ release/
 # General
 ########
 *.log
+.classpath
+.project
+.settings/
+bin/
