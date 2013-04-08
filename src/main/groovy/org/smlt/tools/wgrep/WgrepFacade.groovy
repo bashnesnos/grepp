@@ -1,622 +1,246 @@
 package org.smlt.tools.wgrep
 
-import groovy.xml.DOMBuilder
-import groovy.xml.dom.DOMCategory
+import groovy.util.logging.Slf4j;
+
 import org.smlt.tools.wgrep.varparsers.*
 
 /**
-* Facade-Singleton containing all the configuration and is linked with main modules.
-* <p>
-* As well is carrying out config parsing, incoming variable parsing, modules initialization.
-* Pretty much holds most of the program params.
-*/
-
+ * Facade-Singleton containing all the configuration and is linked with main modules.
+ * <p>
+ * As well is carrying out config parsing, incoming variable parsing, modules initialization.
+ * Pretty much holds most of the program params.
+ */
+@Slf4j
 class WgrepFacade {
-    //internal
-    private def cfgDoc = null
-    private def root = null
-    private Date startTime
-    
-    private static WgrepFacade facadeInstance
-    
-    /**
-    * Creates the only facade instance.
-    * @param args Params needed for the facade initialization. Currently only path to the config.xml is expected.
-    * @return <code>facadeInstance</code>
-    */
-
-    static WgrepFacade getInstance(def args) { 
-        if (facadeInstance == null) 
-        {
-            facadeInstance = new WgrepFacade(args)
-            facadeInstance.init()
-        }
-        return facadeInstance
-    }
-
-    /**
-    * Nullifies facadeInstance. It allows to recreate the Facade. Used for test purposes.
-    * @param args Params needed for the facade initialization. Currently only path to the config.xml is expected.
-    * @return <code>facadeInstance</code>
-    */
-
-    static void reset()
-    {
-        facadeInstance = null        
-    }
-
-    //GLOBAL
-    private def FOLDER_SEPARATOR = null
-    private def CWD = null
-    private def HOME_DIR = null
-    private def RESULTS_DIR = 'results'
-    private def SPOOLING_EXT = 'log'
-
-    
-    //GENERAL
-    private def FILES = []
-
-    //OPTIONS
-    private def VERBOSE = null
-    private def TRACE = null
-    private def varParsers = [] //organized as LIFO
-    private def params = [:] //all params as a Map
-
-    private FilterParser filterParser =  null 
-    private FileNameParser fileNameParser =  null 
-
-    private PatternAutomationHelper paHelper
-    private FileProcessor fProcessor
-
-    /**
-    * Constructor
-    * <p>
-    * Initializes the instance. Parses config.xml and loads defaults from there.
-    *
-    * @param args Params needed for the facade initialization. Currently only path to the config.xml is expected. 
-    */
-    WgrepFacade(def args)
-    {
-        cfgDoc = DOMBuilder.parse(new FileReader(args[0]))     
-        root = cfgDoc.documentElement
-        CWD = System.getProperty("user.dir")
-        this.loadDefaults()
-        startTime = new Date()
-
-    }
-
-    /**
-    *  Method loads default mode and spooling extension as configured in config.xml
-    */
-    def loadDefaults()
-    {
-        FOLDER_SEPARATOR = System.getProperty("file.separator")
-        HOME_DIR = System.getProperty("wgrep.home") + FOLDER_SEPARATOR
-        if (FOLDER_SEPARATOR == "\\") FOLDER_SEPARATOR += "\\"
-        use(DOMCategory)
-        {
-            setSpoolingExt(root.global.spooling[0].text())
-            setParam('ATMTN_LEVEL', root.global.automation_level[0].text()) //setting default automation level
-        }
-    }
-   
-    def init() {
-        paHelper = PatternAutomationHelper.getInstance()
-        filterParser = new FilterParser()
-        fileNameParser = new FileNameParser()
-        fileNameParser.subscribe()
-        filterParser.subscribe()
-    }
-
-    // Getters
-    
-    /**
-    * Getter for parsed <code>documentElement</code> of the parsed config.xml
-    * @return Value of <code>root</code>
-    */
-
-    def getRoot()
-    {
-        return root
-    }
-
-    /**
-    * Getter to extract CDATA element value from a node which is expected to be text.
-    * @return <code>node.text()</code> if the node has text. Value of CDATA element i.e. <code>node.getFirstChild().getNodeValue()</code> otherwise.
-    */
-
-    def getCDATA(def node)
-    {
-        if (node == null) return
-        use(DOMCategory)
-        {
-            def txt = node.text()
-            return (txt)?txt:node.getFirstChild().getNodeValue()
-        }
-    }
-
-    /**
-    * Gets value of the {@link this.extraParams} by key.
-    * @param field Key for <code>extraParams</code> which is needed to be get.
-    * @return Value set to the key <code>field</code>
-    */
-
-    def getParam(def field)
-    {
-        if (isTraceEnabled()) trace("Accessing param: " + field)
-        return hasField(field) ? this."$field" : this.params[field]
-    }
-
-    def getPatternHelper()
-    {
-        return paHelper
-    }
-
-    def getFileProcessor()
-    {
-        return fProcessor
-    }
-
-    // Setters
-
-    /**
-    * Sets value of any field which exists in <code>WgrepFacade</code> via reflection. Is used to propagate value directly from config.xml
-    * @param field Name of field of <code>WgrepFacade</code> which is needed to be set.
-    * @param val Value to be set
-    */
-
-    def setParam(def field, def val)
-    {
-        if (isTraceEnabled()) trace("Setting param: " + field + " val: " + val)
-        if (hasField(field))
-        {
-            this."$field" = val
-        }
-        else
-        {
-            this.params[field] = val
-        }
-    }
-
-    /**
-    * Sets value of <code>LOG_ENTRY_PATTERN</code> field which exists in <code>WgrepFacade</code> in a classical setter way.
-    * @param val <code>String</code> value to be set
-    */
-
-    def setLogEntryPattern(def val)
-    {
-        setParam('LOG_ENTRY_PATTERN', val)
-    }
-    
-    /**
-    * Sets value of <code>FILTER_PATTERN</code> field which exists in <code>WgrepFacade</code> in a classical setter way. If extended pattern processing is enabled it will pre-processed to extract the left-most pattern first.
-    * @param val <code>String</code> value to be set
-    */
-
-    def setFilterPattern(def val)
-    {
-        setParam('FILTER_PATTERN', val)
-    }
-
-    /**
-    * Sets value of <code>SPOOLING_EXT</code> field which exists in <code>WgrepFacade</code> in a classical setter way.
-    * @param val <code>String</code> value to be set
-    */
-
-    def setSpoolingExt(def val)
-    {
-        setParam('SPOOLING_EXT', val)
-    }
-
-    /**
-    * Sets value of <code>FILES</code> field which exists in <code>WgrepFacade</code> in a classical setter way. Initializes {@link FileProcessor} at the same time.
-    * @param val <code>String</code> value to be set
-    */
-
-    def addFileName(def val)
-    {
-        if (val == null) return
-        FILES.add(val)
-    }
-
-    /**
-    * Enables extended pattern processing.
-    * @param field Field to be set. Either <code>EXTNDD_PATTERN</code> for just enabling or <code>PRESERVE_THREAD</code> if it should enable thread parsing as well.
-    * @param val <code>String</code> value to be set. Either <code>e</code> if it just enabling, and a valid config preset tag from <code>thread_configs</code> section otherwise.
-    */
-
-    def setExtendedPattern(def field, def val)
-    {
-        setParam(field, val)
-    }
-
-    /**
-    * Enables post processing.
-    * @param field Field to be set
-    * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
-    */
-
-    def setPostProcessing(def field, def val)
-    {
-        setParam(field, val)
-    }
-
-    /**
-    * Enables post processing. Initializes {@link DateTimeVarParser}.
-    * @param field Field to be set
-    * @param val <code>String</code> value to be set. Valid config preset tag from <code>date_time_config</code> section is expected here.
-    */
-
-    def setDateTimeFilter(def field, def val)
-    {
-        setParam(field, val)
-        new DateTimeParser(val).subscribe()
-    }
-
-    def setUserLEPattern(def field, def val)
-    {
-        new LogEntryParser().subscribe()
-        setParam(field, val)
-        disableAutomation()
-    }
-
-    /**
-    * Enables <code>LOG_ENTRY_PATTERN</code>, <code>FILTER_PATTERN</code>, <code>PRESERVE_THREAD</code> auto-identification based on supplied <code>level</code>. Initializes {@link PatternAutomationHelper}.
-    * @param field Field to be set
-    * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-    */
-
-    def setAutomation(def field, def val)
-    {
-        //lentryParser.unsubscribe()   
-        setParam(field, val)
-        paHelper = PatternAutomationHelper.getInstance()
-    }
-
-    /**
-    * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
-    * @param field Field to be set
-    * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-    */
-    def setPredefinedFilter(def field, def val)
-    {
-        filterParser.unsubscribe()   
-        setParam(field, val)
-        paHelper.parseFilterConfig(val)
-    }
-
-    /**
-    * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
-    * @param field Field to be set
-    * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-    */
-    def setPredefinedBulkFilter(def field, def val)
-    {
-        filterParser.unsubscribe()   
-        setParam(field, val)
-        paHelper.parseBulkFilterConfig(val)
-    }
-
-    /**
-    * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
-    * @param field Field to be set
-    * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-    */
-    def setPredefinedConfig(def field, def val)
-    {
-        setAutomation('ATMTN_LEVEL', 'a')  
-        setParam(field, val)
-        paHelper.applySequenceByTag(val)
-        disableAutomation()
-    }
-
-    // INITIALIZATION    
-
-    /**
-    * Main method for the command-line arguments processing.
-    * <p>
-    * It processes arguments in the following way:
-    *   <li>1. Flags starting with - and options starting with --</li>
-    *   <li>2. {@link this.LOG_ENTRY_PATTERN} if not overrided by any flag/option</li>
-    *   <li>3. {@link this.FILTER_PATTERN} if not overrided by any flag/option</li>
-    *   <li>4. Additional modules, like {@link DateTimeChecker} variables</li>
-    *   <li>5. All other are treated as consequential filenames to be checked</li>
-    * <p>
-    * As soon as they are processed, it starts module initialization.
-    * @param args Array of strings containing arguments for parsing.
-    */
-
-    def processInVars(def args)
-    {
-        for (arg in args)
-        {
-            if (isTraceEnabled()) trace("Next argument " + arg)
-
-            switch (processOptions(arg))
-            {
-                case -1 : 
-                    return -1
-                    break
-                case 1:
-                    break
-                default :
-                    parseVar(arg)
-            }
-        }
-        moduleInit()
-    }
-
-    /**
-    * Method for flags and options parsing. It identifies if passed help flag, simple flag or option, and calls appropriate method. Also it removes special symbols - and -- before passing argument further.
-    *
-    * @param arg An argument to be parsed
-    * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>null</code> otherwise.
-    */
-
-    int processOptions(def arg)
-    {
-        if (arg ==~ /\?/) return printHelp()
-        if (arg =~/^-(?!-)/)
-        {
-            processSimpleArg(arg.substring(1)) //skipping '-' itself
-            return 1
-        }
-        else if (arg =~ /^--/)
-        {
-            processComlpexArg(arg.substring(2)) //skipping '--' itself
-            return 1
-        }
-        return 0
-    }
-    
-    /**
-    * Method for simple flags. It tokenizes passed string by each symbol. 
-    * I.e. for each character it will be looking for corresponding optiong in config.xml
-    * Such behaviour was introduced to support multiple flags at once, like '-abcd'. 
-    * For each tokenized character it calls {@link processOption} method.
-    *
-    * @param arg An argument to be parsed
-    */
-    def processSimpleArg(def arg)
-    {
-        (arg =~ /./).each{opt -> processOption(opt)}
-    }
-
-    /**
-    * Method for complex flags/options. There is no complex logic at the moment.
-    * It fetches every character from string and passes the result to {@link processOption} method.
-    *
-    * @param arg An argument to be parsed
-    */
-
-    def processComlpexArg(def arg)
-    {
-        (arg =~ /.*/).each{opt -> if(opt) processOption(opt)}
-    }
-
-    /**
-    * Method which performs actual option lookup in the config.xml.
-    * <p>
-    * It fetches handler function (from <code>handler</code> attribute), and calls it from {@link WgrepFacade} class.
-    * <p> It passes to the handler function <code>field</code> attribute and value of matching option from config.xml.
-    *
-    * @param arg An argument to be looked up
-    * @throws IllegalArgumentException If the supplied <code>arg</code> is not configured, i.e. cannot be found in the config.xml.
-    */
-
-    def processOption(def opt)
-    {
-        use(DOMCategory)
-        {
-            def optElem = root.options.opt.find {it.text() == opt}
-            if (optElem == null) optElem = root.custom.options.opt.find {it.text() == opt}
-            if (optElem != null)
-            {
-                def handler = optElem['@handler']
-                facadeInstance."$handler"(optElem['@field'], optElem.text())
-            }
-            else throw new IllegalArgumentException("Invalid option=" + opt)
-        }
-    }
-
-    /**
-    * Method for parsing variables.
-    * <p>
-    * It gets first parser from {@link varParsers} array and calls it <code>parseVar</code> function with supplied <code>arg</code>
-    *
-    * @param arg An argument to be parsed
-    * @return <code>1</code> if <code>arg</code> was processed(i.e. if there was any {@link AdditionalVarParser} subscribed) <code>null</code> otherwise.
-    */
-
-    def parseVar(def arg)
-    {
-        if (isTraceEnabled()) trace("attempting to parse with parsers: " + varParsers)
-        def nexParserIdx = varParsers.size() - 1
-        if (nexParserIdx >= 0)
-        {
-            varParsers[nexParserIdx].parseVar(arg)
-        }
-    }
-
-    /**
-    * Method checks if all the main vars are not nulls.
-    * @return <code>1</code> if check is passed. <code>null</code> otherwise.
-    */
-
-    def check()
-    {
-        
-        if (FILES.isEmpty())
-        {
-            println "No file to wgrep"
-            return false
-        }
-
-        if (getParam('LOG_ENTRY_PATTERN') == null)
-        {
-            if (isTraceEnabled()) trace("No log entry pattern.")
-        }
-
-        if (getParam('FILTER_PATTERN') == null)
-        {
-            if (isTraceEnabled()) trace("No filter pattern.")
-        }
-
-        return true
-    }
-
-
-    /**
-    * Method for subscribing additional parsers.
-    *
-    * @param parsers Collection of {@link AdditionalVarParser} objects.
-    */
-
-    def subscribeVarParsers(def parsers)
-    {
-        varParsers.addAll(parsers)
-    }
-
-    /**
-    * Method for unsubscribing additional parsers.
-    *
-    * @param parsers Collection of {@link AdditionalVarParser} objects.
-    */
-
-    def unsubscribeVarParsers(def parsers)
-    {
-        varParsers.removeAll(parsers)
-    }
-
-
-    // Handlers implementation
-    
-    def isVerboseEnabled()
-    {
-        return VERBOSE != null || TRACE != null
-    }
-
-    /**
-    * Prints supplied string if {@link VERBOSE} is <code>true</code>
-    *
-    * @param text A String to be verbosed
-    */
-    def verbose(def text)
-    {
-        if (isVerboseEnabled()) println text
-    }
-    
-    def isTraceEnabled()
-    {
-        return TRACE != null
-    }
-
-    /**
-    * Prints supplied string if {@link TRACE} is <code>true</code>
-    *
-    * @param text A String to be traced
-    */
-
-    def trace(def text)
-    {
-        if (isTraceEnabled()) println '###TRACE##' + new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS") + '## ' + text
-    }
-
-   
-    //General
-
-    boolean hasField(def field)
-    {
-        try {
-            this.getClass().getDeclaredField(field)
-        }
-        catch (NoSuchFieldException e) {
-            return false
-        }
-        return true
-    }
-
-    def moduleInit()
-    {
-        fProcessor = FileProcessor.getInstance()
-        return 1
-    }
-
-/**
-    * Initializes spooling, i.e. redirects System.out to a file. 
-    * <p>
-    * File is created in the {@link this.HOME_DIR} folder with name compiled from {@link this.FILTER_PATTERN} and extension as {@link this.SPOOLING_EXT}
-    */
-
-    def spool()
-    {
-        if (getParam('SPOOLING') != null)
-        {
-            def resultsDir = new File(HOME_DIR + FOLDER_SEPARATOR + RESULTS_DIR)
-            if (!resultsDir.exists()) resultsDir.mkdir()
-            def out_file = new File(resultsDir.getAbsolutePath() + FOLDER_SEPARATOR + getParam('FILTER_PATTERN').replaceAll("[^\\p{L}\\p{N}]", {""}) + getParams('SPOOLING_EXT'))
-            if (isTraceEnabled()) trace("Creating new file: " + out_file.getAbsolutePath())
-            out_file.createNewFile()
-            System.setOut(new PrintStream(new FileOutputStream(out_file)))
-        }
-    }
-
-    /**
-    * Method to trigger processing of supplied files. Contains hook to start spooling.
-    */
-
-    def startProcessing()
-    {
-        spool()
-        fProcessor.processAll()
-        if (isVerboseEnabled()) verbose("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
-    }
-
-    boolean refreshConfigByFileName(def fileName)
-    {
-        if (paHelper != null)
-        {
-            return paHelper.applySequenceByFileName(fileName)
-        }
-        return false
-    }
-
-    def disableAutomation()
-    {
-        paHelper = null
-    }
-
-    /**
-    * Method prints out some help
-    * <p> 
-    * Actually it has the same date as in groovydoc.
-    */
-    int printHelp() 
-    {
-        def help = """\
-        CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
-
-        Usage: 
-        java -cp wgrep.jar org.smlt.tools.wgrep.WGrep CONFIG_FILE [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
-        Usage via supplied .bat or .sh file: 
-        wgrep [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
-
-        Examples:
-
-        Using in Windows
-        wgrep -s \"SomethingINeedToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
-        wgrep -s \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log
-
-        Using on NIX 
-        wgrep --my_predefined_config --dtime 2011-11-11T11:10 2011-11-11T11:11 myapp.log 
-        wgrep --my_predefined_config myapp.log 
-        wgrep 'SomethingINeedToFind' myanotherapp.log 
-        wgrep -s 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 
-        wgrep 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' --dtime 2009-09-09T09:00 + thirdapp.log 
-        wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
-        """
-        println help
-        return -1
-    }
-
+	private Date startTime = new Date()
+
+	private static WgrepFacade facadeInstance
+
+	/**
+	 * Creates the only facade instance.
+	 * @param args Params needed for the facade initialization. Currently only path to the config.xml is expected.
+	 * @return <code>facadeInstance</code>
+	 */
+
+	static WgrepFacade getInstance() {
+		if (facadeInstance == null) {
+			facadeInstance = new WgrepFacade()
+		}
+		return facadeInstance
+	}
+
+	/**
+	 * Nullifies facadeInstance. It allows to recreate the Facade. Used for test purposes.
+	 * @param args Params needed for the facade initialization. Currently only path to the config.xml is expected.
+	 * @return <code>facadeInstance</code>
+	 */
+
+	static void reset() {
+		facadeInstance = null
+	}
+
+	private WgrepConfig configInstance = null
+
+	private FileProcessor fProcessor
+
+
+	def initConfig(def configFile) {
+		configInstance = new WgrepConfig(configFile)
+	}
+
+
+
+	// Getters
+
+	/**
+	 * Getter for parsed <code>documentElement</code> of the parsed config.xml
+	 * @return Value of <code>root</code>
+	 */
+
+	def getRoot()
+	{
+		return getParam('root')
+	}
+
+	/**
+	 * Getter to extract CDATA element value from a node which is expected to be text.
+	 * @return <code>node.text()</code> if the node has text. Value of CDATA element i.e. <code>node.getFirstChild().getNodeValue()</code> otherwise.
+	 */
+
+	def getCDATA(def node)
+	{
+		return configInstance.getCDATA(node)
+	}
+
+	/**
+	 * Gets value of the {@link this.extraParams} by key.
+	 * @param field Key for <code>extraParams</code> which is needed to be get.
+	 * @return Value set to the key <code>field</code>
+	 */
+
+	def getParam(def field)
+	{
+		log.trace("Accessing param: " + field)
+		return configInstance.getParam(field)
+	}
+
+	def getConfig()
+	{
+		return configInstance
+	}
+
+	def getPatternHelper()
+	{
+		return getParam('paHelper')
+	}
+
+	def getFileProcessor()
+	{
+		return fProcessor
+	}
+
+	// Setters
+
+	/**
+	 * Sets value of any field which exists in <code>WgrepFacade</code> via reflection. Is used to propagate value directly from config.xml
+	 * @param field Name of field of <code>WgrepFacade</code> which is needed to be set.
+	 * @param val Value to be set
+	 */
+
+	def setParam(def field, def val)
+	{
+		log.trace("Setting param: " + field + " val: " + val)
+		configInstance.setParam(field, val)
+	}
+
+	/**
+	 * Sets value of <code>LOG_ENTRY_PATTERN</code> field which exists in <code>WgrepFacade</code> in a classical setter way.
+	 * @param val <code>String</code> value to be set
+	 */
+
+	def setLogEntryPattern(def val)
+	{
+		setParam('LOG_ENTRY_PATTERN', val)
+	}
+
+	/**
+	 * Sets value of <code>FILTER_PATTERN</code> field which exists in <code>WgrepFacade</code> in a classical setter way. If extended pattern processing is enabled it will pre-processed to extract the left-most pattern first.
+	 * @param val <code>String</code> value to be set
+	 */
+
+	def setFilterPattern(def val)
+	{
+		setParam('FILTER_PATTERN', val)
+	}
+
+	/**
+	 * Sets value of <code>SPOOLING_EXT</code> field which exists in <code>WgrepFacade</code> in a classical setter way.
+	 * @param val <code>String</code> value to be set
+	 */
+
+	def setSpoolingExt(def val)
+	{
+		setParam('SPOOLING_EXT', val)
+	}
+
+	/**
+	 * Sets value of <code>FILES</code> field which exists in <code>WgrepFacade</code> in a classical setter way. Initializes {@link FileProcessor} at the same time.
+	 * @param val <code>String</code> value to be set
+	 */
+
+	def addFileName(def val)
+	{
+		if (val != null) setParam('FILES', val)
+	}
+
+
+
+	def subscribeParser(DefaultVarParser parser)
+	{
+		configInstance.subscribeVarParsers(parser)
+	}
+
+	def unsubscribeParser(DefaultVarParser parser)
+	{
+		configInstance.unsubscribeVarParsers(parser)
+	}
+
+	/**
+	 * Method checks if all the main vars are not nulls.
+	 * @return <code>1</code> if check is passed. <code>null</code> otherwise.
+	 */
+
+	def check()
+	{
+
+		if (getParam('FILES').isEmpty())
+		{
+			println "No file to wgrep"
+			return false
+		}
+
+		if (getParam('LOG_ENTRY_PATTERN') == null)
+		{
+			log.trace("No log entry pattern.")
+		}
+
+		if (getParam('FILTER_PATTERN') == null)
+		{
+			log.trace("No filter pattern.")
+		}
+
+		return true
+	}
+
+	//General
+
+	def moduleInit()
+	{
+		fProcessor = FileProcessor.getInstance()
+	}
+
+	/**
+	 * Initializes spooling, i.e. redirects System.out to a file. 
+	 * <p>
+	 * File is created in the {@link this.HOME_DIR} folder with name compiled from {@link this.FILTER_PATTERN} and extension as {@link this.SPOOLING_EXT}
+	 */
+
+	def spool()
+	{
+		if (getParam('SPOOLING') != null)
+		{
+			def resultsDir = new File(getParam('HOME_DIR') + getParam('FOLDER_SEPARATOR') + getParam('RESULTS_DIR'))
+			if (!resultsDir.exists()) resultsDir.mkdir()
+			def out_file = new File(resultsDir.getAbsolutePath() + getParam('FOLDER_SEPARATOR') + getParam('FILTER_PATTERN').replaceAll("[^\\p{L}\\p{N}]", {""}) + getParam('SPOOLING_EXT'))
+			log.trace("Creating new file: " + out_file.getAbsolutePath())
+			out_file.createNewFile()
+			System.setOut(new PrintStream(new FileOutputStream(out_file)))
+		}
+	}
+
+	/**
+	 * Method to trigger processing of supplied files. Contains hook to start spooling.
+	 */
+
+	def startProcessing(def args)
+	{
+		configInstance.processInVars(args)
+		moduleInit()
+		if (!check()) return
+			spool()
+		fProcessor.processAll()
+		log.info("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
+	}
+
+	boolean refreshConfigByFileName(def fileName)
+	{
+		PatternAutomationHelper paHelper = getParam('paHelper')
+		if ( paHelper != null)
+		{
+			return paHelper.applySequenceByFileName(fileName)
+		}
+		return false
+	}
+	
+	
 }

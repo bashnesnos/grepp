@@ -18,8 +18,11 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.0.5'
-    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.0.5'
+    compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.0.6'
+	compile group: 'org.slf4j', name:'slf4j-api', version: '1.7.5'
+	compile group: 'ch.qos.logback', name:'logback-classic', version: '1.0.11'
+	
+    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.0.6'
 	testCompile group: 'junit', name: 'junit', version: '4.10'
 }
 
@@ -29,6 +32,8 @@ jar {
 
 test {
 	systemProperty 'wgrep.home', rootDir.getAbsolutePath()
+	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main/logback.xml')
+	setClasspath(newCP)
 }
 
 processTestResources {
@@ -37,20 +42,20 @@ processTestResources {
         line.replace('#TEST_TIME#', dateFormat.format(new Date()))
     }   
     doLast {
-        def cfgDoc = DOMBuilder.parse(new FileReader('build/resources/main/config.xml'))
-        def customDoc = DOMBuilder.parse(new FileReader('build/resources/test/config.custom'))
+        def cfgDoc = DOMBuilder.parse(new FileReader(rootDir.getAbsolutePath() + '/build/resources/main/config.xml'))
+        def customDoc = DOMBuilder.parse(new FileReader(rootDir.getAbsolutePath() + '/build/resources/test/config.custom'))
         def root = cfgDoc.documentElement
         use(DOMCategory) {
             root.appendChild(cfgDoc.importNode(customDoc.documentElement.custom[0], true))
         }
         cfgDoc.normalizeDocument()
-        XmlUtil.serialize(root, new FileWriter('build/resources/test/config.xml'))
+        XmlUtil.serialize(root, new FileWriter(rootDir.getAbsolutePath() + '/build/resources/test/config.xml'))
     }
 }
 
 task makeEmbeddedJar(dependsOn: build, type: Jar) {
 	//'Groovy embedded packaging'
-	from 'build/classes/main'
+	from rootDir.getAbsolutePath() + '/build/classes/main'
 	from { 
 		configurations.compile.collect {it.isDirectory()? it : zipTree(it)} 
 	}
@@ -61,10 +66,10 @@ task cleanSubProject(type: Delete){
 }
 
 task copyBuild(type: Copy) {
-    from('/build/resources/main'){
+    from(rootDir.getAbsolutePath() + '/build/resources/main'){
         exclude '**/*_tmplt'
     }
-    from '/build/libs'
+    from rootDir.getAbsolutePath() + '/build/libs'
 }
 
 task transformConfig(dependsOn: copyBuild){
@@ -81,7 +86,7 @@ task transformConfig(dependsOn: copyBuild){
 }
 
 task transformTmplts(dependsOn: transformConfig, type: Copy) {
-    from('/build/resources/main/')  {
+    from(rootDir.getAbsolutePath() + '/build/resources/main/')  {
         include '**/*_tmplt'
     }
 
@@ -117,7 +122,7 @@ task transformTmplts(dependsOn: transformConfig, type: Copy) {
 }
 
 task prepareSublimeSettings(type: Copy) {
-    from 'src/sublime/'
+    from rootDir.getAbsolutePath() + '/src/sublime/'
     filter { String line ->
         line.replace('#WGREP_HOME#', rootDir.getAbsolutePath().replaceAll( '(\\\\)', '\\\\$1' ))
     }

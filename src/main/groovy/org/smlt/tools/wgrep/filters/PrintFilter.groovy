@@ -1,5 +1,8 @@
 package org.smlt.tools.wgrep.filters
 
+import groovy.util.logging.Slf4j;
+
+@Slf4j
 class PrintFilter extends FilterBase{
 
 	PrintFilter(FilterBase nextFilter_) {
@@ -26,7 +29,7 @@ class PrintFilter extends FilterBase{
         }
         else
         {
-            if (isTraceEnabled()) trace("not passed")
+            log.trace("not passed")
         }
     }
 

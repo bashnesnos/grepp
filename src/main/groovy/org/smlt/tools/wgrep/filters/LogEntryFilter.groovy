@@ -1,9 +1,12 @@
 package org.smlt.tools.wgrep.filters
 
+import groovy.util.logging.Slf4j;
+
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
 import org.smlt.tools.wgrep.filters.enums.Event
 
+@Slf4j
 class LogEntryFilter extends FilterBase{
 
     private boolean isBlockMatched = false;
@@ -12,7 +15,7 @@ class LogEntryFilter extends FilterBase{
 
     LogEntryFilter(FilterBase nextFilter_, def filterPtrn_) {
         super(nextFilter_, filterPtrn_)
-        if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
     }
 
     /**
@@ -36,27 +39,27 @@ class LogEntryFilter extends FilterBase{
             
             if (!isDateTimePassed)
             {
-                if (isTraceEnabled()) trace("Time not passed, invalidating")
+                log.trace("Time not passed, invalidating")
                 isBlockMatched = false
             }
 
             if (!isBlockMatched && isDateTimePassed)
             {
                 isBlockMatched = true
-                if (isTraceEnabled()) trace("appending")
+                log.trace("appending")
                 appendCurBlock(blockData)
             }
             else if (isBlockMatched)
             {
-                if (isTraceEnabled()) trace("returning block")
+                log.trace("returning block")
                 returnBlock()
-                if (isTraceEnabled()) trace("appending end, since it is the start of new block")
+                log.trace("appending end, since it is the start of new block")
                 appendCurBlock(blockData)
             }
         }
         else if (isBlockMatched)
         {
-            if (isTraceEnabled()) trace("appending")
+            log.trace("appending")
             appendCurBlock(blockData)
         }
     }
@@ -78,7 +81,7 @@ class LogEntryFilter extends FilterBase{
     {
         if (nextFilter != null) 
         {
-            if (isTraceEnabled()) trace("Passing to next filter")
+            log.trace("Passing to next filter")
             try {
                 nextFilter.filter(curBlock.toString())                
             }

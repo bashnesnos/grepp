@@ -1,10 +1,13 @@
 package org.smlt.tools.wgrep.filters
 
+import groovy.util.logging.Slf4j;
+
 import java.util.regex.Matcher
 import java.text.SimpleDateFormat
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
 import org.smlt.tools.wgrep.filters.enums.Event
 
+@Slf4j
 class EntryDateFilter extends FilterBase{
 
 	private SimpleDateFormat DATE_FORMAT
@@ -17,7 +20,7 @@ class EntryDateFilter extends FilterBase{
         if (logDateFormat_ != null) DATE_FORMAT = new SimpleDateFormat(logDateFormat_)
         FROM_DATE = from_
         TO_DATE = to_
-        if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 
     EntryDateFilter(FilterBase nextFilter_, def from_, def to_) {
@@ -25,7 +28,7 @@ class EntryDateFilter extends FilterBase{
         fillRefreshableParams()
         FROM_DATE = from_
         TO_DATE = to_
-        if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
     }
 
     def fillRefreshableParams()
@@ -47,7 +50,7 @@ class EntryDateFilter extends FilterBase{
         {
             if (nextFilter != null) 
             {
-                if (isTraceEnabled()) trace("Passing to next filter")
+                log.trace("Passing to next filter")
                 nextFilter.filter(blockData)    
             }
             else 
@@ -57,7 +60,7 @@ class EntryDateFilter extends FilterBase{
         }
         else
         {
-            if (isTraceEnabled()) trace("not passed")
+            log.trace("not passed")
         }  
     }
 
@@ -74,7 +77,7 @@ class EntryDateFilter extends FilterBase{
                 def timeString = null
                 if (blockData instanceof String) 
                 {
-                    if (isTraceEnabled()) trace("Checking log entry " + blockData + " for log date pattern |" + filterPtrn + "| and formatting to |" +  DATE_FORMAT.toPattern() + "|")
+                    log.trace("Checking log entry " + blockData + " for log date pattern |" + filterPtrn + "| and formatting to |" +  DATE_FORMAT.toPattern() + "|")
                     Matcher entry = (blockData =~ filterPtrn)
                     if (entry.find())
                     {
@@ -82,13 +85,13 @@ class EntryDateFilter extends FilterBase{
                     }
                     else
                     {
-                        if (isTraceEnabled()) trace("No signs of time in here")                        
+                        log.trace("No signs of time in here")                        
                         return false
                     }
                 }
                 else if (blockData instanceof Matcher)
                 {
-                    if (isTraceEnabled()) trace("Checking matcher " + blockData.group()  + " and formatting to |" +  DATE_FORMAT.toPattern() + "|")                    
+                    log.trace("Checking matcher " + blockData.group()  + " and formatting to |" +  DATE_FORMAT.toPattern() + "|")                    
                     timeString = blockData.group(1)
                 }
                 else
@@ -100,7 +103,7 @@ class EntryDateFilter extends FilterBase{
             }
             else
             {
-                if (isTraceEnabled()) trace("Date check was skipped, dateFromPassed=" + isDateFromPassed + ", TO_DATE=" + TO_DATE)
+                log.trace("Date check was skipped, dateFromPassed=" + isDateFromPassed + ", TO_DATE=" + TO_DATE)
                 return isDateFromPassed
             }
 
@@ -111,25 +114,25 @@ class EntryDateFilter extends FilterBase{
                 {
                     if (TO_DATE.compareTo(entryDate) >= 0)
                     {
-                        if (isTraceEnabled()) trace("Passed TO_DATE")
+                        log.trace("Passed TO_DATE")
                         return true
                     }
                     else
                     {
-                        if (isTraceEnabled()) trace("Not passed")
+                        log.trace("Not passed")
                         throw new TimeToIsOverduedException(DATE_FORMAT.format(TO_DATE))
                     }
                 }
-                if (isTraceEnabled()) trace("Passed FROM_DATE only")
+                log.trace("Passed FROM_DATE only")
                 return true
             }
             else
             {
-                if (isTraceEnabled()) trace("Not passed")
+                log.trace("Not passed")
                 return false
             }
         }
-        if (isTraceEnabled()) trace("Date check was totally skipped, filterPtrn=" + filterPtrn)
+        log.trace("Date check was totally skipped, filterPtrn=" + filterPtrn)
         return true
     }
 

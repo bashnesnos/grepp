@@ -1,7 +1,9 @@
 package org.smlt.tools.wgrep
 
+import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 
+@Slf4j
 class PatternAutomationHelper extends ModuleBase
 {
 
@@ -50,7 +52,7 @@ class PatternAutomationHelper extends ModuleBase
 
     def parse(def level, def data, def tag_, def method)
     {
-        if (isTraceEnabled()) trace('Identifying pattern for level=' + level + ' data=' + data + ' and tag=' + tag_ + ' with method=' + method)
+        log.trace('Identifying pattern for level=' + level + ' data=' + data + ' and tag=' + tag_ + ' with method=' + method)
         def tag = (tag_ != null) ? tag_ : findConfigByData(level, data)
         if (tag == null)  
         {
@@ -66,7 +68,7 @@ class PatternAutomationHelper extends ModuleBase
             def customCfg = getRoot().custom.config.find { it.'@id' ==~ tag }
             if (customCfg != null)
             {
-                if (isTraceEnabled()) trace('Parsing entry config for ' + tag)
+                log.trace('Parsing entry config for ' + tag)
                 
                 def starter = getCDATA(customCfg.starter[0])
                 def date = getCDATA(customCfg.date[0])
@@ -86,7 +88,7 @@ class PatternAutomationHelper extends ModuleBase
             }
             else
             {
-                if (isTraceEnabled()) trace("Entry config is undefined")
+                log.trace("Entry config is undefined")
             }
         }
         return tag
@@ -96,7 +98,7 @@ class PatternAutomationHelper extends ModuleBase
     {
         use(DOMCategory)
         {
-            if (isTraceEnabled()) trace('Parsing filter config for ' + tag)
+            log.trace('Parsing filter config for ' + tag)
             def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
             if (customFilter != null)
             {
@@ -105,7 +107,7 @@ class PatternAutomationHelper extends ModuleBase
             }
             else
             {
-                if (isTraceEnabled()) trace("Filter is undefined")
+                log.trace("Filter is undefined")
             }
         }
         return tag
@@ -133,7 +135,7 @@ class PatternAutomationHelper extends ModuleBase
 
     def findConfigByData(def level, def data)
     {
-        if (isTraceEnabled()) trace("findConfigByData started")
+        log.trace("findConfigByData started")
 
         if (data == null)
         {
@@ -146,7 +148,7 @@ class PatternAutomationHelper extends ModuleBase
             def configs = getRoot().custom.config.findAll { it.pattern[0].'@alevel' ==~ level }
             def config = configs.find { config ->
                 currentConfigPtrn = getCDATA(config.pattern[0])
-                if (isTraceEnabled()) trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")
+                log.trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")
                 data =~ currentConfigPtrn
             }
             if (config != null) tag = config.'@id'

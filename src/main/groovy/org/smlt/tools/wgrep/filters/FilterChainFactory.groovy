@@ -1,7 +1,10 @@
 package org.smlt.tools.wgrep.filters
 
+import groovy.util.logging.Slf4j;
+
 import org.smlt.tools.wgrep.WgrepFacade
 
+@Slf4j
 class FilterChainFactory
 {
 

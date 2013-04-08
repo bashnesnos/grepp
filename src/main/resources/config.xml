@@ -4,8 +4,9 @@
         <automation_level>a</automation_level>
 	</global>
 	<options>
-		<opt field="VERBOSE" handler="setParam">v</opt>
-		<opt field="TRACE" handler="setParam">t</opt>
+		<opt field="VERBOSE" handler="enforceInfo">v</opt>
+		<opt field="TRACE" handler="enforceTrace">t</opt>
+		<opt field="HELP" handler="printHelp">?</opt>
 		<opt field="SPOOLING" handler="setParam">s</opt>
 		<opt field="FILE_MERGING" handler="setParam">m</opt>
 		<opt field="EXTNDD_PATTERN" handler="setExtendedPattern">e</opt>

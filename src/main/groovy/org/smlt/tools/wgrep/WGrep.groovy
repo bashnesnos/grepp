@@ -22,15 +22,18 @@ package org.smlt.tools.wgrep
 * 
 * @author Alexander Semelit
 */
+import groovy.util.logging.Slf4j
 
+@Slf4j
 class WGrep 
 {
 	public static void main(String[] args)
 	{
+		log.debug(args.toString())
+		if (args.size() == 1) return
 		def WGREP_CONFIG = args[0]
-		WgrepFacade facade = WgrepFacade.getInstance([WGREP_CONFIG])
-		def shouldProcess = 1
-		if (args.size() > 1) shouldProcess = facade.processInVars(args[1..args.size()-1])
-		if (shouldProcess > 0 && facade.check()) facade.startProcessing()
+		WgrepFacade facade = WgrepFacade.getInstance()
+		facade.initConfig(WGREP_CONFIG)
+		facade.startProcessing(args[1..args.size()-1])
 	}
 }

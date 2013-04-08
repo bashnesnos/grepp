@@ -1,7 +1,10 @@
 package org.smlt.tools.wgrep.filters
 
+import groovy.util.logging.Slf4j;
+
 import java.util.regex.Matcher
 
+@Slf4j
 class FileNameFilter extends FilterBase
 {    
     private def fSeparator = null
@@ -22,18 +25,18 @@ class FileNameFilter extends FilterBase
         {
             if (nextFilter != null) 
             {
-                if (isTraceEnabled()) trace("Passing to next filter")
+                log.trace("Passing to next filter")
                 nextFilter.filter(files)    
             }
             else 
             {
-                if (isTraceEnabled()) trace("passed")
+                log.trace("passed")
                 return files
             }
         }
         else
         {
-            if (isTraceEnabled()) trace("not passed")
+            log.trace("not passed")
             return Collections.emptyList()
         }  
     }
@@ -47,7 +50,7 @@ class FileNameFilter extends FilterBase
         def fileList = fileNames.clone()
         fileList.each
         { fil ->
-            if (isTraceEnabled()) trace("analyzing supplied file: " + fil);
+            log.trace("analyzing supplied file: " + fil);
             if (fil =~ /\*/)
             {
                 removeFiles.add(fil);
@@ -58,13 +61,13 @@ class FileNameFilter extends FilterBase
                     flname = (fil =~ /.*$fSeparator(.*)/)[0][1]
                 }
                 def files = new File(curDir).listFiles();
-                if (isTraceEnabled()) trace("files found " + files)
+                log.trace("files found " + files)
                 def ptrn = flname.replaceAll(/\*/) {it - '*' + '.*'};
                 files.each
                 {
                     if (it.name ==~ /$ptrn/)
                     {
-                        if (isTraceEnabled()) trace("adding file " + it)
+                        log.trace("adding file " + it)
                         newFileList.add(it)
                     }
                 }
@@ -73,7 +76,7 @@ class FileNameFilter extends FilterBase
         
         removeFiles.each { rmFil -> fileList.remove(rmFil)  }
         fileList.each { newFileList.add(new File(it)) }
-        if (isTraceEnabled()) trace("Total files for wgrep: " + newFileList)
+        log.trace("Total files for wgrep: " + newFileList)
         return newFileList
     }
 }

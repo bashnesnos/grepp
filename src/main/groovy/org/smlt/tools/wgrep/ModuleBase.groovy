@@ -1,48 +1,19 @@
 package org.smlt.tools.wgrep
 
-class ModuleBase
-{
-    def isTraceEnabled = getFacade().isTraceEnabled()
-    def isVerboseEnabled = getFacade().isVerboseEnabled()
+import groovy.util.logging.Slf4j;
 
-    static WgrepFacade getFacade()
-    {
-        return WgrepFacade.getInstance()
-    }
+@Slf4j
+class ModuleBase {
 
-    def isVerboseEnabled()
-    {
-        return isVerboseEnabled
-    }
+	static WgrepFacade getFacade() {
+		return WgrepFacade.getInstance()
+	}
 
-    def verbose(def text)
-    {
-		getFacade().verbose(text)
-    }
+	def getRoot() {
+		return getFacade().getRoot()
+	}
 
-    def isTraceEnabled()
-    {
-        return isTraceEnabled
-    }
-    
-    def trace(def text)
-    {
-		getFacade().trace("[" + this.getClass().getCanonicalName() + "] " + text)
-    }
-
-    def getRoot()
-    {
-   	    return getFacade().getRoot()
-    }
-
-    def getCDATA(def node)
-    {
-        return getFacade().getCDATA(node)
-    }
-
-    def refresh()
-    {
-        
-    }
-
+	def getCDATA(def node) {
+		return getFacade().getCDATA(node)
+	}
 }

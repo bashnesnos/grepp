@@ -2,7 +2,6 @@ import org.smlt.tools.wgrep.*
 
 import groovy.util.GroovyTestCase
 import java.text.SimpleDateFormat
-
 class WGrepTest extends GroovyTestCase
 {
     WgrepFacade facade = null
@@ -12,7 +11,8 @@ class WGrepTest extends GroovyTestCase
 
     void setUp() 
     {
-        facade = WgrepFacade.getInstance([BASE_HOME + "\\build\\resources\\test\\config.xml"])
+        facade = WgrepFacade.getInstance()
+		facade.initConfig(BASE_HOME + "\\build\\resources\\test\\config.xml")
     }
     
     void tearDown()
@@ -24,7 +24,7 @@ class WGrepTest extends GroovyTestCase
     void testMainVarsProcessing()
     {
         
-        facade.processInVars(["-L","test","test",HOME+"\\fpTest*"])
+        facade.getConfig().processInVars(["-L","test","test",HOME+"\\fpTest*"])
         assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == "test" )
         assertTrue( facade.getParam('FILTER_PATTERN') == "test" )
         //assertTrue( facade.getParam('FILES') == [HOME+"\\fpTest_test.log"] )
@@ -34,30 +34,28 @@ class WGrepTest extends GroovyTestCase
 
     void testFailAutomationProcessing()
     {
-        
-        facade.processInVars(["-i","test", HOME+"\\config*"])
-        facade.startProcessing()
+        facade.startProcessing(["-i","test", HOME+"\\config*"])
         assertTrue( true )
     }
     
     void testExtendedPatternProcessing()
     {
         
-        facade.processInVars(["-L","test","test%and%tets",HOME+"\\test*"])
+        facade.getConfig().processInVars(["-L","test","test%and%tets",HOME+"\\test*"])
         assertTrue( facade.getParam('FILTER_PATTERN') == "test%and%tets" )
     }
     
     void testComplexVarsProcessing()
     {
         
-        facade.processInVars(["-L","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
+        facade.getConfig().processInVars(["-L","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
         assertTrue( facade.getParam('DATE_TIME_FILTER') == "dtime" )
     }
 
     void testAutomationProcessing()
     {
         
-        facade.processInVars(["-i","test", HOME+"\\fpTest_*"])
+        facade.getConfig().processInVars(["-i","test", HOME+"\\fpTest_*"])
         facade.refreshConfigByFileName(facade.getParam('FILES')[0])
         assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
         assertTrue( facade.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
@@ -66,7 +64,7 @@ class WGrepTest extends GroovyTestCase
     void testMoreComplexVarsProcessing()
     {
         
-        facade.processInVars(["-sL", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
+        facade.getConfig().processInVars(["-sL", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
         assertTrue( facade.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
         assertTrue( facade.getParam('FILTER_PATTERN') == "queryTime" )
         assertTrue( facade.getParam('FILES') == ["cmd_only_1.log"] )
@@ -74,21 +72,8 @@ class WGrepTest extends GroovyTestCase
         assertTrue( facade.getParam('HOME_DIR') != null )
     }
 
-    void testTraceForComplexProcessing()
-    {
-        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
-        def testTimeString = dateFormat.format(fileTime)
-
-        facade.processInVars(["-t", "Command%or%Foo", "--dtime", testTimeString, "+", "--some_timings", HOME+"\\processing_report_test.log"])
-        facade.startProcessing()
-        assertTrue( true )
-    }
-
     void testComplexFiltering()
     {
-        
-        facade.processInVars(["-i", "Foo", HOME+"\\processing_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -96,7 +81,7 @@ class WGrepTest extends GroovyTestCase
 
         try
         {
-            facade.startProcessing()
+            facade.startProcessing(["-i", "Foo", HOME+"\\processing_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -146,8 +131,6 @@ Voo
 
     void testComplexUserPatternFiltering()
     {
-        
-        facade.processInVars(["Foo%and%Man Chu", HOME+"\\processing_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -155,7 +138,7 @@ Voo
 
         try
         {
-            facade.startProcessing()
+            facade.startProcessing(["Foo%and%Man Chu", HOME+"\\processing_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -193,8 +176,7 @@ Foo Man Chu
 
     void testBasicFiltering()
     {
-        
-        facade.processInVars(["Foo", HOME+"\\processing_test.log"])
+       
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -202,7 +184,7 @@ Foo Man Chu
 
         try
         {
-            facade.startProcessing()
+            facade.startProcessing(["Foo", HOME+"\\processing_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -248,7 +230,6 @@ Foo Man Chu
         def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
         def testTimeString = dateFormat.format(fileTime)
 
-        facade.processInVars(["Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -256,7 +237,7 @@ Foo Man Chu
 
         try
         {
-            facade.startProcessing()
+            facade.startProcessing(["Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -299,7 +280,6 @@ Foo Koo
         def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
         def testTimeString = dateFormat.format(fileTime)
 
-        facade.processInVars(["Foo", "--dtime", testTimeString+"T05", "+", HOME+"\\processing_time_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -307,7 +287,7 @@ Foo Koo
 
         try
         {
-            facade.startProcessing()
+            facade.startProcessing(["Foo", "--dtime", testTimeString+"T05", "+", HOME+"\\processing_time_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -353,7 +333,6 @@ Foo Man Chu
         def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
         def testTimeString = dateFormat.format(fileTime)
 
-        facade.processInVars(["Foo", "--dtime", "+", testTimeString+"T06", HOME+"\\processing_time_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -361,7 +340,7 @@ Foo Man Chu
 
         try
         {
-            facade.startProcessing()
+            facade.startProcessing(["Foo", "--dtime", "+", testTimeString+"T06", HOME+"\\processing_time_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -399,8 +378,6 @@ Foo Koo
     
     void testPostFiltering()
     {
-        
-        facade.processInVars(["oo", "--some_timings", HOME+"\\processing_report_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -408,7 +385,7 @@ Foo Koo
 
         try
         {
-            facade.startProcessing()
+            facade.startProcessing(["oo", "--some_timings", HOME+"\\processing_report_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -446,8 +423,6 @@ Koo,1
 
     void testPostAverageFiltering()
     {
-        
-        facade.processInVars(["oo", "--avg_timings", HOME+"\\processing_report_test.log"])
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
         def pipeIn = new PipedInputStream(pipeOut)
@@ -455,7 +430,7 @@ Koo,1
 
         try
         {
-            facade.startProcessing()
+            facade.startProcessing(["oo", "--avg_timings", HOME+"\\processing_report_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()

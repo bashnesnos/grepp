@@ -1,10 +1,12 @@
 package org.smlt.tools.wgrep.filters
 
+import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.enums.Qualifier
 
+@Slf4j
 class PostFilter extends FilterBase {
 
     //Postprocessing stuff
@@ -23,13 +25,13 @@ class PostFilter extends FilterBase {
     {
         super(nextFilter_, null)
         if (pp_tag == null) throw new IllegalArgumentException("There should be some post processing tag specified")
-        if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
         use(DOMCategory)
         {
-            if (isTraceEnabled()) trace("Looking for splitters of type=" + pp_tag)
+            log.trace("Looking for splitters of type=" + pp_tag)
             def pttrns = getRoot().custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
-            if (isTraceEnabled()) trace("Patterns found=" + pttrns)
+            log.trace("Patterns found=" + pttrns)
             if (pttrns != null)
             {
                 pttrns.sort { it.'@order' }
@@ -67,7 +69,7 @@ class PostFilter extends FilterBase {
                 {
                     POST_PROCESS_SEP = getRoot().pp_config.'@default_sep'[0]
                 }
-                if (isTraceEnabled()) trace("Looking for separator=" + POST_PROCESS_SEP)
+                log.trace("Looking for separator=" + POST_PROCESS_SEP)
                 
                 def sep = getRoot().pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
                 POST_PROCESS_SEP = sep.text()
@@ -101,14 +103,14 @@ class PostFilter extends FilterBase {
         }
         else
         {
-            if (isTraceEnabled()) trace("not passed")
+            log.trace("not passed")
         }
     }
 
     def smartPostProcess(def mtchr, def agg, def sep, def method, def groupIdx)
     {
-        if (isTraceEnabled()) trace(new StringBuilder('smart post processing, agg=') + ' agg=' + agg + ' method=' + method + ' groupIdx=' + groupIdx)
-        if (isTraceEnabled()) trace("mtch found")
+        log.trace(new StringBuilder('smart post processing, agg=') + ' agg=' + agg + ' method=' + method + ' groupIdx=' + groupIdx)
+        log.trace("mtch found")
         def mtchResult = this."$method"(mtchr, groupIdx)
         if (agg != null && mtchResult != null) //omitting printing since one of the results was null. Might be a grouping
         {
@@ -164,7 +166,7 @@ class PostFilter extends FilterBase {
             newIntVal = Integer.valueOf(mtchResults.group(groupIdx))            
         }
         catch(NumberFormatException e) {
-            if (isTraceEnabled()) trace("attempting to count current group")
+            log.trace("attempting to count current group")
             newIntVal = processPostCounter(mtchResults, groupIdx)
         }
 
@@ -177,13 +179,13 @@ class PostFilter extends FilterBase {
         {
             currentGroup["averageAgg"] = [newIntVal]
         }
-        if (isTraceEnabled()) trace ("added new val: " + newIntVal)
+        log.trace ("added new val: " + newIntVal)
         return null
     }
 
     def processPostAverage(Map group)
     {
-        if (isTraceEnabled()) trace ("average group: " + group)
+        log.trace ("average group: " + group)
         def averageAgg = group["averageAgg"]
         if (averageAgg == null || averageAgg.size() == 0) return 0
         Integer sum = 0

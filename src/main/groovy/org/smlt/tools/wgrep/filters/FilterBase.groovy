@@ -1,8 +1,11 @@
 package org.smlt.tools.wgrep.filters
 
+import groovy.util.logging.Slf4j;
+
 import org.smlt.tools.wgrep.ModuleBase
 import org.smlt.tools.wgrep.filters.enums.*
 
+@Slf4j
 class FilterBase extends ModuleBase {
     protected nextFilter
     protected filterPtrn
@@ -22,7 +25,7 @@ class FilterBase extends ModuleBase {
 
     def setPattern(def ptrn) {
         filterPtrn = ptrn
-        if (isTraceEnabled()) trace("Set filter pattern to /" + filterPtrn + "/")
+        log.trace("Set filter pattern to /" + filterPtrn + "/")
     }
 
     def filter(def blockData)  {
@@ -31,7 +34,7 @@ class FilterBase extends ModuleBase {
 
     def passNext(def passingVal)
     {
-        if (isTraceEnabled()) trace("attempting to pass to next filter")
+        log.trace("attempting to pass to next filter")
         if (nextFilter != null)
         {
             nextFilter.filter(passingVal)
@@ -48,7 +51,7 @@ class FilterBase extends ModuleBase {
     }
 
     def processEvent(def event) {
-        if (isTraceEnabled()) trace("Passing event: " + event)
+        log.trace("Passing event: " + event)
         if (nextFilter != null)
         {
             nextFilter.processEvent(event)

@@ -1,11 +1,14 @@
 package org.smlt.tools.wgrep
 
+import groovy.util.logging.Slf4j;
+
 import java.util.regex.Matcher
 import java.lang.StringBuilder
 import org.smlt.tools.wgrep.filters.*
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.exceptions.*
 
+@Slf4j
 class FileProcessor extends ModuleBase
 {
     //Reads logs files
@@ -25,7 +28,7 @@ class FileProcessor extends ModuleBase
     {
         filterChain = filterChain_
         filesFilterChain = filesFilterChain_
-        if (isTraceEnabled()) trace("Total files to analyze: " + files_.size())
+        log.trace("Total files to analyze: " + files_.size())
         fileList = filesFilterChain.filter(files_)
         isMerging = merging_ != null
 
@@ -41,7 +44,7 @@ class FileProcessor extends ModuleBase
 
     private def openFile(File file_)
     {
-        if (isVerboseEnabled()) verbose("Opening " + file_.name)
+        log.info("Opening " + file_.name)
         try {
             if (getFacade().refreshConfigByFileName(file_.name))
             {            
@@ -64,17 +67,17 @@ class FileProcessor extends ModuleBase
         
         try {
             data.eachLine { String line ->
-                if (isTraceEnabled()) trace("curLine: " + curLine)
+                log.trace("curLine: " + curLine)
                 curLine += 1
                 filterChain.filter(line)
             }
         }
         catch(TimeToIsOverduedException e) {
-            if (isTraceEnabled()) trace("No point to read file further since supplied date TO is overdued")
+            log.trace("No point to read file further since supplied date TO is overdued")
         }
-
-        filterChain.processEvent(Event.FILE_ENDED)
-        if (isVerboseEnabled()) verbose("File ended. Lines processed: " + curLine)
+		
+		if (getFacade().getParam('FILE_MERGING') == null) filterChain.processEvent(Event.FILE_ENDED)
+        log.info("File ended. Lines processed: " + curLine)
     }
 
     def getFiles()

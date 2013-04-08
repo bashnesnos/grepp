@@ -2,8 +2,11 @@ package org.smlt.tools.wgrep.filters
 
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.filters.enums.*
+
+import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 
+@Slf4j
 class ComplexFilter extends FilterBase {
 
     //Complex pattern processing and stuff
@@ -20,7 +23,7 @@ class ComplexFilter extends FilterBase {
     ComplexFilter(FilterBase nextFilter_, def filterPtrn_, def pt_tag_)
     {
         super(nextFilter_, filterPtrn_)
-        if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
         pt_tag = pt_tag_
         use(DOMCategory)
         {
@@ -37,7 +40,7 @@ class ComplexFilter extends FilterBase {
 
     def addExtendedFilterPattern(def val, def qualifier)
     {
-      if (isTraceEnabled()) trace("adding complex pattern: val=" + val + " qual=" + qualifier)
+      log.trace("adding complex pattern: val=" + val + " qual=" + qualifier)
       
       if (qualifier != null) PATTERN = PATTERN.append(Qualifier.valueOf(qualifier).getPattern())
       PATTERN = PATTERN.append(val)
@@ -45,8 +48,8 @@ class ComplexFilter extends FilterBase {
       EXTNDD_PTTRNS.add(val)
       EXTNDD_PTTRN_DICT[val] = qualifier ? Qualifier.valueOf(qualifier) : null
       
-      if (isTraceEnabled()) trace(EXTNDD_PTTRNS)
-      if (isTraceEnabled()) trace(EXTNDD_PTTRN_DICT)
+      log.trace(EXTNDD_PTTRNS.toString())
+      log.trace(EXTNDD_PTTRN_DICT.toString())
     }
 
     def removeExtendedFilterPattern(def val)
@@ -54,7 +57,7 @@ class ComplexFilter extends FilterBase {
       def qlfr = EXTNDD_PTTRN_DICT[val]
       def ptrn = (qlfr ? qlfr.getPattern() : '') + val
       def ptrnIndex = PATTERN.indexOf(ptrn)
-      if (isTraceEnabled()) trace('to delete:/' + ptrn +'/ index:' + ptrnIndex)
+      log.trace('to delete:/' + ptrn +'/ index:' + ptrnIndex)
       if (ptrnIndex != -1)
       {
         PATTERN = PATTERN.delete(ptrnIndex, ptrnIndex + ptrn.length())
@@ -72,7 +75,7 @@ class ComplexFilter extends FilterBase {
         def mtch = (val =~ /$qRegex/)
         if (mtch.find())
         {
-            if (isTraceEnabled()) trace('Processing complex pattern')
+            log.trace('Processing complex pattern')
             mtch = val.tokenize("%")
             def nextQualifier = null
             if (mtch != null)
@@ -80,7 +83,7 @@ class ComplexFilter extends FilterBase {
                 qRegex = qRegex.replaceAll(/%/, "")
                 for (grp in mtch)
                 {
-                    if (isTraceEnabled()) trace('Next group in match: ' + grp)
+                    log.trace('Next group in match: ' + grp)
                     def qualifier = (grp =~ /$qRegex/)
                     if (qualifier)
                     {
@@ -97,7 +100,7 @@ class ComplexFilter extends FilterBase {
         }
         else 
         {
-            if (isTraceEnabled()) trace('No extended pattern supplied, might be a preserve thread')
+            log.trace('No extended pattern supplied, might be a preserve thread')
             addExtendedFilterPattern(val, null)
         }
     }
@@ -127,7 +130,7 @@ class ComplexFilter extends FilterBase {
         }
         else 
         {
-            if (isTraceEnabled()) trace("not passed")
+            log.trace("not passed")
         }
     }
 
@@ -144,7 +147,7 @@ class ComplexFilter extends FilterBase {
         }
         else
         {
-            if (isTraceEnabled()) trace("Thread continues. Keeping starts")
+            log.trace("Thread continues. Keeping starts")
             extractThreadStarts(data, "addThreadStart")
         }
     }
@@ -153,12 +156,12 @@ class ComplexFilter extends FilterBase {
     {
         THRD_START_EXTRCTRS.each
         {extrctr, qlfr -> 
-            if (isTraceEnabled()) trace(extrctr);
+            log.trace(extrctr);
             def srch = (data =~ extrctr);
             if (srch)
             {
                 def start = srch[0]
-                if (isTraceEnabled()) trace("extracted; " + start)
+                log.trace("extracted; " + start)
                 this."$method"(start, qlfr)
             }
         }
@@ -170,7 +173,7 @@ class ComplexFilter extends FilterBase {
         {
             def decision = THRD_END_PTTRNS.find
             { thrend ->
-                if (isTraceEnabled()) trace("thrend ptrn: " + thrend);
+                log.trace("thrend ptrn: " + thrend);
                 data =~ thrend
             }
             return decision != null
@@ -182,7 +185,7 @@ class ComplexFilter extends FilterBase {
     {
         def decision = THRD_SKIP_END_PTTRNS.find
         {skip->
-            if (isTraceEnabled()) trace("skip ptrn: " + skip)
+            log.trace("skip ptrn: " + skip)
             data =~ skip
         }
         return decision != null
@@ -190,18 +193,18 @@ class ComplexFilter extends FilterBase {
 
     def addThreadStart(def start, def qlfr)
     {
-      if (isTraceEnabled()) trace("adding thread start: " + start);
+      log.trace("adding thread start: " + start);
       if (!THRD_START_PTTRNS.contains(start))
       {
         THRD_START_PTTRNS.add(start)
         addExtendedFilterPattern(start, qlfr)
       }
-      else if (isTraceEnabled()) trace("Start exists")
+      else log.trace("Start exists")
     }
 
     def removeThreadStart(def start, def qlfr)
     {
-      if (isTraceEnabled()) trace("removing thread start: " + start);
+      log.trace("removing thread start: " + start);
       THRD_START_PTTRNS.remove(start);
       removeExtendedFilterPattern(start);
     }

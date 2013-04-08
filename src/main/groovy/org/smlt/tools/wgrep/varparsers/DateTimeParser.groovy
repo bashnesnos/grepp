@@ -1,8 +1,11 @@
 package org.smlt.tools.wgrep.varparsers
 
 import java.text.SimpleDateFormat
+
+import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 
+@Slf4j
 class DateTimeParser extends DefaultVarParser
 {
     private def INPUT_DATE_PTTRNS = []
@@ -21,12 +24,12 @@ class DateTimeParser extends DefaultVarParser
 
     def parseVar(def arg)
     {
-        if (isTraceEnabled()) trace("Additional var: " + arg)
+        log.trace("Additional var: " + arg)
         if (!isFromParsed) setDateFrom(arg)
         else if (!isToParsed) 
         {
             setDateTo(arg)
-            getFacade().unsubscribeVarParsers([this])
+            unsubscribe()
         }
     }
 
@@ -34,10 +37,10 @@ class DateTimeParser extends DefaultVarParser
     {
         def date = null
         INPUT_DATE_PTTRNS.find { ptrn -> 
-            if (isTraceEnabled()) trace("trying date pattern="+ ptrn); 
+            log.trace("trying date pattern="+ ptrn); 
             try {
                 date = (new SimpleDateFormat(setFileDateFormat(ptrn))).parse(dateStr) 
-                if (isTraceEnabled()) trace("Pattern found")
+                log.trace("Pattern found")
                 true
             }
             catch(java.text.ParseException e)
@@ -63,7 +66,7 @@ class DateTimeParser extends DefaultVarParser
 
     def setFileDateFormat(def format)
     {
-        if (isTraceEnabled()) trace("FILE_DATE_FORMAT set to " + format)
+        log.trace("FILE_DATE_FORMAT set to " + format)
         getFacade().setParam('FILE_DATE_FORMAT', format)
         return format
     }

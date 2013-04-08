@@ -1,12 +1,15 @@
 package org.smlt.tools.wgrep.filters
 
+import groovy.util.logging.Slf4j;
+
 import java.util.regex.Matcher
 
+@Slf4j
 class BasicFilter extends FilterBase{
 
 	BasicFilter(FilterBase nextFilter_, def filterPtrn_) {
 		super(nextFilter_, filterPtrn_)
-        if (isTraceEnabled()) trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 
     /**
@@ -23,13 +26,13 @@ class BasicFilter extends FilterBase{
 
     def filter(def blockData)
     {
-        if (isTraceEnabled()) trace("Filtering with /" + filterPtrn + "/")
+        log.trace("Filtering with /" + filterPtrn + "/")
         Matcher blockMtchr = blockData =~ filterPtrn
         if (blockMtchr.find()) 
         {
         	if (nextFilter != null) 
         	{
-        		if (isTraceEnabled()) trace("Passing to next filter")
+        		log.trace("Passing to next filter")
         		nextFilter.filter(blockData)	
         	}
         	else 
@@ -39,7 +42,7 @@ class BasicFilter extends FilterBase{
         }
         else
         {
-        	if (isTraceEnabled()) trace("not passed")
+        	log.trace("not passed")
         }  
     }
 }

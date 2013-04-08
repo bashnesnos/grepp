@@ -1,18 +1,21 @@
 package org.smlt.tools.wgrep.varparsers
 
+import groovy.util.logging.Slf4j;
+
 import org.smlt.tools.wgrep.ModuleBase
 
+@Slf4j
 class DefaultVarParser extends ModuleBase
 {
 	
 	def subscribe()
 	{
-		getFacade().subscribeVarParsers([this])
+		getFacade().subscribeParser([this])
 	}
 
 	def unsubscribe()
 	{
-		getFacade().unsubscribeVarParsers([this])
+		getFacade().unsubscribeParser([this])
 	}
 
 	def parseVar(def arg)

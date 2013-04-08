@@ -2,9 +2,12 @@ package org.smlt.tools.wgrep.filters
 
 import java.text.SimpleDateFormat
 import java.util.regex.Matcher
+
+import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 import org.smlt.tools.wgrep.filters.enums.Event
 
+@Slf4j
 class FileDateFilter extends FilterBase
 {
     //Checking dates everywhere
@@ -42,23 +45,23 @@ class FileDateFilter extends FilterBase
     def filter(def files) {
         if (! files instanceof ArrayList<File> ) throw new IllegalArgumentException("FileDateFilter accepts file list only")
         def newFiles = check(files)
-        if (isTraceEnabled()) trace("total files after:" + newFiles.size())
+        log.trace("total files after:" + newFiles.size())
         if (newFiles != null)
         {
             if (nextFilter != null) 
             {
-                if (isTraceEnabled()) trace("Passing to next filter")
+                log.trace("Passing to next filter")
                 nextFilter.filter(newFiles)    
             }
             else 
             {
-                if (isTraceEnabled()) trace("passed")
+                log.trace("passed")
                 return newFiles
             }
         }
         else
         {
-            if (isTraceEnabled()) trace("not passed")
+            log.trace("not passed")
             return Collections.emptyList()
         }  
     }
@@ -70,7 +73,7 @@ class FileDateFilter extends FilterBase
     * @param fName A String with filename
     */
     def check(ArrayList<File> files) {
-        if (isTraceEnabled()) trace("total files:" + files.size())
+        log.trace("total files:" + files.size())
         return files.findAll { file -> checkFileTime(file) }
     }
 
@@ -78,33 +81,33 @@ class FileDateFilter extends FilterBase
     {
         if (file == null) return
         def fileTime = new Date(file.lastModified())
-        if (isTraceEnabled()) trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
+        log.trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
         if (FROM_DATE == null || FROM_DATE.compareTo(fileTime) <= 0)
         {
             if (TO_DATE != null)
             {
-                if (isTraceEnabled()) trace(" Checking if file suits TO " +  FILE_DATE_FORMAT.format(TO_DATE))
+                log.trace(" Checking if file suits TO " +  FILE_DATE_FORMAT.format(TO_DATE))
                 if (TO_DATE.compareTo(fileTime) >= 0)
                 {
                     return true
                 }
                 if (TO_DATE.compareTo(fileTime) < 0)
                 {
-                    if (isTraceEnabled()) trace("Passed TO_DATE")
+                    log.trace("Passed TO_DATE")
                     if (fileTime.before(new Date(TO_DATE.getTime() + LOG_FILE_THRESHOLD*LOG_FILE_THRESHOLD_MLTPLR))) return file
                     else
                     {
-                        if (isTraceEnabled()) trace("File is too far")
+                        log.trace("File is too far")
                         return false
                     }
                 }
             }
-            if (isTraceEnabled()) trace("Passed FROM_DATE only")
+            log.trace("Passed FROM_DATE only")
             return true
         }
         else
         {
-            if (isTraceEnabled()) trace("Not passed")
+            log.trace("Not passed")
             return false
         }
     }
