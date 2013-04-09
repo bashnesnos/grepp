@@ -36,6 +36,16 @@ class FileProcessor extends ModuleBase
 
     }
 
+    boolean isConfigValid() {
+        boolean checkResult = super.isConfigValid()
+        if (getParam('FILES') == null)
+        {
+            log.warn('FILES are not specified')
+            checkResult = false
+        }
+        return checkResult
+    }
+
     void processAll()
     {
         fileList.each {

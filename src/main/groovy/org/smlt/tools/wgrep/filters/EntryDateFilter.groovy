@@ -24,6 +24,14 @@ class EntryDateFilter extends FilterBase{
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 
+    boolean isConfigValid() {
+        boolean checkResult = super.isConfigValid()
+        if (getParam('FROM_DATE') == null && getParam('TO_DATE')  == null)
+        {
+            log.warn('Both FROM_DATE and TO_DATE are not specified')
+        }
+        return checkResult
+    }
     def fillRefreshableParams()
     {
         setPattern(getParam('LOG_DATE_PATTERN'))

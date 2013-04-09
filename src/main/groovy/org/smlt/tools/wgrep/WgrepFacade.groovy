@@ -5,25 +5,23 @@ import groovy.util.logging.Slf4j;
 import org.smlt.tools.wgrep.varparsers.*
 
 /**
- * Facade-Singleton containing all the configuration and is linked with main modules.
+ * A Facade linking config and modules. Provides facade methods to do the processing.
  * <p>
- * As well is carrying out config parsing, incoming variable parsing, modules initialization.
- * Pretty much holds most of the program params.
  */
 @Slf4j
 class WgrepFacade {
 	private Date startTime = new Date()
 
-
 	private WgrepConfig configInstance = null
 
-	private FileProcessor fProcessor
+	private FileProcessor fProcessor = null
 
 
 	WgrepFacade(WgrepConfig config) {
 		configInstance = config
 	}
 
+	//Getters
 
 	WgrepConfig getConfig()
 	{
@@ -41,8 +39,8 @@ class WgrepFacade {
 	}
 
 	/**
-	 * Method checks if all the main vars are not nulls.
-	 * @return <code>1</code> if check is passed. <code>null</code> otherwise.
+	 * Method checks if all the main vars are fulfilles.
+	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
 	 */
 
 	boolean check()
@@ -68,8 +66,14 @@ class WgrepFacade {
 	}
 
 	//General
+	
+	/**
+	* Method for module initialization.
+	* Does what is needed to initialize all the used modules appropriately
+	*
+	*/
 
-	void moduleInit()
+	private void moduleInit()
 	{
 		fProcessor = FileProcessor.getInstance(configInstance)
 	}
@@ -77,7 +81,7 @@ class WgrepFacade {
 	/**
 	 * Initializes spooling, i.e. redirects System.out to a file. 
 	 * <p>
-	 * File is created in the {@link this.HOME_DIR} folder with name compiled from {@link this.FILTER_PATTERN} and extension as {@link this.SPOOLING_EXT}
+	 * File is created in the <code>HOME_DIR</code> folder with name compiled from <code>FILTER_PATTERN</code> and extension as <code>SPOOLING_EXT</code>
 	 */
 
 	void spool()
@@ -94,10 +98,16 @@ class WgrepFacade {
 	}
 
 	/**
-	 * Method to trigger processing of supplied files. Contains hook to start spooling.
+	 * Method to trigger processing of supplied files.
+	 * Sequence is the following:
+	 * <li>1. Passes supplied arguments to the <code>configInstance</code></li>
+	 * <li>2. Calls <code>moduleInit</code></li>
+	 * <li>3. Performs validation via <code>check</code> method</li>
+	 * <li>4. Calls processing method of initialized FileProcessor</li>
+	 * @param args Command-line style arguments
 	 */
 
-	void startProcessing(def args)
+	void doProcessing(def args)
 	{
 		try {
 			configInstance.processInVars(args)

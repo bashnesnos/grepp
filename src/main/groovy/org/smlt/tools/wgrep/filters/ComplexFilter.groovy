@@ -40,6 +40,17 @@ class ComplexFilter extends FilterBase {
         processExtendedPattern(filterPtrn)
     }
 
+    boolean isConfigValid() {
+        boolean checkResult = super.isConfigValid()
+        if (getParam('FILTER_PATTERN') == null)
+        {
+            log.warn('FILTER_PATTERN is not specified')
+            checkResult = false
+        }
+        return checkResult
+    }
+
+
     void addExtendedFilterPattern(String val, String qualifier)
     {
       log.trace("adding complex pattern: val=" + val + " qual=" + qualifier)

@@ -15,7 +15,7 @@ WgrepFacade facade = new WgrepFacade(config)
         def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
         def testTimeString = dateFormat.format(fileTime)
 
-            facade.startProcessing(["-t", "Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
+            facade.doProcessing(["-t", "Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
 
 def expectedResult = """\
 #

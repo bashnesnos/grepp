@@ -9,8 +9,9 @@ package org.smlt.tools.wgrep
 * Examples:
 * <p>
 * Using in Windows <br>
-* wgrep -as "SomethingINeedToFind" "D:\myfolder\LOGS\myapp\node*.log*" <br>
-* wgrep -as "SomethingINeedToFind" D:\myfolder\LOGS\myapp\node*.log*
+* wgrep -s "SomethingINeedToFind" "D:\myfolder\LOGS\myapp\node*.log*" <br>
+* wgrep -s "SomethingINeedToFind" D:\myfolder\LOGS\myapp\node*.log* <br>
+* wgrep -L "RecordStart" "SomethingINeedToFind" D:\myfolder\LOGS\myapp\node*.log*
 * <p>
 * Using on NIX <br>
 * wgrep --my_predefined_config --dtime 2011-11-11T11:10 2011-11-11T11:11 myapp.log <br>
@@ -37,6 +38,6 @@ class WGrep
 		def WGREP_CONFIG = args[0]
 		WgrepConfig config = new WgrepConfig(WGREP_CONFIG)
 		WgrepFacade facade = new WgrepFacade(config)
-		facade.startProcessing(args[1..argsToParseCount])
+		facade.doProcessing(args[1..argsToParseCount])
 	}
 }

@@ -26,7 +26,6 @@ class PostFilter extends FilterBase {
     {
         super(nextFilter_, config)
 		def pp_tag = getParam('POST_PROCESSING')
-        if (pp_tag == null) throw new IllegalArgumentException("There should be some post processing tag specified")
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
         use(DOMCategory)
@@ -56,6 +55,15 @@ class PostFilter extends FilterBase {
         }
     }
 
+    boolean isConfigValid() {
+        boolean checkResult = super.isConfigValid()
+        if (getParam('POST_PROCESSING') == null)
+        {
+            log.warn('POST_PROCESSING is not specified')
+            checkResult = false
+        }
+        return checkResult
+    }
 
     void setSeparator(String sep_tag)
     {

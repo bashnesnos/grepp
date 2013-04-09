@@ -16,12 +16,21 @@ class DateTimeParser extends ParserBase
     {
 		super(config)
 		def dt_tag = getParam('DATE_TIME_FILTER')
-        if (dt_tag == null) throw new IllegalArgumentException("There should be some date time tag specified")
         use(DOMCategory)
         {
             def ptrns = getRoot().date_time_config.pattern.findAll { it.'@tags' =~ dt_tag }
             ptrns.sort { it.'@order' }.each {INPUT_DATE_PTTRNS.add(it.text())}
         }
+    }
+
+    boolean isConfigValid() {
+        boolean checkResult = super.isConfigValid()
+        if (getParam('DATE_TIME_FILTER') == null)
+        {
+            log.warn('DATE_TIME_FILTER is not specified')
+            checkResult = false
+        }
+        return checkResult
     }
 
     void parseVar(def arg)

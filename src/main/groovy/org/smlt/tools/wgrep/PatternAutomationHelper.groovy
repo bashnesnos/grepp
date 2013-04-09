@@ -15,14 +15,23 @@ class PatternAutomationHelper extends ModuleBase
     PatternAutomationHelper(WgrepConfig config)
     {
 		super(config)
-		def lv_tag = configInstance.getParam('ATMTN_LEVEL')
-        if (lv_tag == null) throw new IllegalArgumentException("There should be some level specified")
+		def lv_tag = getParam('ATMTN_LEVEL')
         use(DOMCategory)
         {
             def levels = getRoot().automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
             levels.each { ATMTN_SEQ.add(it.'@handler'); ATMTN_DICT[it.'@handler'] = it.'@id' }
         }
     }        
+
+    boolean isConfigValid() {
+        boolean checkResult = super.isConfigValid()
+        if (getParam('ATMTN_LEVEL') == null)
+        {
+            log.warn('ATMTN_LEVEL is not specified')
+            checkResult = false
+        }
+        return checkResult
+    }
 
     boolean applySequenceByFileName(String filename)
     {

@@ -6,7 +6,7 @@ import groovy.util.logging.Slf4j;
 class FileSortFilter extends FilterBase {
 
 	FileSortFilter(FilterBase nextFilter_) {
-		super(nextFilter_, null)
+		super(nextFilter_)
 	}
 
 	def filter(def files) {

@@ -12,7 +12,7 @@ class FileNameFilter extends FilterBase
 
     FileNameFilter(FilterBase nextFilter_, def fSeparator_, def cwd_) 
     {
-        super(nextFilter_, null)
+        super(nextFilter_)
         fSeparator = fSeparator_
         curDir = cwd_
     }

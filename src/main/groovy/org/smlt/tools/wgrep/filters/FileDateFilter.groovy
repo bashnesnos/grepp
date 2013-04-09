@@ -29,6 +29,16 @@ class FileDateFilter extends FilterBase
 		fillRefreshableParams()
     }
 
+
+    boolean isConfigValid() {
+        boolean checkResult = super.isConfigValid()
+        if (getParam('FROM_DATE') == null && getParam('TO_DATE')  == null)
+        {
+            log.warn('Both FROM_DATE and TO_DATE are not specified')
+        }
+        return checkResult
+    }
+
     void fillRefreshableParams() {
         def trshld = getParam('LOG_FILE_THRESHOLD') 
         if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(trshld)

@@ -20,6 +20,15 @@ class LogEntryFilter extends FilterBase{
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
     }
 	
+    boolean isConfigValid() {
+        boolean checkResult = super.isConfigValid()
+        if (getParam('LOG_ENTRY_PATTERN') == null)
+        {
+            log.warn('LOG_ENTRY_PATTERN is not specified')
+        }
+        return checkResult
+    }
+
 	void fillRefreshableParams() {
 		setPattern(getParam('LOG_ENTRY_PATTERN'))
 	}

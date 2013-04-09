@@ -35,7 +35,7 @@ class WGrepTest extends GroovyTestCase
 
     void testFailAutomationProcessing()
     {
-        facade.startProcessing(["-i","test", HOME+"\\config*"])
+        facade.doProcessing(["-i","test", HOME+"\\config*"])
         assertTrue( true )
     }
     
@@ -82,7 +82,7 @@ class WGrepTest extends GroovyTestCase
 
         try
         {
-            facade.startProcessing(["-i", "Foo", HOME+"\\processing_test.log"])
+            facade.doProcessing(["-i", "Foo", HOME+"\\processing_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -139,7 +139,7 @@ Voo
 
         try
         {
-            facade.startProcessing(["Foo%and%Man Chu", HOME+"\\processing_test.log"])
+            facade.doProcessing(["Foo%and%Man Chu", HOME+"\\processing_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -185,7 +185,7 @@ Foo Man Chu
 
         try
         {
-            facade.startProcessing(["Foo", HOME+"\\processing_test.log"])
+            facade.doProcessing(["Foo", HOME+"\\processing_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -238,7 +238,7 @@ Foo Man Chu
 
         try
         {
-            facade.startProcessing(["Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
+            facade.doProcessing(["Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -288,7 +288,7 @@ Foo Koo
 
         try
         {
-            facade.startProcessing(["Foo", "--dtime", testTimeString+"T05", "+", HOME+"\\processing_time_test.log"])
+            facade.doProcessing(["Foo", "--dtime", testTimeString+"T05", "+", HOME+"\\processing_time_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -341,7 +341,7 @@ Foo Man Chu
 
         try
         {
-            facade.startProcessing(["Foo", "--dtime", "+", testTimeString+"T06", HOME+"\\processing_time_test.log"])
+            facade.doProcessing(["Foo", "--dtime", "+", testTimeString+"T06", HOME+"\\processing_time_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -386,7 +386,7 @@ Foo Koo
 
         try
         {
-            facade.startProcessing(["oo", "--some_timings", HOME+"\\processing_report_test.log"])
+            facade.doProcessing(["oo", "--some_timings", HOME+"\\processing_report_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -431,7 +431,7 @@ Koo,1
 
         try
         {
-            facade.startProcessing(["oo", "--avg_timings", HOME+"\\processing_report_test.log"])
+            facade.doProcessing(["oo", "--avg_timings", HOME+"\\processing_report_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()

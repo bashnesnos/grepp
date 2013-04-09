@@ -14,6 +14,10 @@ class ModuleBase {
 	
 	ModuleBase(WgrepConfig config_) {
 		configInstance = config_
+		if (!isConfigValid())
+		{
+			throw new RuntimeException("Supplied params/config is not valid")
+		}
 	}
 
 	// Getters
@@ -107,6 +111,11 @@ class ModuleBase {
 	boolean refreshConfigByFileName(String fileName)
 	{
 		return configInstance.refreshConfigByFileName(fileName)
+	}
+
+	boolean isConfigValid()
+	{
+		return configInstance != null
 	}
 
 }
