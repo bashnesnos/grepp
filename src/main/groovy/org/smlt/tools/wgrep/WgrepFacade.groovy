@@ -16,6 +16,11 @@ class WgrepFacade {
 
 	private FileProcessor fProcessor = null
 
+	/**
+	*
+	* Constructor. Simply associates facade instance with a config instance.
+	*
+	*/
 
 	WgrepFacade(WgrepConfig config) {
 		configInstance = config
@@ -23,15 +28,20 @@ class WgrepFacade {
 
 	//Getters
 
+	/**
+	* Returns <code>WgrepConfig</code> instance associated with this facade.
+	* @return <code>WgrepConfig</code>
+	*/
+
 	WgrepConfig getConfig()
 	{
 		return configInstance
 	}
 
-	PatternAutomationHelper getPatternHelper()
-	{
-		return configInstance.getParam('paHelper')
-	}
+	/**
+	* Returns <code>FileProcessor</code> instance associated with this facade.
+	* @return <code>FileProcessor</code>
+	*/
 
 	FileProcessor getFileProcessor()
 	{
@@ -39,7 +49,7 @@ class WgrepFacade {
 	}
 
 	/**
-	 * Method checks if all the main vars are fulfilles.
+	 * Method checks if all the main vars are fulfilled.
 	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
 	 */
 
@@ -54,12 +64,12 @@ class WgrepFacade {
 
 		if (configInstance.getParam('LOG_ENTRY_PATTERN') == null)
 		{
-			log.trace("No log entry pattern.")
+			log.warn("No log entry pattern.")
 		}
 
 		if (configInstance.getParam('FILTER_PATTERN') == null)
 		{
-			log.trace("No filter pattern.")
+			log.warn("No filter pattern.")
 		}
 
 		return true

@@ -41,23 +41,24 @@ class WgrepConfig {
 	 * <p>
 	 * Initializes the instance. Parses config.xml and loads defaults from there.
 	 *
-	 * @param args Params needed for the facade initialization. Currently only path to the config.xml is expected.
+	 * @param configFilePath String which can be recognized by a <code>FileReader</code> and is a valid path to an config.xml file
 	 */
-	WgrepConfig(String configFile)
+	WgrepConfig(String configFilePath)
 	{
-		cfgDoc = DOMBuilder.parse(new FileReader(configFile))
+		cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
 		root = cfgDoc.documentElement
-		CWD = System.getProperty("user.dir")
 		loadDefaults()
 	}
 
 	/**
-	 *  Method loads default mode and spooling extension as configured in config.xml
+	 *  Method loads defaults and spooling extension as configured in config.xml's <code>global</code> section.
+	 *  Loads some values set via System properties as well.
 	 */
 	private void loadDefaults()
 	{
 		FOLDER_SEPARATOR = System.getProperty("file.separator")
 		HOME_DIR = System.getProperty("wgrep.home") + FOLDER_SEPARATOR
+		CWD = System.getProperty("user.dir")
 		if (FOLDER_SEPARATOR == "\\") FOLDER_SEPARATOR += "\\"
 		use(DOMCategory)
 		{
@@ -79,8 +80,8 @@ class WgrepConfig {
 		if (node == null) return
 		use(DOMCategory)
 		{
-			def txt = node.text()
-			return (txt)?txt:node.getFirstChild().getNodeValue()
+			String txt = node.text()
+			return (txt != null) ? txt : node.getFirstChild().getNodeValue()
 		}
 	}
 
@@ -117,6 +118,12 @@ class WgrepConfig {
 		}
 	}
 
+	/**
+	* Checks if specified field is declared or not. 
+	* Used to determine whether the field should be looked up in the <code>params</code> Map or not.
+	*
+	*/
+
 	private boolean hasField(String field)
 	{
 		try {
@@ -134,12 +141,16 @@ class WgrepConfig {
 	 * <p>
 	 * It processes arguments in the following way:
 	 *   <li>1. Flags starting with - and options starting with --</li>
-	 *   <li>2. {@link this.LOG_ENTRY_PATTERN} if not overrided by any flag/option</li>
-	 *   <li>3. {@link this.FILTER_PATTERN} if not overrided by any flag/option</li>
-	 *   <li>4. Additional modules, like {@link DateTimeChecker} variables</li>
-	 *   <li>5. All other are treated as consequential filenames to be checked</li>
+	 *   <li>2. All other arguments</li>
 	 * <p>
-	 * As soon as they are processed, it starts module initialization.
+	 * All other arguments are parsed via subscribed {@link varParsers}. <br>
+	 * I.e. if option, or flag requires some arguments to be parsed immediately after it was specified, a valid subclass of {@link ParserBase} should be instantiated and subscribed in the option/flag handler. <br>
+	 * {@link varParsers} are iterated in a LIFO manner. Only the last one recieves an argument for parsing. As soon as parser recieves all the required arguments, it should unsubscribe, so further arguments are passed to the next parser. <br>
+	 * By default the following parser are instantiated:
+	 *   <li>1. {@link FilterParser}</li>
+	 *   <li>2. {@link FileNameParser}</li>
+	 *
+	 * {@link PatternAutomationHelper} is instantiated by default as well. Make sure you do not remove from config.xml default automation level.
 	 * @param args Array of strings containing arguments for parsing.
 	 */
 
@@ -172,7 +183,7 @@ class WgrepConfig {
 	 * Method for flags and options parsing. It identifies if passed help flag, simple flag or option, and calls appropriate method. Also it removes special symbols - and -- before passing argument further.
 	 *
 	 * @param arg An argument to be parsed
-	 * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>null</code> otherwise.
+	 * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>0</code> otherwise.
 	 */
 
 	private int processOptions(String arg)
@@ -221,7 +232,7 @@ class WgrepConfig {
 	 * It fetches handler function (from <code>handler</code> attribute), and calls it from {@link WgrepFacade} class.
 	 * <p> It passes to the handler function <code>field</code> attribute and value of matching option from config.xml.
 	 *
-	 * @param arg An argument to be looked up
+	 * @param opt An argument to be looked up
 	 * @throws IllegalArgumentException If the supplied <code>arg</code> is not configured, i.e. cannot be found in the config.xml.
 	 */
 
@@ -241,12 +252,11 @@ class WgrepConfig {
 	}
 
 	/**
-	 * Method for parsing variables.
+	 * Method for parsing arguments which are not options or flags. I.e. they are variable values needed for correct processing.
 	 * <p>
-	 * It gets first parser from {@link varParsers} array and calls it <code>parseVar</code> function with supplied <code>arg</code>
+	 * It gets last parser from {@link varParsers} array and calls it <code>parseVar</code> function with supplied <code>arg</code>
 	 *
 	 * @param arg An argument to be parsed
-	 * @return <code>1</code> if <code>arg</code> was processed(i.e. if there was any {@link AdditionalVarParser} subscribed) <code>null</code> otherwise.
 	 */
 
 	private void parseVar(String arg)
@@ -264,9 +274,9 @@ class WgrepConfig {
 	}
 
 	/**
-	 * Method for subscribing additional parsers.
+	 * Method for subscribing var parsers.
 	 *
-	 * @param parsers Collection of {@link AdditionalVarParser} objects.
+	 * @param parsers List of {@link ParserBase} objects.
 	 */
 
 	void subscribeVarParsers(List<ParserBase> parsers)
@@ -275,14 +285,36 @@ class WgrepConfig {
 	}
 
 	/**
-	 * Method for unsubscribing additional parsers.
+	 * Method for unsubscribing var parsers.
 	 *
-	 * @param parsers Collection of {@link AdditionalVarParser} objects.
+	 * @param parsers List of {@link ParserBase} objects.
 	 */
 
 	void unsubscribeVarParsers(List<ParserBase> parsers)
 	{
 		varParsers.removeAll(parsers)
+	}
+
+	/**
+	*
+	* Checks is paHelper was instantiated and automation can operate.
+	* @return <code>true</code> if paHelper is not null.
+	*/
+
+	boolean isAutomationEnabled()
+	{
+		return paHelper != null
+	}
+
+	/**
+	* Method for refreshing config params by a filename. Requires {@link PatternAutomationHelper} paHelper to be initialized. <br>
+	* Calls {@link PatternAutomationHelper.applySequenceByFileName}
+	* @param fileName String representing name of a file to be checked. Could be an absolute path as well.
+	*/
+
+	boolean refreshConfigByFileName(String fileName)
+	{
+		return isAutomationEnabled() ? paHelper.applySequenceByFileName(fileName) : false
 	}
 
 	/**
@@ -308,7 +340,7 @@ class WgrepConfig {
 	}
 
 	/**
-	 * Enables post processing. Initializes {@link DateTimeVarParser}.
+	 * Enables post processing. Initializes {@link DateTimeParser}.
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>date_time_config</code> section is expected here.
 	 */
@@ -318,6 +350,12 @@ class WgrepConfig {
 		setParam(field, val)
 		new DateTimeParser(this).subscribe()
 	}
+
+	/**
+	 * Disables pattern autoidentification and enables user-supplied log entry pattern. Initializes {@link LogEntryParser}.
+	 * @param field Field to be set
+	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>date_time_config</code> section is expected here.
+	 */
 
 	private void setUserLEPattern(String field, def val)
 	{
@@ -339,7 +377,8 @@ class WgrepConfig {
 	}
 
 	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
+	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
+	 * Calls {@link PatternAutomation.parseFilterConfig}
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
@@ -347,11 +386,12 @@ class WgrepConfig {
 	{
 		filterParser.unsubscribe()
 		setParam(field, val)
-		paHelper.parseFilterConfig(val)
+		isAutomationEnabled() ? paHelper.parseFilterConfig(val) : log.warn("Attempt to predefine filter with disabled automation")
 	}
 
 	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
+	 * Sets <code>FILTER_PATTERN</code> and <code>POST_PROCESSING</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
+	 * Calls {@link PatternAutomation.parseBulkFilterConfig}
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
@@ -359,7 +399,7 @@ class WgrepConfig {
 	{
 		filterParser.unsubscribe()
 		setParam(field, val)
-		paHelper.parseBulkFilterConfig(val)
+		isAutomationEnabled() ? paHelper.parseBulkFilterConfig(val) : log.warn("Attempt to predefine bulk filter with disabled automation")
 	}
 
 	/**
@@ -370,9 +410,14 @@ class WgrepConfig {
 	private void setPredefinedConfig(String field, def val)
 	{
 		setParam(field, val)
-		paHelper.applySequenceByTag(val)
+		isAutomationEnabled() ? paHelper.applySequenceByTag(val) : log.warn("Attempt to predefine config with disabled automation")
 		disableAutomation()
 	}
+
+	/**
+	*
+	* Disables pattern automation. Simply by setting paHelper to null
+	*/
 
 	private void disableAutomation()
 	{
@@ -413,6 +458,11 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 		println help
 	}
 
+	/**
+	*
+	* Method enforces TRACE level of logging by resetting logback config and redirects it to STDOUT.
+	*/
+
 	void enforceTrace(String field, def val)
 	{
 		log.debug("Enabling trace")
@@ -445,6 +495,11 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 		}
 		StatusPrinter.printInCaseOfErrorsOrWarnings(context);
 	}
+
+	/**
+	*
+	* Method enforces INFO level of logging by resetting logback config and redirects it to STDOUT.
+	*/
 
 	void enforceInfo(String field, def val)
 	{
@@ -479,13 +534,5 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 		StatusPrinter.printInCaseOfErrorsOrWarnings(context);
 	}
 
-	boolean refreshConfigByFileName(String fileName)
-	{
-		if ( paHelper != null)
-		{
-			return paHelper.applySequenceByFileName(fileName)
-		}
-		return false
-	}
 
 }
