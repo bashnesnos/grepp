@@ -1,8 +1,8 @@
 package org.smlt.tools.wgrep.varparsers
 
-import org.smlt.tools.wgrep.WgrepConfig;
-import groovy.util.logging.Slf4j;
+import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.ModuleBase
+import groovy.util.logging.Slf4j
 
 @Slf4j
 class ParserBase extends ModuleBase

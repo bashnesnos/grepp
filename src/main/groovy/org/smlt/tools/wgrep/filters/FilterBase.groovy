@@ -25,27 +25,17 @@ class FilterBase extends ModuleBase {
 		isLast = false
 	}
 	
-	FilterBase(FilterBase nextFilter_, def filterPtrn_) {
+	FilterBase(FilterBase nextFilter_) {
 		nextFilter = nextFilter_
-		filterPtrn = filterPtrn_
 		isLast = false
 	}
 	
-    FilterBase(FilterBase nextFilter_, def filterPtrn_, WgrepConfig config, boolean isLast_) {
-		super(config)
-		nextFilter = nextFilter_
-        filterPtrn = filterPtrn_
-        isLast = isLast_
-    }
-
-	FilterBase(FilterBase nextFilter_, def filterPtrn_, boolean isLast_) {
-		nextFilter = nextFilter_
-		filterPtrn = filterPtrn_
-		isLast = isLast_
+	void makeLast()
+	{
+		isLast = true
 	}
-
 	
-    def setPattern(def ptrn) {
+    void setPattern(def ptrn) {
         filterPtrn = ptrn
         log.trace("Set filter pattern to /" + filterPtrn + "/")
     }

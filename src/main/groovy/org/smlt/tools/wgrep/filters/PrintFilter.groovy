@@ -6,7 +6,7 @@ import groovy.util.logging.Slf4j;
 class PrintFilter extends FilterBase{
 
 	PrintFilter(FilterBase nextFilter_) {
-		super(nextFilter_, null)
+		super(nextFilter_)
 	}
 
     /**

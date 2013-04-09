@@ -21,7 +21,7 @@ class FileProcessor extends ModuleBase
         
     static FileProcessor getInstance(WgrepConfig config) 
     {
-        return new FileProcessor(config, FilterChainFactory.createFilterChainByFacade(), FilterChainFactory.createFileFilterChainByFacade())
+        return new FileProcessor(config, FilterChainFactory.createFilterChainByConfig(config), FilterChainFactory.createFileFilterChainByConfig(config))
     }
 
     FileProcessor(WgrepConfig config, FilterBase filterChain_, FilterBase filesFilterChain_) 
@@ -50,7 +50,7 @@ class FileProcessor extends ModuleBase
         try {
             if (refreshConfigByFileName(file_.name))
             {            
-                filterChain = FilterChainFactory.createFilterChainByFacade()
+                filterChain = FilterChainFactory.createFilterChainByConfig(configInstance)
                 filesFilterChain.processEvent(Event.CONFIG_REFRESHED)
             }                
         }
@@ -62,7 +62,7 @@ class FileProcessor extends ModuleBase
         return file_
     }
 
-    void process(String data)
+    void process(def data)
     {
         if (data == null) return
         def endLine = null

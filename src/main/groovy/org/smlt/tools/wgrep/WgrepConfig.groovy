@@ -74,10 +74,10 @@ class WgrepConfig {
 	 * @return <code>node.text()</code> if the node has text. Value of CDATA element i.e. <code>node.getFirstChild().getNodeValue()</code> otherwise.
 	 */
 
-	String getCDATA(Node node)
+	String getCDATA(Element node)
 	{
 		if (node == null) return
-			use(DOMCategory)
+		use(DOMCategory)
 		{
 			def txt = node.text()
 			return (txt)?txt:node.getFirstChild().getNodeValue()
@@ -143,7 +143,7 @@ class WgrepConfig {
 	 * @param args Array of strings containing arguments for parsing.
 	 */
 
-	int processInVars(def args)
+	void processInVars(def args)
 	{
 		if (args == null || args.size() == 0) throw new IllegalArgumentException("Invalid arguments")
 
@@ -160,16 +160,12 @@ class WgrepConfig {
 
 			switch (processOptions(arg))
 			{
-				case -1:
-					return -1
-					break
 				case 1:
 					break
 				default:
 					parseVar(arg)
 			}
 		}
-
 	}
 
 	/**

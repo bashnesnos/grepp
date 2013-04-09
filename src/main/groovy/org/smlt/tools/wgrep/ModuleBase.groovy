@@ -8,6 +8,10 @@ class ModuleBase {
 
 	protected WgrepConfig configInstance
 
+	ModuleBase() {
+		log.warn("Creating without config")
+	}
+	
 	ModuleBase(WgrepConfig config_) {
 		configInstance = config_
 	}
@@ -29,7 +33,7 @@ class ModuleBase {
 	 * @return <code>node.text()</code> if the node has text. Value of CDATA element i.e. <code>node.getFirstChild().getNodeValue()</code> otherwise.
 	 */
 
-	String getCDATA(Node node)
+	String getCDATA(Element node)
 	{
 		return configInstance.getCDATA(node)
 	}
