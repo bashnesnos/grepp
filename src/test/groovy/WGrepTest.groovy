@@ -28,8 +28,8 @@ class WGrepTest extends GroovyTestCase
         config.processInVars(["-L","test","test",HOME+"\\fpTest*"])
         assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "test" )
         assertTrue( config.getParam('FILTER_PATTERN') == "test" )
-        assertTrue( config.getParam('FILES') == [HOME+"\\fpTest_test.log"] )
-        assertTrue( config.getParam('FOLDER_SEPARATOR') == "\\\\" )
+        assertTrue( config.getParam('FILES') == [HOME+"\\fpTest*"] )
+        assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
         assertTrue( config.getParam('HOME_DIR') != null )
     }
 

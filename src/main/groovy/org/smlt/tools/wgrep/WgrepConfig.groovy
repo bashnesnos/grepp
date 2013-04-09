@@ -335,7 +335,7 @@ class WgrepConfig {
 	private void setAutomation(String field, def val)
 	{
 		setParam(field, val)
-		paHelper = PatternAutomationHelper.getInstance() //refreshing instance
+		paHelper = new PatternAutomationHelper(this) //refreshing PatternAutomation instance
 	}
 
 	/**
@@ -457,7 +457,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
     <!-- encoders are assigned the type
          ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
     <encoder>
-      <pattern>%msg</pattern>
+      <pattern>%msg%n</pattern>
     </encoder>
   </appender>
 

@@ -99,12 +99,19 @@ class WgrepFacade {
 
 	void startProcessing(def args)
 	{
-		configInstance.processInVars(args)
-		moduleInit()
-		if (!check()) return
-		spool()
-		fProcessor.processAll()
-		log.info("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
+		try {
+			configInstance.processInVars(args)
+			moduleInit()
+			if (!check()) return
+			spool()
+			fProcessor.processAll()
+			log.info("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
+		}
+		catch(Exception e)
+		{
+			log.error("An exception occured. Check the log", e)
+			println "Check the log for errors"
+		}
 	}
 	
 	

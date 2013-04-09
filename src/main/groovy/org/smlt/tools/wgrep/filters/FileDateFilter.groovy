@@ -23,8 +23,8 @@ class FileDateFilter extends FilterBase
     FileDateFilter(FilterBase nextFilter_, WgrepConfig config)
     {
         super(nextFilter_, null, config)
-        FROM_DATE = getParam('FROM')
-        TO_DATE = getParam('TO')
+        FROM_DATE = getParam('FROM_DATE')
+        TO_DATE = getParam('TO_DATE')
         FILE_DATE_FORMAT = new SimpleDateFormat(getParam('FILE_DATE_FORMAT'))
 		fillRefreshableParams()
     }

@@ -32,7 +32,7 @@ jar {
 
 test {
 	systemProperty 'wgrep.home', rootDir.getAbsolutePath()
-	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main/logback.xml')
+	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main')
 	setClasspath(newCP)
 }
 

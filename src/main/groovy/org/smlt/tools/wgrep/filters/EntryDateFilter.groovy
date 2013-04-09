@@ -19,8 +19,8 @@ class EntryDateFilter extends FilterBase{
     EntryDateFilter(FilterBase nextFilter_, WgrepConfig config) {
 		super(nextFilter_, null, config)
 		fillRefreshableParams()        
-		FROM_DATE = configInstance.getParam('FROM')
-        TO_DATE = configInstance.getParam('TO')
+		FROM_DATE = configInstance.getParam('FROM_DATE')
+        TO_DATE = configInstance.getParam('TO_DATE')
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 

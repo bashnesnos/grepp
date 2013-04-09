@@ -75,7 +75,7 @@ class PostFilter extends FilterBase {
                 
                 def sep = getRoot().pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
                 POST_PROCESS_SEP = sep.text()
-                if (sep.'@spool' != null) getFacade().setSpoolingExt(sep.'@spool')
+                if (sep.'@spool' != null) setSpoolingExt(sep.'@spool')
         }
     }
 
@@ -109,7 +109,7 @@ class PostFilter extends FilterBase {
         }
     }
 
-    StringBuilder smartPostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, String groupIdx)
+    StringBuilder smartPostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
     {
         log.trace(new StringBuilder('smart post processing, agg=') + ' agg=' + agg + ' method=' + method + ' groupIdx=' + groupIdx)
         log.trace("mtch found")
