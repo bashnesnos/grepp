@@ -63,7 +63,11 @@ class WgrepConfig {
 		use(DOMCategory)
 		{
 			SPOOLING_EXT = root.global.spooling[0].text()
-			setParam('ATMTN_LEVEL', root.global.automation_level[0].text()) //setting default automation level
+			def defaultOptions = root.global.default_options[0]
+			if (defaultOptions != null)
+			{
+				defaultOptions.text().split(" ").each { opt -> processOptions(opt) } //processing default options
+			}
 		}
 	}
 
@@ -150,7 +154,6 @@ class WgrepConfig {
 	 *   <li>1. {@link FilterParser}</li>
 	 *   <li>2. {@link FileNameParser}</li>
 	 *
-	 * {@link PatternAutomationHelper} is instantiated by default as well. Make sure you do not remove from config.xml default automation level.
 	 * @param args Array of strings containing arguments for parsing.
 	 */
 
@@ -161,8 +164,6 @@ class WgrepConfig {
 		filterParser = new FilterParser(this)
 		fileNameParser = new FileNameParser(this)
 		subscribeVarParsers([fileNameParser, filterParser])
-
-		paHelper = new PatternAutomationHelper(this)
 
 		for (arg in args)
 		{
@@ -177,6 +178,8 @@ class WgrepConfig {
 					parseVar(arg)
 			}
 		}
+
+		unsubscribeVarParsers(varParsers)
 	}
 
 	/**

@@ -3,6 +3,10 @@ package org.smlt.tools.wgrep
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 
+/**
+ * A helper class to provide automatic filter, log entry pattern identification. Currently supported identification by filename, or by specifing tag explicitly via option in config.xml
+ */
+
 @Slf4j
 class PatternAutomationHelper extends ModuleBase
 {
@@ -10,7 +14,12 @@ class PatternAutomationHelper extends ModuleBase
     List ATMTN_SEQ = []
     Map ATMTN_DICT = [:]
     String currentConfigPtrn = null
+    String currentConfigTag = null
     boolean isAmmended = false
+
+    /**
+    * Constructor. 
+    */
 
     PatternAutomationHelper(WgrepConfig config)
     {
@@ -51,6 +60,11 @@ class PatternAutomationHelper extends ModuleBase
     boolean applySequenceByTag(String tag)
     {
         isAmmended = false
+        if (currentConfigTag != null)
+        {
+            if (filename ==~ currentConfigTag) return isAmmended
+        }
+
         ATMTN_SEQ.each { handler ->
             parse(ATMTN_DICT[handler], null, tag, handler)
         }
@@ -160,6 +174,7 @@ class PatternAutomationHelper extends ModuleBase
             }
             if (config != null) tag = config.'@id'
         }
+        currentConfigTag = tag
         return tag
     }
 

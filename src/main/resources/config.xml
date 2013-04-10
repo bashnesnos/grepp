@@ -1,7 +1,7 @@
 <root>
 	<global>
         <spooling>.log</spooling>
-        <automation_level>a</automation_level>
+        <default_options>-a</default_options>
 	</global>
 	<options>
 		<opt field="VERBOSE" handler="enforceInfo">v</opt>

@@ -6,7 +6,6 @@ import org.smlt.tools.wgrep.varparsers.*
 
 /**
  * A Facade linking config and modules. Provides facade methods to do the processing.
- * <p>
  */
 @Slf4j
 class WgrepFacade {
