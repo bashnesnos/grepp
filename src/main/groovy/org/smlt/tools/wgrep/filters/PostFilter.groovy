@@ -109,7 +109,7 @@ class PostFilter extends FilterBase {
 
         if (rslt != null) 
         {
-            super.filter(rslt.toString())
+            passNext(rslt.toString())
         }
         else
         {

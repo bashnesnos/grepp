@@ -3,15 +3,31 @@ package org.smlt.tools.wgrep
 import groovy.util.logging.Slf4j;
 import org.w3c.dom.Element
 
+/**
+ * Base class for wgrep modules. Provides alias methods for used params, shortcut to WgrepConfig to ease initialization and parameter access. <br>
+ * Also delegates some basic WgrepConfig methods like param getting and setting. 
+ * 
+ * @author Alexander Semelit 
+ *
+ */
 @Slf4j
 class ModuleBase {
 
 	protected WgrepConfig configInstance
-
+	
+	/**
+	 * Basic constructor for simple modules, which do not require WgrepConfig instance.
+	 */
+	
 	ModuleBase() {
 		log.warn("Creating without config")
 	}
 	
+	/**
+	 * Constructor initializing configInstance and containing a validation hook method.
+	 * 
+	 * @param config_ WgrepConfig instance
+	 */
 	ModuleBase(WgrepConfig config_) {
 		configInstance = config_
 		if (!isConfigValid())
@@ -33,8 +49,9 @@ class ModuleBase {
 	}
 
 	/**
-	 * Getter to extract CDATA element value from a node which is expected to be text.
-	 * @return <code>node.text()</code> if the node has text. Value of CDATA element i.e. <code>node.getFirstChild().getNodeValue()</code> otherwise.
+	 * Delegates to {@linkplain WgrepConfig.getCDATA}
+	 * 
+	 * @return String value of element 
 	 */
 
 	String getCDATA(Element node)
@@ -79,7 +96,7 @@ class ModuleBase {
 	}
 
 	/**
-	 * Sets value of <code>FILTER_PATTERN</code> field which exists in <code>WgrepFacade</code> in a classical setter way. If extended pattern processing is enabled it will pre-processed to extract the left-most pattern first.
+	 * Sets value of <code>FILTER_PATTERN</code> field which exists in <code>WgrepFacade</code> in a classical setter way.
 	 * @param val <code>String</code> value to be set
 	 */
 
@@ -88,13 +105,18 @@ class ModuleBase {
 		setParam('FILTER_PATTERN', val)
 	}
 	
+	/**
+	 * Gets value of <code>FILTER_PATTERN</code> field which exists in <code>WgrepConfig</code> in a classical getter way.
+	 * @param val <code>String</code> value to be set
+	 */
+	
 	String getFilterPattern()
 	{
 		getParam('FILTER_PATTERN')
 	}
 
 	/**
-	 * Sets value of <code>SPOOLING_EXT</code> field which exists in <code>WgrepFacade</code> in a classical setter way.
+	 * Sets value of <code>SPOOLING_EXT</code> field which exists in <code>WgrepConfig</code> in a classical setter way.
 	 * @param val <code>String</code> value to be set
 	 */
 
@@ -103,15 +125,33 @@ class ModuleBase {
 		setParam('SPOOLING_EXT', val)
 	}
 
+	/**
+	 * Sets value of <code>FILES</code> field which exists in <code>WgrepConfig</code> in a classical setter way.
+	 * @param fileName <code>String</code> filename to be added
+	 */
+	
 	void addFileName(String fileName)
 	{
 		setParam('FILES', fileName)
 	}
+	
+	/**
+	 * Delegates fileName to {@link WgrepConfig.refreshConfigByFileName}
+	 * 
+	 * @param fileName String representing file path or just name
+	 * @return true if config was changed, false otherwise
+	 */
 
 	boolean refreshConfigByFileName(String fileName)
 	{
 		return configInstance.refreshConfigByFileName(fileName)
 	}
+	
+	/**
+	 * Basic validation.
+	 * 
+	 * @return true if configInstance is not null
+	 */
 
 	boolean isConfigValid()
 	{

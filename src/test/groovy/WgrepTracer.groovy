@@ -11,12 +11,9 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 WgrepConfig config = new WgrepConfig(WGREP_CONFIG)
 WgrepFacade facade = new WgrepFacade(config)
 
-       def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
-        def testTimeString = dateFormat.format(fileTime)
-
-            facade.doProcessing(["-t", "Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
-
+        config.processInVars(["-ti","test", HOME+"\\fpTest_*"])
+        config.refreshConfigByFileName(config.getParam('FILES')[0])
+		
 def expectedResult = """\
 #
 $testTimeString 05:05:56,951 [ACTIVE] ThreadStart: '22' 

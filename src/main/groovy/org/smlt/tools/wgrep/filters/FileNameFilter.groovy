@@ -4,21 +4,38 @@ import groovy.util.logging.Slf4j;
 
 import java.util.regex.Matcher
 
+/**
+ * Provides file name filtering. Which means in this particular place replacing patterns by real files with absolute paths. <br>
+ * Is a simple filter, i.e. does not require WgrepConfig to work.
+ * 
+ * @author Alexander Semelit 
+ */
+
 @Slf4j
 class FileNameFilter extends FilterBase
 {    
-    private def fSeparator = null
-    private def curDir = null
+    private String fSeparator = null
+    private String curDir = null
 
-    FileNameFilter(FilterBase nextFilter_, def fSeparator_, def cwd_) 
+	/**
+	 *  Accepts file separator, which needs to be a valid regex pattern. And current working dir absolte path
+	 */
+	
+    FileNameFilter(FilterBase nextFilter_, String fSeparator_, String cwd_) 
     {
         super(nextFilter_)
         fSeparator = fSeparator_
         curDir = cwd_
     }
-
+	/**
+	 * Replaces supplied fileNames with List containing File instances.
+	 * 
+	 * @return list of File or empty list otherwise
+	 * @throws IllegalArgumentException if supplied fileNames are not an instanceof List containing strings
+	 */
+	@Override
     def filter(def fileNames) {
-        if (! fileNames instanceof ArrayList<String> ) throw new IllegalArgumentException("FileNameFilter accepts string list only")
+        if (! fileNames instanceof List<String> ) throw new IllegalArgumentException("FileNameFilter accepts string list only")
 
         def files = analyzeFileNames(fileNames)
         if (files != null)
@@ -41,42 +58,50 @@ class FileNameFilter extends FilterBase
         }  
     }
 
-    def analyzeFileNames(ArrayList<String> fileNames)
+	/**
+	 * Replaces fileName with appropriate File instances
+	 *
+	 * 
+	 * @param fileNames file names list for analysis 
+	 * @return list of File representing supplied fileNames list
+	 */
+	
+    List<File> analyzeFileNames(List<String> fileNames)
     {
         if (fileNames == null) return fileNames
         
-        def newFileList = []
-        def removeFiles = []
-        def fileList = fileNames.clone()
-        fileList.each
+        List<File> fileList = []
+        List<String> removeFiles = []
+        List<String> fileNameList = fileNames.clone()
+        fileNameList.each
         { fil ->
             log.trace("analyzing supplied file: " + fil);
             if (fil =~ /\*/)
             {
                 removeFiles.add(fil);
-                def flname = fil;
+                String flname = fil;
                 if (fil =~ fSeparator)
                 {
                     curDir = (fil =~/.*(?=$fSeparator)/)[0]
                     flname = (fil =~ /.*$fSeparator(.*)/)[0][1]
                 }
-                def files = new File(curDir).listFiles();
+                List<File> files = new File(curDir).listFiles();
                 log.trace("files found " + files)
-                def ptrn = flname.replaceAll(/\*/) {it - '*' + '.*'};
+                String ptrn = flname.replaceAll(/\*/) {it - '*' + '.*'};
                 files.each
-                {
-                    if (it.name ==~ /$ptrn/)
+                { file ->
+                    if (file.name ==~ /$ptrn/)
                     {
-                        log.trace("adding file " + it)
-                        newFileList.add(it)
+                        log.trace("adding file " + file)
+                        fileList.add(file)
                     }
                 }
             }
         }
         
-        removeFiles.each { rmFil -> fileList.remove(rmFil)  }
-        fileList.each { newFileList.add(new File(it)) }
-        log.trace("Total files for wgrep: " + newFileList)
-        return newFileList
+        removeFiles.each { rmFil -> fileNameList.remove(rmFil)  }
+        fileNameList.each { fileList.add(new File(it)) }
+        log.trace("Total files for wgrep: " + fileList)
+        return fileList
     }
 }

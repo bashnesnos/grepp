@@ -8,6 +8,12 @@ import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
 import org.smlt.tools.wgrep.filters.enums.Event
 
+/**
+ * Class provides entry date filtering for supplied FROM and TO dates.
+ * 
+ * @author Alexander Semelit
+ *
+ */
 @Slf4j
 class EntryDateFilter extends FilterBase{
 
@@ -16,6 +22,13 @@ class EntryDateFilter extends FilterBase{
     private Date TO_DATE
     private boolean isDateFromPassed = false
 
+	/**
+	 * Creates new EntryDateFilter on top of the supplied filter chain. <br>
+	 * Fills appropriate params from supplied WgrepConfig instance
+	 * 
+	 * @param nextFilter_ FilterBase next filter
+	 * @param config WgrepConfig instance
+	 */
     EntryDateFilter(FilterBase nextFilter_, WgrepConfig config) {
 		super(nextFilter_, null, config)
 		fillRefreshableParams()        
@@ -24,6 +37,7 @@ class EntryDateFilter extends FilterBase{
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 	}
 
+	@Override
     boolean isConfigValid() {
         boolean checkResult = super.isConfigValid()
         if (getParam('FROM_DATE') == null && getParam('TO_DATE')  == null)
@@ -32,7 +46,12 @@ class EntryDateFilter extends FilterBase{
         }
         return checkResult
     }
-    def fillRefreshableParams()
+	
+	/**
+	 * Fills params that can be refreshed from config
+	 * 
+	 */
+    void fillRefreshableParams()
     {
         setPattern(getParam('LOG_DATE_PATTERN'))
         def logDateFormatPtrn = getParam('LOG_DATE_FORMAT')
@@ -40,33 +59,15 @@ class EntryDateFilter extends FilterBase{
     }
 
     /**
-    * Facade method to check if supplied entry suits desired date and time. 
-    * Calls {@link dtChecker.check()} method if {@link DATE_TIME_FILTER} and <code>entry</code> are not null.
+    * Checks if supplied entry suits desired from and to date and time. 
     *
     * @param entry A String to be checked
+    * @throws IllegalArgumentException if supplied blockData is not String or Matcher instance
+    * @throws TimeToIsOverduedException if TO_DATE was passed 
     */
 
-    def filter(def data) {
-        if (check(data))
-        {
-            if (nextFilter != null) 
-            {
-                log.trace("Passing to next filter")
-                nextFilter.filter(data)    
-            }
-            else 
-            {
-                throw new RuntimeException("shouldn't be the last in chain")
-            }
-        }
-        else
-        {
-            log.trace("not passed")
-        }  
-    }
-
-
-    boolean check(String blockData)
+	@Override
+    boolean check(def blockData)
     {
         if (blockData != null && filterPtrn != null && DATE_FORMAT != null)
         {
@@ -137,6 +138,11 @@ class EntryDateFilter extends FilterBase{
         return true
     }
 
+	/**
+	 * Listens for FILE_ENDED event. Cleans isDateFromPassed in that case.
+	 * 
+	 */
+	@Override
     def processEvent(def event) {
         switch (event)
         {

@@ -8,22 +8,40 @@ import org.smlt.tools.wgrep.filters.*
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.exceptions.*
 
+/**
+ * Class which triggers and controls file processing.
+ * 
+ * @author Alexander Semelit
+ *
+ */
 @Slf4j
 class FileProcessor extends ModuleBase
 {
-    //Reads logs files
     private ArrayList<File> fileList = []
     
     private boolean isMerging = null
     private int curLine = 0
     private FilterBase filterChain = null
     private FilterBase filesFilterChain = null
-        
+ 
+	/**
+	 * Simple factory method, which takes WgrepConfig instance and initializes appropriate filter chains.       
+	 *        
+	 * @param config WgrepConfig instance
+	 * @return new FileProcessor instance
+	 */
     static FileProcessor getInstance(WgrepConfig config) 
     {
         return new FileProcessor(config, FilterChainFactory.createFilterChainByConfig(config), FilterChainFactory.createFileFilterChainByConfig(config))
     }
 
+	/**
+	 * Create new instance with supplied filter chains and {@link WgrepConfig} instance.
+	 * 
+	 * @param config WgrepConfig instance which will be used as param source
+	 * @param filterChain_ FilterBase chain which will be used to filter each file line
+	 * @param filesFilterChain_ FilterBase chain which will be used to filter filename List
+	 */
     FileProcessor(WgrepConfig config, FilterBase filterChain_, FilterBase filesFilterChain_) 
     {
         super(config)
@@ -36,6 +54,10 @@ class FileProcessor extends ModuleBase
 
     }
 
+	/**
+	 * Overriden method which check specific to FileProcessot params
+	 */
+	@Override
     boolean isConfigValid() {
         boolean checkResult = super.isConfigValid()
         if (getParam('FILES') == null)
@@ -46,17 +68,26 @@ class FileProcessor extends ModuleBase
         return checkResult
     }
 
+	/**
+	 * Method which iterates through filtered fileList and process each.
+	 */
     void processAll()
     {
         fileList.each {
-            process(openFile(it))
+            process(initFile(it))
         }
         filterChain.processEvent(Event.ALL_FILES_PROCESSED)
     }
 
-    private File openFile(File file_)
+	/**
+	 * Hook method which is called prior to file processing. Needed for check and configInstance refreshing if it is on. 
+	 * 
+	 * @param file_ a File instance which is needed to be initialized.
+	 * @return File instance if it was successfully initialized. null otherwise
+	 */
+    private File initFile(File file_)
     {
-        log.info("Opening " + file_.name)
+        log.info("Initializating " + file_.name)
         try {
             if (refreshConfigByFileName(file_.name))
             {            
@@ -72,6 +103,12 @@ class FileProcessor extends ModuleBase
         return file_
     }
 
+	/**
+	 * Method which does processing of one portion of data, which contains lines. <br>
+	 * It is considered to be a File, but could be anything which supports eachLine returning a String.
+	 * 
+	 * @param data Supposed to be a File, or anything that supports eachLine method which returns String
+	 */
     void process(def data)
     {
         if (data == null) return
@@ -92,6 +129,11 @@ class FileProcessor extends ModuleBase
         log.info("File ended. Lines processed: " + curLine)
     }
 
+	/**
+	 * Getter for files list to process.
+	 * 
+	 * @return current instance files list
+	 */
     List<File> getFiles()
     {
         return fileList

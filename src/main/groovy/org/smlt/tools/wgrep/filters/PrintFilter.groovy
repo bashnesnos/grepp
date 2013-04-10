@@ -17,20 +17,16 @@ class PrintFilter extends FilterBase{
     * @param blockData A String to be filtered.
     */
 
-    def filter(def blockData)
-    {
-        if (blockData != null) 
-        {
-            println blockData
-            if (nextFilter != null)
-            {
-                nextFilter.filter(blockData)
-            }
-        }
-        else
-        {
-            log.trace("not passed")
-        }
-    }
+	
+	
+    @Override
+	boolean check(def blockData) {
+		return blockData != null
+	}
+
+	@Override
+	void beforePassing(def blockData) {
+		println blockData
+	}
 
 }

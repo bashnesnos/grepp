@@ -12,6 +12,12 @@ import org.smlt.tools.wgrep.varparsers.*
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 
+/**
+ * Class represents wgrep config, which will be used to parse incoming arguments, config.xml and would be a source for processing, filtering etc. 
+ *
+ * @author Alexander Semelit 
+ *
+ */
 @Slf4j
 class WgrepConfig {
 	//internal
@@ -37,8 +43,7 @@ class WgrepConfig {
 	private Map params = [:] //all params as a Map
 
 	/**
-	 * Constructor
-	 * <p>
+	 * Constructor <br>
 	 * Initializes the instance. Parses config.xml and loads defaults from there.
 	 *
 	 * @param configFilePath String which can be recognized by a <code>FileReader</code> and is a valid path to an config.xml file

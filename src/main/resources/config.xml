@@ -27,7 +27,7 @@
 		</pp_separators>
 	</pp_config>
 	<automation>
-		<level handler="parseEntryConfig" id="entry_pattern" order="1" tags="a, i"/>
+		<level handler="parseCustomConfig" id="entry_pattern" order="1" tags="a, i"/>
 		<level handler="parseExecuteThreadConfig" id="execute_thread" order="2" tags="i"/>
 	</automation>
 	<date_time_config>

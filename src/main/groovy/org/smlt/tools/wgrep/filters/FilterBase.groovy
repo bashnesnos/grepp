@@ -10,24 +10,20 @@ import org.smlt.tools.wgrep.filters.enums.*
 class FilterBase extends ModuleBase {
     protected FilterBase nextFilter
     protected def filterPtrn
-    protected boolean isLast
 
-    FilterBase(FilterBase nextFilter_, def filterPtrn_, WgrepConfig config) {
-        super(config)
-		nextFilter = nextFilter_
-        filterPtrn = filterPtrn_
-        isLast = false
-    }
-
-	FilterBase(FilterBase nextFilter_, WgrepConfig config) {
+	FilterBase(FilterBase nextFilter_, def filterPtrn_, WgrepConfig config) {
 		super(config)
 		nextFilter = nextFilter_
-		isLast = false
+		filterPtrn = filterPtrn_
+	}
+
+
+	FilterBase(FilterBase nextFilter_, WgrepConfig config) {
+		this(nextFilter_, null, config)
 	}
 	
 	FilterBase(FilterBase nextFilter_) {
 		nextFilter = nextFilter_
-		isLast = false
 	}
 	
 	void makeLast()
@@ -40,20 +36,39 @@ class FilterBase extends ModuleBase {
         log.trace("Set filter pattern to /" + filterPtrn + "/")
     }
 
+	boolean check(def blockData)
+	{
+		return true
+	}
+	
     def filter(def blockData)  {
-        passNext(blockData)
+        if (check(blockData))
+        {
+			beforePassing(blockData)
+			return passNext(blockData)
+        }
+        else
+        {
+            log.trace("not passed")
+			return null
+        }  
     }
 
+	void beforePassing(def blockData) {
+		
+	}
+	
     def passNext(def passingVal)
     {
         log.trace("attempting to pass to next filter")
         if (nextFilter != null)
         {
-            nextFilter.filter(passingVal)
+            return nextFilter.filter(passingVal)
         }
         else
         {
-            if (!isLast) throw new RuntimeException("shouldn't be the last in chain")
+			log.warn("is last in chain")
+			return passingVal
         }
     }
 
