@@ -6,7 +6,7 @@ import java.text.SimpleDateFormat
 apply plugin: 'groovy'
 
 //these properties are overwritten by subprojects dev, stable and release if they are defined there
-def targetDir = null //is initialized with the project
+def targetDir = new File(rootDir.getAbsolutePath() + '/temp') //is initialized with the project
     def makeExecsFileWriter = null //is initialized with the project
 def tmplt_suffix = ''
 def doZip = false
