@@ -1,4 +1,5 @@
 import org.smlt.tools.wgrep.*
+import org.smlt.tools.wgrep.config.WgrepConfig
 
 import groovy.util.GroovyTestCase
 import java.text.SimpleDateFormat

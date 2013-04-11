@@ -24,6 +24,7 @@ package org.smlt.tools.wgrep
 * @author Alexander Semelit
 */
 import groovy.util.logging.Slf4j
+import org.smlt.tools.wgrep.config.WgrepConfig
 
 @Slf4j
 class WGrep 

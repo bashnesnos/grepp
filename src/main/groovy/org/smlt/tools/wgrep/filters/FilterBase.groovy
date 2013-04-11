@@ -2,8 +2,8 @@ package org.smlt.tools.wgrep.filters
 
 import groovy.util.logging.Slf4j;
 
-import org.smlt.tools.wgrep.ModuleBase
-import org.smlt.tools.wgrep.WgrepConfig
+import org.smlt.tools.wgrep.config.ModuleBase;
+import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.*
 
 /**

@@ -1,4 +1,4 @@
-package org.smlt.tools.wgrep
+package org.smlt.tools.wgrep.processors
 
 import groovy.util.logging.Slf4j;
 
@@ -7,6 +7,8 @@ import java.lang.StringBuilder
 import org.smlt.tools.wgrep.filters.*
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.exceptions.*
+import org.smlt.tools.wgrep.config.ModuleBase;
+import org.smlt.tools.wgrep.config.WgrepConfig
 
 /**
  * Class which triggers and controls file processing.

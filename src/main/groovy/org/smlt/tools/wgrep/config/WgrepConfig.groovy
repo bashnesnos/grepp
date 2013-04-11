@@ -1,4 +1,4 @@
-package org.smlt.tools.wgrep
+package org.smlt.tools.wgrep.config
 
 import org.slf4j.LoggerFactory
 import ch.qos.logback.classic.LoggerContext
@@ -8,7 +8,7 @@ import ch.qos.logback.core.util.StatusPrinter
 import groovy.util.logging.Slf4j
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
-import org.smlt.tools.wgrep.varparsers.*
+import org.smlt.tools.wgrep.config.varparsers.*
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 

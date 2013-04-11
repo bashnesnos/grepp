@@ -3,7 +3,7 @@ package org.smlt.tools.wgrep.filters.entry
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 import java.util.regex.Matcher
-import org.smlt.tools.wgrep.WgrepConfig
+import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.enums.Qualifier
 import org.smlt.tools.wgrep.filters.FilterBase
@@ -12,7 +12,7 @@ import org.smlt.tools.wgrep.filters.FilterBase
  * Class which provide post filtering of passed entries <br>
  * Basically it extracts substrings from data matched by configured patterns <br>
  * It can simply extract substrings in a column-like way for each, can count number of substring that was matched; <br>
- * or it can group by paricular substring and calculate and average value (which will always be a number) 
+ * or it can group by particular substring and calculate and average value (which will always be a number) 
  * 
  * @author Alexander Semelit 
  */
@@ -135,7 +135,7 @@ class PostFilter extends FilterBase {
     }
 
     /**
-    * Passes further accumulated matched substrings instead of blockData receieved by <code>this.filter()</code> method.
+    * Passes further accumulated matched substrings instead of blockData received by <code>this.filter()</code> method.
     * @param blockData A String to be post processed. 
     * @return <code>super.passNext</code> result
     */
@@ -145,6 +145,19 @@ class PostFilter extends FilterBase {
     {
         return super.passNext(result.toString())
     }
+	
+	/**
+	 * This method is used to extract and process matched groups from supplied data. <br>
+	 * It is considered that actual matching is done prior to calling this method, and it's purpose is just to call appropriate handler method for appropriate group in Matcher <br>
+	 * Handlers to group relation is defined during PostFilter initialization through config.xml parsing.
+	 * 
+	 * @param mtchr Matcher object which has matched all post patterns to data
+	 * @param agg accumulator object which will gather matched substring
+	 * @param sep column separator string
+	 * @param method declared in PostFilter method which will be used to extract matched group value
+	 * @param groupIdx index of a matched group which will be used to get substrings
+	 * @return accumulator with appended substring for current group
+	 */
 
     StringBuilder smartPostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
     {
@@ -160,17 +173,42 @@ class PostFilter extends FilterBase {
             return null
         }
     }
-
+	
+	/**
+	 * Method handles value escaping with separator during appending to accumulator.
+	 * 
+	 * @param agg accumulator object
+	 * @param sep column separator string
+	 * @param val value to be appended. Is considered as something providing toString() method
+	 * @return accumulator object containing appended value
+	 */
+	
     StringBuilder aggregatorAppend(StringBuilder agg, String sep, def val)
     {
         return (agg.size() > 0) ? agg.append(sep).append(val):agg.append(val)
     }
 
+	/**
+	 * Simply returns substring matched by a pattern.
+	 * 
+	 * @param mtchResults Matcher containing needed group
+	 * @param groupIdx index of the group
+	 * @return group value
+	 */
+	
     def processPostFilter(Matcher mtchResults, def groupIdx)
     {
         return mtchResults.group(groupIdx)
     }
 
+	/**
+	 * Counts number of substrings matched by a pattern.
+	 * 
+	 * @param mtchResults Matcher containing needed group
+	 * @param groupIdx index of the group
+	 * @return count of substrings matched by pattern
+	 */
+	
     def processPostCounter(Matcher mtchResults, def groupIdx)
     {
         String currentPattern = mtchResults.group(groupIdx)
@@ -185,6 +223,15 @@ class PostFilter extends FilterBase {
         
     }
 
+	/**
+	 * Creates new/or fetches existing group map with key equal to matched substring. <br>
+	 * Sets <code>currentGroup</code> to this group. 
+	 * 
+	 * @param mtchResults Matcher containing needed group
+	 * @param groupIdx index of the group
+	 * @return always returns null, as during grouping results will be returned when all the files will be processed.
+	 */
+	
     def processPostGroup(Matcher mtchResults, def groupIdx)
     {
         String newGroup = mtchResults.group(groupIdx)
@@ -198,6 +245,15 @@ class PostFilter extends FilterBase {
         return null
     }
 
+	/**
+	 * Attempts to convert matching substring to a number (if it is not a number, tries to count number of matched substrings by current group). <br>
+	 * Stores acquired number value to currentGroup map with key "averageAgg"
+	 * 
+	 * @param mtchResults Matcher containing needed group
+	 * @param groupIdx index of the group
+	 * @return always returns null, as during grouping results will be returned when all the files will be processed.
+	 */
+	
     def processPostAverage(Matcher mtchResults, def groupIdx)
     {
         Integer newIntVal = 0
@@ -222,6 +278,13 @@ class PostFilter extends FilterBase {
         return null
     }
 
+	/**
+	 * Method which will be used to calculate average. <br>
+	 * Should have the same name as extracting method, but accept Map, which will mean that it is applied to actually do calculations.
+	 * 
+	 * @param group Map containing accumulated numbers to calculate average from
+	 * @return average value
+	 */
     def processPostAverage(Map group)
     {
         log.trace ("average group: " + group)
@@ -234,7 +297,14 @@ class PostFilter extends FilterBase {
         return sum/averageAgg.size()
     }
 
-    def processGroups()
+	/**
+	 * 
+	 * Method iterates through all gathered groups and calls for each all configured in this session group methods. <br>
+	 * Accumulates results of each group method in similar way as in smartPostProcess method. <br>
+	 * When all groups are processed it passes result to next filter.
+	 * 
+	 */
+    void processGroups()
     {
         POST_GROUPS.each { group ->
             StringBuilder rslt = new StringBuilder(group.getKey())
@@ -245,7 +315,12 @@ class PostFilter extends FilterBase {
         }
     }
 
-    def printHeader()
+	/**
+	 * Simply passes header to next filter. <br>
+	 * Since PostFilter is considered to be a filter before last filter, it should possibly just print out the header.
+	 * 
+	 */
+    void printHeader()
     {
         if (!HEADER_PRINTED) 
         {   
@@ -254,6 +329,10 @@ class PostFilter extends FilterBase {
         }
     }
 
+	/**
+	 * Listens for ALL_FILES_PROCESSED event to trigger all groups processing.
+	 * 
+	 */
     def processEvent(Event event) {
         switch (event)
         {

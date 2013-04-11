@@ -1,5 +1,6 @@
 import groovy.xml.dom.DOMCategory
 import org.smlt.tools.wgrep.*
+import org.smlt.tools.wgrep.config.WgrepConfig
 import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 

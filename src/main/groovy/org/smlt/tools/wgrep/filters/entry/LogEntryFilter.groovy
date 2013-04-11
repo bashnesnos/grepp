@@ -3,7 +3,7 @@ package org.smlt.tools.wgrep.filters.entry
 import groovy.util.logging.Slf4j;
 
 import java.util.regex.Matcher
-import org.smlt.tools.wgrep.WgrepConfig
+import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.FilterBase

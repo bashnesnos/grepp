@@ -1,5 +1,11 @@
 package org.smlt.tools.wgrep.filters.enums
 
+/**
+ * Enum representing complex pattern qualifiers.
+ * 
+ * @author Alexander Semelit
+ *
+ */
 enum Qualifier {
     and('.*'), or('|')
    	

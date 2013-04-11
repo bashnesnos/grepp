@@ -1,8 +1,8 @@
 package org.smlt.tools.wgrep
 
-import groovy.util.logging.Slf4j;
-
-import org.smlt.tools.wgrep.varparsers.*
+import groovy.util.logging.Slf4j
+import org.smlt.tools.wgrep.config.WgrepConfig
+import org.smlt.tools.wgrep.processors.FileProcessor
 
 /**
  * A Facade linking config and modules. Provides facade methods to do the processing.

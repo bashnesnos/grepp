@@ -1,4 +1,4 @@
-package org.smlt.tools.wgrep
+package org.smlt.tools.wgrep.config
 
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
