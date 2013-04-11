@@ -1,8 +1,9 @@
-package org.smlt.tools.wgrep.filters
+package org.smlt.tools.wgrep.filters.entry
 
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.*
+import org.smlt.tools.wgrep.filters.FilterBase
 
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory

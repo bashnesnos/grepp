@@ -1,4 +1,4 @@
-package org.smlt.tools.wgrep.filters
+package org.smlt.tools.wgrep.filters.entry
 
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
@@ -6,6 +6,16 @@ import java.util.regex.Matcher
 import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.enums.Qualifier
+import org.smlt.tools.wgrep.filters.FilterBase
+
+/**
+ * Class which provide post filtering of passed entries <br>
+ * Basically it extracts substrings from data matched by configured patterns <br>
+ * It can simply extract substrings in a column-like way for each, can count number of substring that was matched; <br>
+ * or it can group by paricular substring and calculate and average value (which will always be a number) 
+ * 
+ * @author Alexander Semelit 
+ */
 
 @Slf4j
 class PostFilter extends FilterBase {
@@ -21,7 +31,13 @@ class PostFilter extends FilterBase {
     def groupMethod = null
     def POST_GROUPS_METHODS = []
     def HEADER_PRINTED = false
+    def result = null
 
+    /**
+    * Creates new PostFilter on top of supplied filter chain and fills in params from supplied config. <br>
+    * Also it parses from config.xml post filter pattern configuration basing on fulfilled POST_PROCESSING parameter.
+    *
+    */
     PostFilter(FilterBase nextFilter_, WgrepConfig config)
     {
         super(nextFilter_, config)
@@ -55,6 +71,7 @@ class PostFilter extends FilterBase {
         }
     }
 
+    @Override
     boolean isConfigValid() {
         boolean checkResult = super.isConfigValid()
         if (getParam('POST_PROCESSING') == null)
@@ -65,6 +82,10 @@ class PostFilter extends FilterBase {
         return checkResult
     }
 
+    /**
+    * Looks for separator value in config.xml depending on supplied <separator> section id.
+    * 
+    */
     void setSeparator(String sep_tag)
     {
         if (POST_PROCESS_SEP != null) return
@@ -88,33 +109,41 @@ class PostFilter extends FilterBase {
     }
 
     /**
-    * Method for post processing.
-    * <p> 
-    * Is called against each block.
+    * Tries to match all post processing patterns at the same time to received block data. <br>
+    * If succeeds it will cumulatively build a result String for each pattern group and pass it further instead of recieved block. <br>
+    * In the case of grouping, it won't pass anything until all files will be processed. I.e. it will accumulate all the results till that event happens. <br>
+    * Since it matches all the post patterns at the same time, if any of them is not matched nothing will be returned/accumulated.
+    *
     * 
     * @param blockData A String to be post processed.
+    * @return true if it has accumulated result to pass
     */
-
-    def filter(def blockData)
+    @Override
+    boolean check(def blockData)
     {
-        StringBuilder rslt = null
+        result = null //invalidating result first
         setPattern(PATTERN.toString())
         printHeader()
         Matcher postPPatternMatcher = blockData =~ filterPtrn
-        if (postPPatternMatcher.find()) //bulk matching all patterns. If any is absent nothing will be returned
+        if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
         {
-            rslt = new StringBuilder("")
-            POST_PROCESS_PTTRNS.each { ptrn -> rslt = smartPostProcess(postPPatternMatcher, rslt, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn], POST_PROCESS_PTTRNS.indexOf(ptrn) + 1)} //TODO: new handlers model is needed
+            result = new StringBuilder("")
+            POST_PROCESS_PTTRNS.each { ptrn -> result = smartPostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn], POST_PROCESS_PTTRNS.indexOf(ptrn) + 1)} //TODO: new handlers model is needed
         }
 
-        if (rslt != null) 
-        {
-            passNext(rslt.toString())
-        }
-        else
-        {
-            log.trace("not passed")
-        }
+        return result != null && result.size() > 0
+    }
+
+    /**
+    * Passes further accumulated matched substrings instead of blockData receieved by <code>this.filter()</code> method.
+    * @param blockData A String to be post processed. 
+    * @return <code>super.passNext</code> result
+    */
+
+    @Override
+    def passNext(def blockData)
+    {
+        return super.passNext(result.toString())
     }
 
     StringBuilder smartPostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
@@ -212,7 +241,7 @@ class PostFilter extends FilterBase {
             POST_GROUPS_METHODS.each { method ->
                 rslt = aggregatorAppend(rslt, POST_PROCESS_SEP, this."$method"(group.getValue()))
             }
-            super.filter(rslt.toString())
+            super.passNext(rslt.toString()) //simply passes next whatever you supply
         }
     }
 
@@ -225,7 +254,7 @@ class PostFilter extends FilterBase {
         }
     }
 
-    def processEvent(def event) {
+    def processEvent(Event event) {
         switch (event)
         {
             case Event.ALL_FILES_PROCESSED:

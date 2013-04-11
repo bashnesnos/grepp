@@ -1,4 +1,4 @@
-package org.smlt.tools.wgrep.filters
+package org.smlt.tools.wgrep.filters.entry
 
 import groovy.util.logging.Slf4j;
 
@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat
 import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException
 import org.smlt.tools.wgrep.filters.enums.Event
+import org.smlt.tools.wgrep.filters.FilterBase
 
 /**
  * Class provides entry date filtering for supplied FROM and TO dates.
@@ -143,7 +144,7 @@ class EntryDateFilter extends FilterBase{
 	 * 
 	 */
 	@Override
-    def processEvent(def event) {
+    def processEvent(Event event) {
         switch (event)
         {
             case Event.FILE_ENDED:

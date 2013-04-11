@@ -1,11 +1,11 @@
-package org.smlt.tools.wgrep.filters
+package org.smlt.tools.wgrep.filters.logfile
 
-import groovy.util.logging.Slf4j;
-
+import groovy.util.logging.Slf4j
+import org.smlt.tools.wgrep.filters.FilterBase
 import java.util.regex.Matcher
 
 /**
- * Provides file name filtering. Which means in this particular place replacing patterns by real files with absolute paths. <br>
+ * Provides file name filtering. Which means in this particular case replacing patterns by real files with absolute paths. <br>
  * Is a simple filter, i.e. does not require WgrepConfig to work.
  * 
  * @author Alexander Semelit 
@@ -14,8 +14,9 @@ import java.util.regex.Matcher
 @Slf4j
 class FileNameFilter extends FilterBase
 {    
-    private String fSeparator = null
-    private String curDir = null
+    protected String fSeparator = null
+    protected String curDir = null
+    protected List fileList = []
 
 	/**
 	 *  Accepts file separator, which needs to be a valid regex pattern. And current working dir absolte path
@@ -27,35 +28,28 @@ class FileNameFilter extends FilterBase
         fSeparator = fSeparator_
         curDir = cwd_
     }
-	/**
-	 * Replaces supplied fileNames with List containing File instances.
-	 * 
-	 * @return list of File or empty list otherwise
-	 * @throws IllegalArgumentException if supplied fileNames are not an instanceof List containing strings
-	 */
-	@Override
-    def filter(def fileNames) {
-        if (! fileNames instanceof List<String> ) throw new IllegalArgumentException("FileNameFilter accepts string list only")
 
-        def files = analyzeFileNames(fileNames)
-        if (files != null)
-        {
-            if (nextFilter != null) 
-            {
-                log.trace("Passing to next filter")
-                nextFilter.filter(files)    
-            }
-            else 
-            {
-                log.trace("passed")
-                return files
-            }
-        }
-        else
-        {
-            log.trace("not passed")
-            return Collections.emptyList()
-        }  
+    /**
+     * Analyzes all fileNames and builds List<File> instance
+     * 
+     * @throws IllegalArgumentException if supplied fileNames are not an instanceof List containing strings
+     * @return true if fileList is not empty
+     */
+
+    @Override
+    boolean check(def fileNames) {
+        if (! fileNames instanceof List<String> ) throw new IllegalArgumentException("FileNameFilter accepts string list only")
+        fileList = [] //invelidating file list
+        fileList = analyzeFileNames(fileNames)
+        return fileList != null && fileList.size() > 0
+    }
+
+    /**
+    * Passes analyzed List<File> instead of receieved fileNames in <code>this.filter</code>
+    */
+	@Override
+    def passNext(def fileNames) {
+        return super.passNext(fileList)
     }
 
 	/**

@@ -1,12 +1,13 @@
-package org.smlt.tools.wgrep.filters
+package org.smlt.tools.wgrep.filters.logfile
 
 import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 
-import groovy.util.logging.Slf4j;
+import groovy.util.logging.Slf4j
 import groovy.xml.dom.DOMCategory
 import org.smlt.tools.wgrep.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.Event
+import org.smlt.tools.wgrep.filters.FilterBase
 
 /**
  * Provides filtering of supplied files by last modified date. <br>
@@ -20,12 +21,13 @@ class FileDateFilter extends FilterBase
 {
     //Checking dates everywhere
 
-    SimpleDateFormat FILE_DATE_FORMAT = null
-    List INPUT_DATE_PTTRNS = []
-    Date FROM_DATE = null
-    Date TO_DATE = null
-    int LOG_FILE_THRESHOLD = 24
-    int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
+    protected SimpleDateFormat FILE_DATE_FORMAT = null
+    protected List fileList = []
+    protected List INPUT_DATE_PTTRNS = []
+    protected Date FROM_DATE = null
+    protected Date TO_DATE = null
+    protected int LOG_FILE_THRESHOLD = 24
+    protected int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
 
     FileDateFilter(FilterBase nextFilter_, WgrepConfig config)
     {
@@ -59,44 +61,30 @@ class FileDateFilter extends FilterBase
     }
 	
 	/**
-	 * Checks supplied files if they exceed supplied time boundaries. <br>
-	 * Passes next filtered collection.
-	 * @throws IllegalArgumentException if supplied argument is not instanceof List<Files>
-	 */
-	@Override
-    def filter(def files) {
+    * Checks supplied files if they exceed supplied time boundaries. <br>
+    * 
+    * @param files List to check
+    * @return passed files List
+    * @throws IllegalArgumentException if supplied argument is not instanceof List<Files>
+    */
+    @Override
+    boolean check(def files) {
         if (! files instanceof List<File> ) throw new IllegalArgumentException("FileDateFilter accepts file list only")
-        def newFiles = check(files)
-        log.trace("total files after:" + newFiles.size())
-        if (newFiles != null)
-        {
-            if (nextFilter != null) 
-            {
-                log.trace("Passing to next filter")
-                nextFilter.filter(newFiles)    
-            }
-            else 
-            {
-                log.trace("passed")
-                return newFiles
-            }
-        }
-        else
-        {
-            log.trace("not passed")
-            return Collections.emptyList()
-        }  
+        fileList = [] //invalidating fileList
+        log.trace("total files:" + files.size())
+        fileList = files.findAll { file -> checkFileTime(file) }
+        return fileList != null && fileList.size() > 0
     }
 
-	/**
-	* Finds all suitable files.	
-	* 
-	* @param files List to check
-	* @return passed files List
-	*/
-    List<File> check(List<File> files) {
-        log.trace("total files:" + files.size())
-        return files.findAll { file -> checkFileTime(file) }
+    /**
+     *
+	 * Passes next filtered collection.
+     *
+	 * @return <code>super.passNext</code> result
+	 */
+	@Override
+    def passNext(def files) {
+        return super.passNext(fileList)        
     }
 
     /**
@@ -145,7 +133,7 @@ class FileDateFilter extends FilterBase
 	 */
 	
 	@Override
-    def processEvent(def event) {
+    def processEvent(Event event) {
         switch (event)
         {
             case Event.CONFIG_REFRESHED:

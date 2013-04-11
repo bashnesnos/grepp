@@ -1,8 +1,9 @@
-package org.smlt.tools.wgrep.filters
+package org.smlt.tools.wgrep.filters.entry
 
 import groovy.util.logging.Slf4j
 
 import java.util.regex.Matcher
+import org.smlt.tools.wgrep.filters.FilterBase
 
 /**
  * Class which provides simple matching of a line to a pattern. <br> 

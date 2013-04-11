@@ -1,6 +1,7 @@
-package org.smlt.tools.wgrep.filters
+package org.smlt.tools.wgrep.filters.entry
 
-import groovy.util.logging.Slf4j;
+import groovy.util.logging.Slf4j
+import org.smlt.tools.wgrep.filters.FilterBase
 
 @Slf4j
 class PrintFilter extends FilterBase{
