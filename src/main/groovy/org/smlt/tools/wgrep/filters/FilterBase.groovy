@@ -119,11 +119,12 @@ class FilterBase extends ModuleBase {
         log.trace("attempting to pass to next filter")
         if (nextFilter != null)
         {
+            log.trace("nextFilter " + nextFilter.getClass())
             return nextFilter.filter(blockData)
         }
         else
         {
-			log.warn("is last in chain")
+			log.trace("is last in chain")
 			return blockData
         }
     }

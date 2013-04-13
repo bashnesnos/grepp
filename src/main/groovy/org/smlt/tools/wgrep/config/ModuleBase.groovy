@@ -19,7 +19,7 @@ class ModuleBase {
 	 */
 	
 	ModuleBase() {
-		log.warn("Creating without config")
+		log.trace("Creating without config")
 	}
 	
 	/**

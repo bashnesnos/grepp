@@ -12,15 +12,8 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 WgrepConfig config = new WgrepConfig(WGREP_CONFIG)
 WgrepFacade facade = new WgrepFacade(config)
 
-        config.processInVars(["-ti","test", HOME+"\\fpTest_*"])
-        config.refreshConfigByFileName(config.getParam('FILES')[0])
+facade.doProcessing(["-t", "oo", "--some_timings", HOME+"\\processing_report_test.log"])
 		
-def expectedResult = """\
-#
-$testTimeString 05:05:56,951 [ACTIVE] ThreadStart: '22' 
-Foo Koo
-
-"""
     
 
 // println actualResult.toString()

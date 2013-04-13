@@ -137,16 +137,13 @@ class LogEntryFilter extends FilterBase{
     def passNext(def blockData)
     {
         String passingBlock = curBlock.toString()
+        startNewBlock(blockData)
         try {
             return super.passNext(passingBlock)                
         }
         catch(TimeToIsOverduedException e) {
             clearBuffer()
             throw e
-        }
-        finally
-        {
-            startNewBlock(blockData)
         }
     }
 
