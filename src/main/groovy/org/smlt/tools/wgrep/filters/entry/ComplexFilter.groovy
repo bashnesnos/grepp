@@ -39,26 +39,26 @@ class ComplexFilter extends FilterBase {
 	ComplexFilter(FilterBase nextFilter_, WgrepConfig config)
 	{
 		super(nextFilter_, config)
-		setPattern(getFilterPattern())
+		
 		log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
-		pt_tag = getParam('PRESERVE_THREAD')
+		pt_tag = configInstance.getParam('PRESERVE_THREAD')
 		use(DOMCategory)
 		{
 			if (pt_tag != null)
 			{
-				def extrctrs = getRoot().custom.thread_configs.extractor.findAll { it.'@tags' =~ pt_tag }
+				def extrctrs = configInstance.getParam('root').custom.thread_configs.extractor.findAll { it.'@tags' =~ pt_tag }
 				extrctrs.each { THRD_START_EXTRCTRS[it.text()] = it.'@qlfr' }
-				def pttrns = getRoot().custom.thread_configs.pattern.findAll { it.'@tags' =~ pt_tag }
+				def pttrns = configInstance.getParam('root').custom.thread_configs.pattern.findAll { it.'@tags' =~ pt_tag }
 				pttrns.each { this."${it.'@clct'}".add(it.text()) }
 			}
 		}
-		processExtendedPattern(filterPtrn)
+		processExtendedPattern(configInstance.getParam('FILTER_PATTERN'))
 	}
 
 	@Override
 	boolean isConfigValid() {
 		boolean checkResult = super.isConfigValid()
-		if (getParam('FILTER_PATTERN') == null)
+		if (configInstance.getParam('FILTER_PATTERN') == null)
 		{
 			log.warn('FILTER_PATTERN is not specified')
 			checkResult = false
@@ -157,9 +157,9 @@ class ComplexFilter extends FilterBase {
 	 */
 
 	@Override
-	boolean check(def blockData) {
+	boolean check(Object blockData) {
 		if (!blockData instanceof String) throw new IllegalArgumentException("blockData should be String")
-		setPattern(PATTERN.toString())
+		String filterPtrn = PATTERN.toString()
 		Matcher blockMtchr = blockData =~ filterPtrn
 		return blockMtchr.find()
 	}
@@ -169,7 +169,8 @@ class ComplexFilter extends FilterBase {
 	 */
 	
 	@Override
-	public void beforePassing(def blockData) {
+	public void beforePassing(Object blockData) {
+		super.beforePassing(blockData)
 		if (isThreadPreserveEnabled())
 		{
 			extractThreadPatterns(blockData)

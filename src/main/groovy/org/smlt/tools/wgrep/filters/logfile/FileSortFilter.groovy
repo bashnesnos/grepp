@@ -32,8 +32,8 @@ class FileSortFilter extends FilterBase {
 	}
 
 	@Override
-	def passNext(def files) {
-		return super.passNext(fileList)
+	void beforePassing(def files) {
+		passingVal = fileList
 	}
 
 	/**

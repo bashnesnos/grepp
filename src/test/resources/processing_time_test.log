@@ -1,22 +1,22 @@
-#TEST_TIME# 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+#TEST_TIME_FROM#:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
 
-#TEST_TIME# 05:06:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
+#TEST_TIME_TO#:06:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
 Too
-#TEST_TIME# 05:07:56,951 [ACTIVE] ThreadStart: '5' 
+#TEST_TIME_TOO_FAR#:07:56,951 [ACTIVE] ThreadStart: '5' 
 Boo
 
-#TEST_TIME# 05:08:56,951 [ACTIVE] ThreadStart: '7' 
+#TEST_TIME_TOO_FAR#:08:56,951 [ACTIVE] ThreadStart: '7' 
 Moo
 
-#TEST_TIME# 06:05:57,951 [ACTIVE] ThreadStart: '22' ThreadEnd1
+#TEST_TIME_TOO_FAR#:05:57,951 [ACTIVE] ThreadStart: '22' ThreadEnd1
 Goo
-#TEST_TIME# 07:05:56,951 [ACTIVE] ThreadStart: '1' 
+#TEST_TIME_TOO_FAR#:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo Man Chu
 #basic
-#TEST_TIME# 08:05:57,952 [ACTIVE] ThreadStart: '1' SkipPattern
+#TEST_TIME_TOO_FAR#:05:57,952 [ACTIVE] ThreadStart: '1' SkipPattern
 Loo
-#TEST_TIME# 09:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
+#TEST_TIME_TOO_FAR#:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
 Voo
 #complex
 2013-03-26 10:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2

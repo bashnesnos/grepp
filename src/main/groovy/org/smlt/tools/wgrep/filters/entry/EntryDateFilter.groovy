@@ -22,6 +22,7 @@ class EntryDateFilter extends FilterBase{
     private Date FROM_DATE
     private Date TO_DATE
     private boolean isDateFromPassed = false
+    private logDatePtrn = null
 
 	/**
 	 * Creates new EntryDateFilter on top of the supplied filter chain. <br>
@@ -31,7 +32,7 @@ class EntryDateFilter extends FilterBase{
 	 * @param config WgrepConfig instance
 	 */
     EntryDateFilter(FilterBase nextFilter_, WgrepConfig config) {
-		super(nextFilter_, null, config)
+		super(nextFilter_, config)
 		fillRefreshableParams()        
 		FROM_DATE = configInstance.getParam('FROM_DATE')
         TO_DATE = configInstance.getParam('TO_DATE')
@@ -41,7 +42,7 @@ class EntryDateFilter extends FilterBase{
 	@Override
     boolean isConfigValid() {
         boolean checkResult = super.isConfigValid()
-        if (getParam('FROM_DATE') == null && getParam('TO_DATE')  == null)
+        if (configInstance.getParam('FROM_DATE') == null && configInstance.getParam('TO_DATE')  == null)
         {
             log.warn('Both FROM_DATE and TO_DATE are not specified')
         }
@@ -54,8 +55,8 @@ class EntryDateFilter extends FilterBase{
 	 */
     void fillRefreshableParams()
     {
-        setPattern(getParam('LOG_DATE_PATTERN'))
-        def logDateFormatPtrn = getParam('LOG_DATE_FORMAT')
+        logDatePtrn = configInstance.getParam('LOG_DATE_PATTERN')
+        def logDateFormatPtrn = configInstance.getParam('LOG_DATE_FORMAT')
         if (logDateFormatPtrn != null) DATE_FORMAT = new SimpleDateFormat(logDateFormatPtrn)
     }
 
@@ -70,7 +71,7 @@ class EntryDateFilter extends FilterBase{
 	@Override
     boolean check(def blockData)
     {
-        if (blockData != null && filterPtrn != null && DATE_FORMAT != null)
+        if (blockData != null && logDatePtrn != null && DATE_FORMAT != null)
         {
            
             Date entryDate = null
@@ -80,8 +81,8 @@ class EntryDateFilter extends FilterBase{
                 String timeString = null
                 if (blockData instanceof String) 
                 {
-                    log.trace("Checking log entry " + blockData + " for log date pattern |" + filterPtrn + "| and formatting to |" +  DATE_FORMAT.toPattern() + "|")
-                    Matcher entryDateMatcher = (blockData =~ filterPtrn)
+                    log.trace("Checking log entry " + blockData + " for log date pattern |" + logDatePtrn + "| and formatting to |" +  DATE_FORMAT.toPattern() + "|")
+                    Matcher entryDateMatcher = (blockData =~ logDatePtrn)
                     if (entryDateMatcher.find())
                     {
                         timeString = entryDateMatcher.group(1)
@@ -144,7 +145,7 @@ class EntryDateFilter extends FilterBase{
 	 * 
 	 */
 	@Override
-    def processEvent(Event event) {
+    boolean processEvent(Event event) {
         switch (event)
         {
             case Event.FILE_ENDED:
@@ -153,7 +154,7 @@ class EntryDateFilter extends FilterBase{
             default:
                 break
         }
-        super.processEvent(event)
+        return super.processEvent(event)
     }
 
 }

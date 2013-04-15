@@ -48,8 +48,8 @@ class FileNameFilter extends FilterBase
     * Passes analyzed List<File> instead of receieved fileNames in <code>this.filter</code>
     */
 	@Override
-    def passNext(def fileNames) {
-        return super.passNext(fileList)
+    void beforePassing(def fileNames) {
+        passingVal = fileList
     }
 
 	/**

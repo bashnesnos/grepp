@@ -41,23 +41,23 @@ class PostFilter extends FilterBase {
     PostFilter(FilterBase nextFilter_, WgrepConfig config)
     {
         super(nextFilter_, config)
-		def pp_tag = getParam('POST_PROCESSING')
+		def pp_tag = configInstance.getParam('POST_PROCESSING')
         log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
         use(DOMCategory)
         {
             log.trace("Looking for splitters of type=" + pp_tag)
-            def pttrns = getRoot().custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
+            def pttrns = configInstance.getParam('root').custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
             log.trace("Patterns found=" + pttrns)
             if (pttrns != null)
             {
                 pttrns.sort { it.'@order' }
                 pttrns.each { ptrn_node ->
-                    String pttrn = getCDATA(ptrn_node)
+                    String pttrn = configInstance.getCDATA(ptrn_node)
                     setSeparator(ptrn_node.'@sep')
                     POST_PROCESS_PTTRNS.add(pttrn)
                     PATTERN.append(pttrn).append(Qualifier.and.getPattern())
-                    def splitter_type = getRoot().pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
+                    def splitter_type = configInstance.getParam('root').pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
                     def handler = splitter_type.'@handler'
                     POST_PROCESS_DICT[pttrn] = handler
                     if (splitter_type.'@handler_type' ==~ "group_method")
@@ -98,13 +98,13 @@ class PostFilter extends FilterBase {
                 }
                 else 
                 {
-                    POST_PROCESS_SEP = getRoot().pp_config.'@default_sep'[0]
+                    POST_PROCESS_SEP = configInstance.getParam('root').pp_config.'@default_sep'[0]
                 }
                 log.trace("Looking for separator=" + POST_PROCESS_SEP)
                 
-                def sep = getRoot().pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
+                def sep = configInstance.getParam('root').pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
                 POST_PROCESS_SEP = sep.text()
-                if (sep.'@spool' != null) setSpoolingExt(sep.'@spool')
+                if (sep.'@spool' != null) configInstance.setParam('SPOOLING_EXT', (sep.'@spool'))
         }
     }
 
@@ -122,9 +122,9 @@ class PostFilter extends FilterBase {
     boolean check(def blockData)
     {
         result = null //invalidating result first
-        setPattern(PATTERN.toString())
+        String postFilterPtrn = PATTERN.toString()
         printHeader()
-        Matcher postPPatternMatcher = blockData =~ filterPtrn
+        Matcher postPPatternMatcher = blockData =~ postFilterPtrn
         if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
         {
             result = new StringBuilder("")
@@ -141,9 +141,9 @@ class PostFilter extends FilterBase {
     */
 
     @Override
-    def passNext(def blockData)
+    void beforePassing(def blockData)
     {
-        return super.passNext(result.toString())
+        passingVal = result.toString()
     }
 	
 	/**
@@ -333,7 +333,7 @@ class PostFilter extends FilterBase {
 	 * Listens for ALL_FILES_PROCESSED event to trigger all groups processing.
 	 * 
 	 */
-    def processEvent(Event event) {
+    boolean processEvent(Event event) {
         switch (event)
         {
             case Event.ALL_FILES_PROCESSED:
@@ -342,7 +342,7 @@ class PostFilter extends FilterBase {
             default:
                 break
         }
-        super.processEvent(event)
+        return super.processEvent(event)
     }
 
 }

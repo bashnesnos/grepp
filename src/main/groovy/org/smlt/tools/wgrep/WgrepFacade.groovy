@@ -3,6 +3,7 @@ package org.smlt.tools.wgrep
 import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.processors.FileProcessor
+import org.smlt.tools.wgrep.config.ModuleBase;
 
 /**
  * A Facade linking config and modules. Provides facade methods to do the processing.
@@ -10,10 +11,8 @@ import org.smlt.tools.wgrep.processors.FileProcessor
  * @author Alexander Semelit 
  */
 @Slf4j
-class WgrepFacade {
+class WgrepFacade extends ModuleBase {
 	private Date startTime = new Date()
-
-	private WgrepConfig configInstance = null
 
 	private FileProcessor fProcessor = null
 
@@ -24,7 +23,7 @@ class WgrepFacade {
 	*/
 
 	WgrepFacade(WgrepConfig config) {
-		configInstance = config
+		super(config)
 	}
 
 	//Getters

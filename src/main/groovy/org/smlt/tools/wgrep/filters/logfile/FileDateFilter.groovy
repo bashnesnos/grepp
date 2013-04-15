@@ -31,10 +31,10 @@ class FileDateFilter extends FilterBase
 
     FileDateFilter(FilterBase nextFilter_, WgrepConfig config)
     {
-        super(nextFilter_, null, config)
-        FROM_DATE = getParam('FROM_DATE')
-        TO_DATE = getParam('TO_DATE')
-        FILE_DATE_FORMAT = new SimpleDateFormat(getParam('FILE_DATE_FORMAT'))
+        super(nextFilter_, config)
+        FROM_DATE = configInstance.getParam('FROM_DATE')
+        TO_DATE = configInstance.getParam('TO_DATE')
+        FILE_DATE_FORMAT = new SimpleDateFormat(configInstance.getParam('FILE_DATE_FORMAT'))
 		fillRefreshableParams()
     }
 	
@@ -45,7 +45,7 @@ class FileDateFilter extends FilterBase
 	@Override
     boolean isConfigValid() {
         boolean checkResult = super.isConfigValid()
-        if (getParam('FROM_DATE') == null && getParam('TO_DATE')  == null)
+        if (configInstance.getParam('FROM_DATE') == null && configInstance.getParam('TO_DATE')  == null)
         {
             log.warn('Both FROM_DATE and TO_DATE are not specified')
         }
@@ -56,7 +56,7 @@ class FileDateFilter extends FilterBase
 	 *  Refreshes LOG_FILE_THRESHOLD
 	 */
     void fillRefreshableParams() {
-        def trshld = getParam('LOG_FILE_THRESHOLD') 
+        def trshld = configInstance.getParam('LOG_FILE_THRESHOLD') 
         if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(trshld)
     }
 	
@@ -83,8 +83,8 @@ class FileDateFilter extends FilterBase
 	 * @return <code>super.passNext</code> result
 	 */
 	@Override
-    def passNext(def files) {
-        return super.passNext(fileList)        
+    void beforePassing(def files) {
+        passingVal = fileList
     }
 
     /**
@@ -98,6 +98,7 @@ class FileDateFilter extends FilterBase
         if (file == null) return
         Date fileTime = new Date(file.lastModified())
         log.trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
+        log.trace("Checking if file suits FROM " + FROM_DATE == null ? null : FILE_DATE_FORMAT.format(FROM_DATE))
         if (FROM_DATE == null || FROM_DATE.compareTo(fileTime) <= 0)
         {
             if (TO_DATE != null)
@@ -133,7 +134,7 @@ class FileDateFilter extends FilterBase
 	 */
 	
 	@Override
-    def processEvent(Event event) {
+    boolean processEvent(Event event) {
         switch (event)
         {
             case Event.CONFIG_REFRESHED:
@@ -142,7 +143,7 @@ class FileDateFilter extends FilterBase
             default:
                 break
         }
-        super.processEvent(event)
+        return super.processEvent(event)
     }
 
 }

@@ -35,6 +35,7 @@ class PrintFilter extends FilterBase{
 	 */
 	@Override
 	void beforePassing(def blockData) {
+		super.beforePassing(blockData)
 		println blockData
 	}
 

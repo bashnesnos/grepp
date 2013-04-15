@@ -125,6 +125,7 @@ class FileProcessor extends ModuleBase
         }
         catch(TimeToIsOverduedException e) {
             log.trace("No point to read file further since supplied date TO is overdued")
+            filterChain.processEvent(Event.FLUSH)
         }
 		
 		if (!isMerging) filterChain.processEvent(Event.FILE_ENDED)

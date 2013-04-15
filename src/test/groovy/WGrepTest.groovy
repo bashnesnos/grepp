@@ -229,8 +229,10 @@ Foo Man Chu
     {
         
         def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
-        def testTimeString = dateFormat.format(fileTime)
+        def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
+        def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
+        def testTimeStringFrom = dateFormat.format(fileTime)
+        def testTimeStringTo = dateFormat.format(new Date(fileTime.getTime() + 60*60*1000))
 
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
@@ -239,7 +241,7 @@ Foo Man Chu
 
         try
         {
-            facade.doProcessing(["Foo", "--dtime", testTimeString+"T05", testTimeString+"T06", HOME+"\\processing_time_test.log"])
+            facade.doProcessing(["Foo", "--dtime", testTimeStringFrom, testTimeStringTo, HOME+"\\processing_time_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -267,7 +269,7 @@ Foo Man Chu
 
 def expectedResult = """\
 #
-$testTimeString 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
 
 """
@@ -279,8 +281,9 @@ Foo Koo
     {
         
         def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
-        def testTimeString = dateFormat.format(fileTime)
+        def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
+        def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
+        def testTimeStringFrom = dateFormat.format(fileTime)
 
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
@@ -289,7 +292,7 @@ Foo Koo
 
         try
         {
-            facade.doProcessing(["Foo", "--dtime", testTimeString+"T05", "+", HOME+"\\processing_time_test.log"])
+            facade.doProcessing(["Foo", "--dtime", testTimeStringFrom, "+", HOME+"\\processing_time_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -317,10 +320,10 @@ Foo Koo
 
 def expectedResult = """\
 #
-$testTimeString 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
 
-$testTimeString 07:05:56,951 [ACTIVE] ThreadStart: '1' 
+${logDateFormat.format(new Date(fileTime.getTime() + 3*60*60*1000))}:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo Man Chu
 #basic
 """
@@ -332,8 +335,10 @@ Foo Man Chu
     {
         
         def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
-        def testTimeString = dateFormat.format(fileTime)
+        def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
+        def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
+        def testTimeStringTo = dateFormat.format(new Date(fileTime.getTime() + 60*60*1000))
+
 
         def oldStdout = System.out
         def pipeOut = new PipedOutputStream()
@@ -342,7 +347,7 @@ Foo Man Chu
 
         try
         {
-            facade.doProcessing(["Foo", "--dtime", "+", testTimeString+"T06", HOME+"\\processing_time_test.log"])
+            facade.doProcessing(["Foo", "--dtime", "+", testTimeStringTo, HOME+"\\processing_time_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()
@@ -370,7 +375,7 @@ Foo Man Chu
 
 def expectedResult = """\
 #
-$testTimeString 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
 
 """

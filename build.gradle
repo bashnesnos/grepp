@@ -38,9 +38,12 @@ test {
 }
 
 processTestResources {
-    def dateFormat = new SimpleDateFormat('yyyy-MM-dd')
+    def dateFormat = new SimpleDateFormat('yyyy-MM-dd HH')
+    def curDate = new Date()
     filter { String line ->
-        line.replace('#TEST_TIME#', dateFormat.format(new Date()))
+            line.replace('#TEST_TIME_FROM#', dateFormat.format(curDate))
+                .replace('#TEST_TIME_TO#', dateFormat.format(new Date(curDate.getTime() + 60*60*1000)))
+                .replace('#TEST_TIME_TOO_FAR#', dateFormat.format(new Date(curDate.getTime() + 3*60*60*1000)))
     }   
     doLast {
         def cfgDoc = DOMBuilder.parse(new FileReader(rootDir.getAbsolutePath() + '/build/resources/main/config.xml'))

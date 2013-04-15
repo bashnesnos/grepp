@@ -21,6 +21,7 @@ class LogEntryFilter extends FilterBase{
 
     private boolean isBlockMatched = false;
     private def curBlock = null;
+    private logEntryPtrn = null
 
     /**
     * Creates filter on top of supplied fiter chain basing on supplied WgrepConfig instance.
@@ -37,7 +38,7 @@ class LogEntryFilter extends FilterBase{
     @Override
     boolean isConfigValid() {
         boolean checkResult = super.isConfigValid()
-        if (getParam('LOG_ENTRY_PATTERN') == null)
+        if (configInstance.getParam('LOG_ENTRY_PATTERN') == null)
         {
             log.warn('LOG_ENTRY_PATTERN is not specified')
         }
@@ -45,7 +46,7 @@ class LogEntryFilter extends FilterBase{
     }
 
 	void fillRefreshableParams() {
-		setPattern(getParam('LOG_ENTRY_PATTERN'))
+		logEntryPtrn = configInstance.getParam('LOG_ENTRY_PATTERN')
 	}
 
     /**
@@ -58,7 +59,7 @@ class LogEntryFilter extends FilterBase{
     @Override
     boolean check(def blockData)
     {
-        Matcher entryMtchr = blockData =~ filterPtrn
+        Matcher entryMtchr = blockData =~ logEntryPtrn
         if ( entryMtchr.find() )
         {
             if (!isBlockMatched)
@@ -126,6 +127,18 @@ class LogEntryFilter extends FilterBase{
         curBlock.setLength(0)
     }
 
+
+    /**
+    * Flushes all state
+    *
+    */
+
+    private void flush()
+    {
+        clearBuffer()
+        passingVal = null
+    }
+
     /**
     * Overrided passNext, which passes accumulated block instead of recieved by filter method. <br>
     * Also it clears current buffer data, and starts new block accumulating.
@@ -134,17 +147,10 @@ class LogEntryFilter extends FilterBase{
     */
     
     @Override
-    def passNext(def blockData)
+    void beforePassing(def blockData)
     {
-        String passingBlock = curBlock.toString()
+        passingVal = curBlock.toString()
         startNewBlock(blockData)
-        try {
-            return super.passNext(passingBlock)                
-        }
-        catch(TimeToIsOverduedException e) {
-            clearBuffer()
-            throw e
-        }
     }
 
     /**
@@ -153,19 +159,22 @@ class LogEntryFilter extends FilterBase{
     */
 
     @Override
-    def processEvent(Event event) {
+    boolean processEvent(Event event) {
         switch (event)
         {
             case Event.FILE_ENDED:
-                passNext(null)
+                passNext()
                 break
             case Event.CONFIG_REFRESHED:
                 fillRefreshableParams()
                 break
+            case Event.FLUSH:
+                flush()
+                break
             default:
                 break
         }
-        super.processEvent(event)
+        return super.processEvent(event)
     }
 
 }

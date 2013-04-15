@@ -2,7 +2,6 @@ package org.smlt.tools.wgrep.filters
 
 import groovy.util.logging.Slf4j;
 
-import org.smlt.tools.wgrep.config.ModuleBase;
 import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.*
 
@@ -13,9 +12,10 @@ import org.smlt.tools.wgrep.filters.enums.*
  */
 
 @Slf4j
-class FilterBase extends ModuleBase {
+class FilterBase {
     protected FilterBase nextFilter
-    protected def filterPtrn
+    protected WgrepConfig configInstance
+    protected Object passingVal
 
     /**
     * Full constructor.
@@ -24,22 +24,11 @@ class FilterBase extends ModuleBase {
     * @param config initialized WgrepConfig instance
     */
 
-	FilterBase(FilterBase nextFilter_, def filterPtrn_, WgrepConfig config) {
-		super(config)
-		nextFilter = nextFilter_
-		filterPtrn = filterPtrn_
-	}
-
-    /**
-    * Cut constructor version. Used for filters providing self-configuring by config
-    * @param nextFilter_ next filter to pass results to
-    * @param config initialized WgrepConfig instance
-    */
-
 	FilterBase(FilterBase nextFilter_, WgrepConfig config) {
-		this(nextFilter_, null, config)
+		configInstance = config
+		nextFilter = nextFilter_
 	}
-	
+
     /**
     * Constructor version for simple filters, which do not require a config.
     * @param nextFilter_ next filter to pass results to
@@ -49,16 +38,6 @@ class FilterBase extends ModuleBase {
 		nextFilter = nextFilter_
 	}
 	
-    /**
-    * Setter for filter pattern
-    * @param ptrn value to be set as filter pattern
-    */
-
-    void setPattern(def ptrn) {
-        filterPtrn = ptrn
-        log.trace("Set filter pattern to /" + filterPtrn + "/")
-    }
-
 
     /**
     * Main filtering method. Sequence is the following:
@@ -71,7 +50,8 @@ class FilterBase extends ModuleBase {
     * @return result of {@link this.passNext} method if check passed, null otherwise
     */
 
-    def filter(def blockData)  {
+    Object filter(Object blockData)  {
+        passingVal = null //invalidating passingVal
         if (check(blockData))
         {
 			beforePassing(blockData)
@@ -91,7 +71,7 @@ class FilterBase extends ModuleBase {
     * @return true if data is ok to be passed, false otherwise
     */
 
-    boolean check(def blockData)
+    boolean check(Object blockData)
     {
         return true
     }
@@ -102,8 +82,8 @@ class FilterBase extends ModuleBase {
     * @param blockData which is ok to be passed further
     */
 
-	void beforePassing(def blockData) {
-		
+	void beforePassing(Object blockData) {
+
 	}
 	
     /**
@@ -114,18 +94,18 @@ class FilterBase extends ModuleBase {
     * @return blockData if <code>this</code> is last in chain, result of <code>nextFilter.filter(blockData)</code> otherwise.
     */
 
-    def passNext(def blockData)
+    Object passNext(Object blockData)
     {
         log.trace("attempting to pass to next filter")
         if (nextFilter != null)
         {
             log.trace("nextFilter " + nextFilter.getClass())
-            return nextFilter.filter(blockData)
+            return nextFilter.filter( passingVal != null ? passingVal : blockData )
         }
         else
         {
 			log.trace("is last in chain")
-			return blockData
+			return passingVal != null ? passingVal : blockData 
         }
     }
 
@@ -148,7 +128,7 @@ class FilterBase extends ModuleBase {
     * @return result of <code>nextFilter.processEvent</code> and true if it doesn't have next filter (i.e. all filters in chain has processed that event).
     */
 
-    def processEvent(Event event) {
+    boolean processEvent(Event event) {
         log.trace("Passing event: " + event)
         if (nextFilter != null)
         {
