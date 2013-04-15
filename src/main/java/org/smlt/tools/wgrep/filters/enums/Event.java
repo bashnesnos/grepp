@@ -1,4 +1,4 @@
-package org.smlt.tools.wgrep.filters.enums
+package org.smlt.tools.wgrep.filters.enums;
 
 /**
  * Simple enum representing possible events for filter chains.
@@ -6,7 +6,7 @@ package org.smlt.tools.wgrep.filters.enums
  * @author Alexander Semelit
  *
  */
-enum Event { 
+public enum Event { 
     FILE_ENDED,
 	 ALL_FILES_PROCESSED,
 	  CONFIG_REFRESHED,

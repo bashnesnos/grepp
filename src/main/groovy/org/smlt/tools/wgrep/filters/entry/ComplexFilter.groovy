@@ -1,12 +1,13 @@
 package org.smlt.tools.wgrep.filters.entry
 
-import java.util.regex.Matcher
-import org.smlt.tools.wgrep.config.WgrepConfig
-import org.smlt.tools.wgrep.filters.enums.*
-import org.smlt.tools.wgrep.filters.FilterBase
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.smlt.tools.wgrep.config.WgrepConfig;
+import org.smlt.tools.wgrep.filters.enums.*;
+import org.smlt.tools.wgrep.filters.FilterBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import groovy.util.logging.Slf4j;
-import groovy.xml.dom.DOMCategory
 
 /**
  * 
@@ -16,19 +17,19 @@ import groovy.xml.dom.DOMCategory
  * @author Alexander Semelit
  *
  */
-@Slf4j
+
 class ComplexFilter extends FilterBase {
 
 	//Complex pattern processing and stuff
-	StringBuilder PATTERN = new StringBuilder("(?ms)") //for multiline support
-	List EXTNDD_PTTRNS = []
-	Map EXTNDD_PTTRN_DICT = [:]
+	StringBuilder PATTERN = new StringBuilder("(?ms)"); //for multiline support
+	List EXTNDD_PTTRNS = new ArrayList();
+	Map EXTNDD_PTTRN_DICT = new HashMap();
 
-	String pt_tag = null
-	Map THRD_START_EXTRCTRS =[:]
-	List THRD_START_PTTRNS = []
-	List THRD_SKIP_END_PTTRNS = []
-	List THRD_END_PTTRNS =[]
+	Map THRD_START_EXTRCTRS;
+	List THRD_START_PTTRNS;
+	List THRD_SKIP_END_PTTRNS;
+	List THRD_END_PTTRNS;
+	private final Logger log = LoggerFactory.getLogger(ComplexFilter.class);
 
 	/**
 	 * Initializes configInstance, filterPattern and thread coupling config from config.xml
@@ -36,34 +37,17 @@ class ComplexFilter extends FilterBase {
 	 * @param nextFilter_ next filter in chain
 	 * @param config WgrepConfig instance is needed to get supplied params.
 	 */
-	ComplexFilter(FilterBase nextFilter_, WgrepConfig config)
+	ComplexFilter(FilterBase nextFilter_, String filterPattern, Map preserveParams)
 	{
-		super(nextFilter_, config)
-		
-		log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
-		pt_tag = configInstance.getParam('PRESERVE_THREAD')
-		use(DOMCategory)
-		{
-			if (pt_tag != null)
-			{
-				def extrctrs = configInstance.getParam('root').custom.thread_configs.extractor.findAll { it.'@tags' =~ pt_tag }
-				extrctrs.each { THRD_START_EXTRCTRS[it.text()] = it.'@qlfr' }
-				def pttrns = configInstance.getParam('root').custom.thread_configs.pattern.findAll { it.'@tags' =~ pt_tag }
-				pttrns.each { this."${it.'@clct'}".add(it.text()) }
-			}
+		super(nextFilter_);
+		THRD_START_EXTRCTRS = preserveParams.get("THRD_START_EXTRCTRS");
+		THRD_START_PTTRNS = preserveParams.get("THRD_START_PTTRNS") != null ? preserveParams.get("THRD_START_PTTRNS") : new ArrayList();
+		THRD_SKIP_END_PTTRNS= preserveParams.get("THRD_SKIP_END_PTTRNS") != null ? preserveParams.get("THRD_SKIP_END_PTTRNS") : new ArrayList();
+		THRD_END_PTTRNS= preserveParams.get("THRD_END_PTTRNS") != null ? preserveParams.get("THRD_END_PTTRNS") : new ArrayList();
+		if (this.log.isTraceEnabled()) {
+			this.log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());	
 		}
-		processExtendedPattern(configInstance.getParam('FILTER_PATTERN'))
-	}
-
-	@Override
-	boolean isConfigValid() {
-		boolean checkResult = super.isConfigValid()
-		if (configInstance.getParam('FILTER_PATTERN') == null)
-		{
-			log.warn('FILTER_PATTERN is not specified')
-			checkResult = false
-		}
-		return checkResult
+		processExtendedPattern(filterPattern);
 	}
 
 	/**
@@ -75,16 +59,18 @@ class ComplexFilter extends FilterBase {
 
 	void addExtendedFilterPattern(String val, String qualifier)
 	{
-		log.trace("adding complex pattern: val=" + val + " qual=" + qualifier)
+		if (this.log.isTraceEnabled()) this.log.trace("adding complex pattern: val=" + val + " qual=" + qualifier);
 
-		if (qualifier != null) PATTERN = PATTERN.append(Qualifier.valueOf(qualifier).getPattern())
-		PATTERN = PATTERN.append(val)
+		if (qualifier != null) PATTERN = PATTERN.append(Qualifier.valueOf(qualifier).getPattern());
+		PATTERN = PATTERN.append(val);
 
-		EXTNDD_PTTRNS.add(val)
-		EXTNDD_PTTRN_DICT[val] = qualifier ? Qualifier.valueOf(qualifier) : null
+		EXTNDD_PTTRNS.add(val);
+		EXTNDD_PTTRN_DICT.put(val, qualifier ? Qualifier.valueOf(qualifier) : null);
 
-		log.trace(EXTNDD_PTTRNS.toString())
-		log.trace(EXTNDD_PTTRN_DICT.toString())
+		if (this.log.isTraceEnabled()) {
+			this.log.trace(EXTNDD_PTTRNS.toString());
+			this.log.trace(EXTNDD_PTTRN_DICT.toString());
+		}
 	}
 
 	/**
@@ -94,15 +80,15 @@ class ComplexFilter extends FilterBase {
 	 */
 	void removeExtendedFilterPattern(String val)
 	{
-		Qualifier qlfr = EXTNDD_PTTRN_DICT[val]
-		String ptrn = (qlfr ? qlfr.getPattern() : '') + val
-		int ptrnIndex = PATTERN.indexOf(ptrn)
-		log.trace('to delete:/' + ptrn +'/ index:' + ptrnIndex)
+		Qualifier qlfr = EXTNDD_PTTRN_DICT.get(val);
+		String ptrn = (qlfr ? qlfr.getPattern() : "") + val;
+		int ptrnIndex = PATTERN.indexOf(ptrn);
+		if (this.log.isTraceEnabled()) this.log.trace("to delete:/" + ptrn +"/ index:" + ptrnIndex)
 		if (ptrnIndex != -1)
 		{
-			PATTERN = PATTERN.delete(ptrnIndex, ptrnIndex + ptrn.length())
-			EXTNDD_PTTRNS.remove(val)
-			EXTNDD_PTTRN_DICT.remove(val)
+			PATTERN = PATTERN.delete(ptrnIndex, ptrnIndex + ptrn.length());
+			EXTNDD_PTTRNS.remove(val);
+			EXTNDD_PTTRN_DICT.remove(val);
 		}
 	}
 
@@ -113,40 +99,43 @@ class ComplexFilter extends FilterBase {
 	 */
 	void processExtendedPattern(String val)
 	{
-		String filterPattern = null
-		String qRegex = ""
-		Qualifier.each { qRegex += '%' + it + '%|' }
-		qRegex = qRegex[0..qRegex.size()-2] //removing last |
-		Matcher qualifierMatcher = (val =~ /$qRegex/) //matching any qualifiers with % signs
+		String filterPattern = null;
+		String qRegex = "";
+		for (Qualifier it: Qualifier.values()) {
+			qRegex += qRegex.size() > 0 ? "|%" + it + "%" : "%" + it + "%";
+		}
+		qRegex = qRegex.substring(0, qRegex.size()-2); //removing last |
+		
+		Matcher qualifierMatcher = Pattern.compile(qRegex).matcher(val); //matching any qualifiers with % signs
 		if (qualifierMatcher.find())
 		{
-			log.trace('Processing complex pattern')
-			List tokens = val.tokenize("%")
-			String nextQualifier = null
+			if (this.log.isTraceEnabled()) this.log.trace("Processing complex pattern");
+			String[] tokens = val.split("%");
+			String nextQualifier = null;
 			if (tokens != null)
 			{
-				qRegex = qRegex.replaceAll(/%/, "") //matching only qualifier names
-				for (grp in tokens)
+				qRegex = qRegex.replaceAll("%", ""); //matching only qualifier names
+				for (String grp : tokens)
 				{
-					log.trace('Next group in match: ' + grp)
-					qualifierMatcher = (grp =~ /$qRegex/)
+					if (this.log.isTraceEnabled()) this.log.trace("Next group in match: " + grp);
+					qualifierMatcher = Pattern.compile(qRegex).matcher(grp);
 					if (qualifierMatcher.find())
 					{
-						nextQualifier = qualifierMatcher[0]
-						continue
+						nextQualifier = qualifierMatcher.group();
+						continue;
 					}
 
-					addExtendedFilterPattern(grp, nextQualifier)
-					nextQualifier = null
+					addExtendedFilterPattern(grp, nextQualifier);
+					nextQualifier = null;
 
 				}
 			}
-			else throw new IllegalArgumentException('Check your complex pattern:/' + val + '/')
+			else throw new IllegalArgumentException("Check your complex pattern:/" + val + "/");
 		}
 		else
 		{
-			log.trace('No extended pattern supplied, might be a preserve thread')
-			addExtendedFilterPattern(val, null)
+			if (this.log.isTraceEnabled()) this.log.trace("No extended pattern supplied, might be a preserve thread");
+			addExtendedFilterPattern(val, null);
 		}
 	}
 
@@ -158,10 +147,10 @@ class ComplexFilter extends FilterBase {
 
 	@Override
 	boolean check(Object blockData) {
-		if (!blockData instanceof String) throw new IllegalArgumentException("blockData should be String")
-		String filterPtrn = PATTERN.toString()
-		Matcher blockMtchr = blockData =~ filterPtrn
-		return blockMtchr.find()
+		if (!blockData instanceof String) throw new IllegalArgumentException("blockData should be String");
+		String filterPtrn = PATTERN.toString();
+		Matcher blockMtchr = blockData =~ filterPtrn;
+		return blockMtchr.find();
 	}
 
 	/**
@@ -170,10 +159,10 @@ class ComplexFilter extends FilterBase {
 	
 	@Override
 	public void beforePassing(Object blockData) {
-		super.beforePassing(blockData)
+		super.beforePassing(blockData);
 		if (isThreadPreserveEnabled())
 		{
-			extractThreadPatterns(blockData)
+			extractThreadPatterns(blockData);
 		}
 	}
 
@@ -184,11 +173,11 @@ class ComplexFilter extends FilterBase {
 	 */
 	boolean isThreadPreserveEnabled()
 	{
-		return pt_tag != null
+		return THRD_START_EXTRCTRS != null;
 	}
 
 	/**
-	 * Extracts thread patterns, and adds/keeps them if thread is not yet ended in the logs, or removes them is it has ended.
+	 * Extracts thread patterns, and adds/keeps them if thread is not yet ended in the this.logs, or removes them is it has ended.
 	 * 
 	 * @param data String already matched by filter pattern.
 	 */
@@ -196,12 +185,17 @@ class ComplexFilter extends FilterBase {
 	{
 		if (searchThreadEnds(data))
 		{
-			extractThreadStarts(data, "removeThreadStart")
+			for (Map.Entry<String, String> extractedStart: extractThreadStarts(data)) {
+				removeThreadStart(extractedStart.getKey(), extractedStart.getValue());
+			}
 		}
 		else
 		{
-			log.trace("Thread continues. Keeping starts")
-			extractThreadStarts(data, "addThreadStart")
+			if (this.log.isTraceEnabled()) this.log.trace("Thread continues. Keeping starts");
+			for (Map.Entry<String, String> extractedStart: extractThreadStarts(data)) {
+				addThreadStart(extractedStart.getKey(), extractedStart.getValue());
+			}
+
 		}
 	}
 
@@ -210,26 +204,27 @@ class ComplexFilter extends FilterBase {
 	 * For each tries to match supplied data, and if it matches passes matched string and qualifier to supplied method. 
 	 * 
 	 * @param data String already matched by filter pattern.
-	 * @param method which will be applied to extracted start and it's qualifier
+	 * @return collection of pairs <pattern,qualifier>
 	 */
-	void extractThreadStarts(String data, String method)
+	Map<String, String> extractThreadStarts(String data)
 	{
-		THRD_START_EXTRCTRS.each
-		{extrctr, qlfr ->
-			log.trace(extrctr);
-			Matcher extractorMatcher = (data =~ extrctr);
+		HashMap extractedStarts = new HashMap();
+		for (Map.Entry extractorEntry : THRD_START_EXTRCTRS) {
+			this.log.trace(extractorEntry.getKey());
+			Matcher extractorMatcher = Pattern.compile(extractorEntry.getKey()).matcher(data);
 			if (extractorMatcher.find())
 			{
-				def start = extractorMatcher[0]
-				log.trace("extracted; " + start)
-				this."$method"(start, qlfr)
+				def start = extractorMatcher.group();
+				this.log.trace("extracted; " + start);
+				extractedStarts.put(start, extractorEntry.getValue());
 			}
 		}
+		return extractedStarts;
 	}
 
 	/**
 	 * Applies <pattern> elements having THRD_END_PTTRNS collection as a parameter. <br>
-	 * If any is matched current data is considered as end of current log thread if any.
+	 * If any is matched current data is considered as end of current this.log thread if any.
 	 * 
 	 * @param data String already matched by filter pattern.
 	 * @return true if thread end was found, false otherwise
@@ -238,14 +233,16 @@ class ComplexFilter extends FilterBase {
 	{
 		if (!shouldBeSkipped(data))
 		{
-			def decision = THRD_END_PTTRNS.find
-			{ thrend ->
-				log.trace("thrend ptrn: " + thrend);
-				data =~ thrend
+			boolean decision = false;
+			Iterator endIter = THRD_END_PTTRNS.iterator();
+			while (!decision && endIter.hasNext()) {
+				String thrend = endIter.next();
+				this.log.trace("thrend ptrn: " + thrend);
+				decision = Pattern.compile(thrend).matcher(data).find();
 			}
-			return decision != null
+			return decision;
 		}
-		return false
+		return false;
 	}
 
 	/**
@@ -257,12 +254,14 @@ class ComplexFilter extends FilterBase {
 	 */
 	boolean shouldBeSkipped(String data)
 	{
-		def decision = THRD_SKIP_END_PTTRNS.find
-		{skip->
-			log.trace("skip ptrn: " + skip)
-			data =~ skip
+		boolean decision = false;
+		Iterator skipEndIter = THRD_SKIP_END_PTTRNS.iterator();
+		while (!decision && skipEndIter.hasNext()) {
+			String thrend = skipEndIter.next();
+			this.log.trace("thrend ptrn: " + thrend);
+			decision = Pattern.compile(thrend).matcher(data).find();
 		}
-		return decision != null
+		return decision;
 	}
 
 	/**
@@ -273,13 +272,13 @@ class ComplexFilter extends FilterBase {
 	 */
 	void addThreadStart(String start, String qlfr)
 	{
-		log.trace("adding thread start: " + start);
+		this.log.trace("adding thread start: " + start);
 		if (!THRD_START_PTTRNS.contains(start))
 		{
-			THRD_START_PTTRNS.add(start)
-			addExtendedFilterPattern(start, qlfr)
+			THRD_START_PTTRNS.add(start);
+			addExtendedFilterPattern(start, qlfr);
 		}
-		else log.trace("Start exists")
+		else this.log.trace("Start exists");
 	}
 
 	/**
@@ -290,7 +289,7 @@ class ComplexFilter extends FilterBase {
 	 */
 	void removeThreadStart(String start, String qlfr)
 	{
-		log.trace("removing thread start: " + start);
+		this.log.trace("removing thread start: " + start);
 		THRD_START_PTTRNS.remove(start);
 		removeExtendedFilterPattern(start);
 	}
