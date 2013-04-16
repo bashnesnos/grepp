@@ -16,7 +16,7 @@ import org.smlt.tools.wgrep.filters.FilterBase
  * @author Alexander Semelit
  *
  */
-@Slf4j
+
 class FileDateFilter extends FilterBase
 {
     //Checking dates everywhere
@@ -31,34 +31,14 @@ class FileDateFilter extends FilterBase
 
     FileDateFilter(FilterBase nextFilter_, WgrepConfig config)
     {
-        super(nextFilter_, config)
-        FROM_DATE = configInstance.getParam('FROM_DATE')
-        TO_DATE = configInstance.getParam('TO_DATE')
-        FILE_DATE_FORMAT = new SimpleDateFormat(configInstance.getParam('FILE_DATE_FORMAT'))
-		fillRefreshableParams()
-    }
-	
-	/**
-	 * Warns if specified FROM_DATE and TO_DATE are not specified
-	 */
-	
-	@Override
-    boolean isConfigValid() {
-        boolean checkResult = super.isConfigValid()
-        if (configInstance.getParam('FROM_DATE') == null && configInstance.getParam('TO_DATE')  == null)
-        {
-            log.warn('Both FROM_DATE and TO_DATE are not specified')
-        }
-        return checkResult
-    }
-
-	/**
-	 *  Refreshes LOG_FILE_THRESHOLD
-	 */
-    void fillRefreshableParams() {
-        def trshld = configInstance.getParam('LOG_FILE_THRESHOLD') 
+        super(nextFilter_, FileDateFilter.class)
+        FROM_DATE = config.getParam('FROM_DATE')
+        TO_DATE = config.getParam('TO_DATE')
+        FILE_DATE_FORMAT = new SimpleDateFormat(config.getParam('FILE_DATE_FORMAT'))
+		def trshld = config.getParam('LOG_FILE_THRESHOLD') 
         if (trshld != null) LOG_FILE_THRESHOLD = Integer.valueOf(trshld)
     }
+	
 	
 	/**
     * Checks supplied files if they exceed supplied time boundaries. <br>
@@ -71,7 +51,7 @@ class FileDateFilter extends FilterBase
     boolean check(def files) {
         if (! files instanceof List<File> ) throw new IllegalArgumentException("FileDateFilter accepts file list only")
         fileList = [] //invalidating fileList
-        log.trace("total files:" + files.size())
+        if (log.isTraceEnabled()) log.trace("total files:" + files.size())
         fileList = files.findAll { file -> checkFileTime(file) }
         return fileList != null && fileList.size() > 0
     }
@@ -97,53 +77,36 @@ class FileDateFilter extends FilterBase
     {
         if (file == null) return
         Date fileTime = new Date(file.lastModified())
-        log.trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
-        log.trace("Checking if file suits FROM " + FROM_DATE == null ? null : FILE_DATE_FORMAT.format(FROM_DATE))
+        if (log.isTraceEnabled()) log.trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
+        if (log.isTraceEnabled()) log.trace("Checking if file suits FROM " + FROM_DATE == null ? null : FILE_DATE_FORMAT.format(FROM_DATE))
         if (FROM_DATE == null || FROM_DATE.compareTo(fileTime) <= 0)
         {
             if (TO_DATE != null)
             {
-                log.trace(" Checking if file suits TO " +  FILE_DATE_FORMAT.format(TO_DATE))
+                if (log.isTraceEnabled()) log.trace(" Checking if file suits TO " +  FILE_DATE_FORMAT.format(TO_DATE))
                 if (TO_DATE.compareTo(fileTime) >= 0)
                 {
                     return true
                 }
                 if (TO_DATE.compareTo(fileTime) < 0)
                 {
-                    log.trace("Passed TO_DATE")
+                    if (log.isTraceEnabled()) log.trace("Passed TO_DATE")
                     if (fileTime.before(new Date(TO_DATE.getTime() + LOG_FILE_THRESHOLD*LOG_FILE_THRESHOLD_MLTPLR))) return file
                     else
                     {
-                        log.trace("File is too far")
+                        if (log.isTraceEnabled()) log.trace("File is too far")
                         return false
                     }
                 }
             }
-            log.trace("Passed FROM_DATE only")
+            if (log.isTraceEnabled()) log.trace("Passed FROM_DATE only")
             return true
         }
         else
         {
-            log.trace("Not passed")
+            if (log.isTraceEnabled()) log.trace("Not passed")
             return false
         }
-    }
-
-	/**
-	 * Listens for CONFIG_REFRESHED event to refill file threshold
-	 */
-	
-	@Override
-    boolean processEvent(Event event) {
-        switch (event)
-        {
-            case Event.CONFIG_REFRESHED:
-                fillRefreshableParams()
-                break
-            default:
-                break
-        }
-        return super.processEvent(event)
     }
 
 }

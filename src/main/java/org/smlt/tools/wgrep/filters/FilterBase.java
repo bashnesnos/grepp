@@ -1,7 +1,8 @@
 package org.smlt.tools.wgrep.filters;
 
-import groovy.util.logging.Slf4j;
+import java.text.ParseException;
 
+import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException;
 import org.smlt.tools.wgrep.filters.enums.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,15 +17,16 @@ import org.slf4j.LoggerFactory;
 public abstract class FilterBase {
     protected FilterBase nextFilter;
     protected Object passingVal;
-    private final Logger log = LoggerFactory.getLogger(FilterBase.class);
+    protected final Logger log;
 
     /**
     * Constructor version for simple filters, which do not require a config.
     * @param nextFilter_ next filter to pass results to
     */
 
-	public FilterBase(FilterBase nextFilter_) {
+	public FilterBase(FilterBase nextFilter_, @SuppressWarnings("rawtypes") Class subclazz) {
 		nextFilter = nextFilter_;
+		log = LoggerFactory.getLogger(subclazz);
 	}
 	
 
@@ -37,11 +39,13 @@ public abstract class FilterBase {
     *
     * @param blockData which is going to be checked
     * @return result of {@link this.passNext} method if check passed, null otherwise
+    * @throws TimeToIsOverduedException 
+    * @throws ParseException 
     */
 
-    public Object filter(Object blockData)  {
+    public Object filter(Object blockData) throws ParseException, TimeToIsOverduedException  {
         passingVal = null; //invalidating passingVal
-        if (check(blockData))
+        if (blockData != null && check(blockData))
         {
 			beforePassing(blockData);
 			return passNext(blockData);
@@ -58,9 +62,11 @@ public abstract class FilterBase {
     *
     * @param blockData which is going to be checked
     * @return true if data is ok to be passed, false otherwise
+    * @throws TimeToIsOverduedException 
+    * @throws ParseException 
     */
 
-    public boolean check(Object blockData)
+    public boolean check(Object blockData) throws ParseException, TimeToIsOverduedException
     {
         return true;
     }
@@ -81,9 +87,11 @@ public abstract class FilterBase {
     *
     * @param blockData which is ok to be passed further
     * @return blockData if <code>this</code> is last in chain, result of <code>nextFilter.filter(blockData)</code> otherwise.
+    * @throws TimeToIsOverduedException 
+    * @throws ParseException 
     */
 
-    public Object passNext(Object blockData)
+    public Object passNext(Object blockData) throws ParseException, TimeToIsOverduedException
     {
         log.trace("attempting to pass to next filter");
         if (nextFilter != null)
@@ -110,14 +118,19 @@ public abstract class FilterBase {
         return nextFilter;
     }
 
-    /**
-    * Base method for event processing. Simply passes it to the next filter and returns true if there is no next filter.
-    *
-    * @param event
-    * @return result of <code>nextFilter.processEvent</code> and true if it doesn't have next filter (i.e. all filters in chain has processed that event).
-    */
+	/**
+	 * Base method for event processing. Simply passes it to the next filter and
+	 * returns true if there is no next filter.
+	 * 
+	 * @param event
+	 * @return result of <code>nextFilter.processEvent</code> and true if it
+	 *         doesn't have next filter (i.e. all filters in chain has processed
+	 *         that event).
+	 * @throws TimeToIsOverduedException 
+	 * @throws ParseException 
+	 */
 
-    public boolean processEvent(Event event) {
+    public boolean processEvent(Event event) throws ParseException, TimeToIsOverduedException {
         log.trace("Passing event: " + event);
         if (nextFilter != null)
         {

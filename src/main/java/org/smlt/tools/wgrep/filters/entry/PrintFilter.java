@@ -1,7 +1,6 @@
-package org.smlt.tools.wgrep.filters.entry
+package org.smlt.tools.wgrep.filters.entry;
 
-import groovy.util.logging.Slf4j
-import org.smlt.tools.wgrep.filters.FilterBase
+import org.smlt.tools.wgrep.filters.FilterBase;
 
 /**
  * Filter which simply prints all data passed to it, if it is not null.
@@ -9,7 +8,7 @@ import org.smlt.tools.wgrep.filters.FilterBase
  * @author Alexander Semelit
  *
  */
-@Slf4j
+
 class PrintFilter extends FilterBase{
 
 	/**
@@ -18,7 +17,7 @@ class PrintFilter extends FilterBase{
 	 * @param nextFilter_ next in chain
 	 */
 	PrintFilter(FilterBase nextFilter_) {
-		super(nextFilter_)
+		super(nextFilter_, PrintFilter.class);
 	}
 
 	
@@ -26,17 +25,16 @@ class PrintFilter extends FilterBase{
 	 * Checks if passed data is not null
 	 */
     @Override
-	boolean check(def blockData) {
-		return blockData != null
+	public boolean check(Object blockData) {
+		return blockData != null;
 	}
 
 	/**
 	 * Prints block data to System.out
 	 */
 	@Override
-	void beforePassing(def blockData) {
-		super.beforePassing(blockData)
-		println blockData
+	public void beforePassing(Object blockData) {
+		System.out.println(blockData);
 	}
 
 }

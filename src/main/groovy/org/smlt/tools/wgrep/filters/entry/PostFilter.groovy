@@ -1,6 +1,5 @@
 package org.smlt.tools.wgrep.filters.entry
 
-import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.config.WgrepConfig
@@ -17,7 +16,6 @@ import org.smlt.tools.wgrep.filters.FilterBase
  * @author Alexander Semelit 
  */
 
-@Slf4j
 class PostFilter extends FilterBase {
 
     //Postprocessing stuff
@@ -40,24 +38,24 @@ class PostFilter extends FilterBase {
     */
     PostFilter(FilterBase nextFilter_, WgrepConfig config)
     {
-        super(nextFilter_, config)
-		def pp_tag = configInstance.getParam('POST_PROCESSING')
-        log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        super(nextFilter_, PostFilter.class)
+		def pp_tag = config.getParam('POST_PROCESSING')
+        if (log.isTraceEnabled()) log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
         use(DOMCategory)
         {
-            log.trace("Looking for splitters of type=" + pp_tag)
-            def pttrns = configInstance.getParam('root').custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
-            log.trace("Patterns found=" + pttrns)
+            if (log.isTraceEnabled()) log.trace("Looking for splitters of type=" + pp_tag)
+            def pttrns = config.getParam('root').custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
+            if (log.isTraceEnabled()) log.trace("Patterns found=" + pttrns)
             if (pttrns != null)
             {
                 pttrns.sort { it.'@order' }
                 pttrns.each { ptrn_node ->
-                    String pttrn = configInstance.getCDATA(ptrn_node)
-                    setSeparator(ptrn_node.'@sep')
+                    String pttrn = config.getCDATA(ptrn_node)
+                    setSeparator(ptrn_node.'@sep', config)
                     POST_PROCESS_PTTRNS.add(pttrn)
                     PATTERN.append(pttrn).append(Qualifier.and.getPattern())
-                    def splitter_type = configInstance.getParam('root').pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
+                    def splitter_type = config.getParam('root').pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
                     def handler = splitter_type.'@handler'
                     POST_PROCESS_DICT[pttrn] = handler
                     if (splitter_type.'@handler_type' ==~ "group_method")
@@ -71,22 +69,11 @@ class PostFilter extends FilterBase {
         }
     }
 
-    @Override
-    boolean isConfigValid() {
-        boolean checkResult = super.isConfigValid()
-        if (getParam('POST_PROCESSING') == null)
-        {
-            log.warn('POST_PROCESSING is not specified')
-            checkResult = false
-        }
-        return checkResult
-    }
-
     /**
     * Looks for separator value in config.xml depending on supplied <separator> section id.
     * 
     */
-    void setSeparator(String sep_tag)
+    void setSeparator(String sep_tag, WgrepConfig config)
     {
         if (POST_PROCESS_SEP != null) return
 
@@ -98,13 +85,13 @@ class PostFilter extends FilterBase {
                 }
                 else 
                 {
-                    POST_PROCESS_SEP = configInstance.getParam('root').pp_config.'@default_sep'[0]
+                    POST_PROCESS_SEP = config.getParam('root').pp_config.'@default_sep'[0]
                 }
-                log.trace("Looking for separator=" + POST_PROCESS_SEP)
+                if (log.isTraceEnabled()) log.trace("Looking for separator=" + POST_PROCESS_SEP)
                 
-                def sep = configInstance.getParam('root').pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
+                def sep = config.getParam('root').pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
                 POST_PROCESS_SEP = sep.text()
-                if (sep.'@spool' != null) configInstance.setParam('SPOOLING_EXT', (sep.'@spool'))
+                if (sep.'@spool' != null) config.setParam('SPOOLING_EXT', (sep.'@spool'))
         }
     }
 
@@ -161,8 +148,11 @@ class PostFilter extends FilterBase {
 
     StringBuilder smartPostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
     {
-        log.trace(new StringBuilder('smart post processing, agg=') + ' agg=' + agg + ' method=' + method + ' groupIdx=' + groupIdx)
-        log.trace("mtch found")
+        if (log.isTraceEnabled()) 
+		{
+			log.trace(new StringBuilder('smart post processing, agg=') + ' agg=' + agg + ' method=' + method + ' groupIdx=' + groupIdx)
+			log.trace("mtch found")
+		}
         def mtchResult = this."$method"(mtchr, groupIdx)
         if (agg != null && mtchResult != null) //omitting printing since one of the results was null. Might be a grouping
         {
@@ -261,7 +251,7 @@ class PostFilter extends FilterBase {
             newIntVal = Integer.valueOf(mtchResults.group(groupIdx))            
         }
         catch(NumberFormatException e) {
-            log.trace("attempting to count current group")
+            if (log.isTraceEnabled()) log.trace("attempting to count current group")
             newIntVal = processPostCounter(mtchResults, groupIdx)
         }
 
@@ -274,7 +264,7 @@ class PostFilter extends FilterBase {
         {
             currentGroup["averageAgg"] = [newIntVal]
         }
-        log.trace ("added new val: " + newIntVal)
+        if (log.isTraceEnabled()) log.trace ("added new val: " + newIntVal)
         return null
     }
 
@@ -287,7 +277,7 @@ class PostFilter extends FilterBase {
 	 */
     def processPostAverage(Map group)
     {
-        log.trace ("average group: " + group)
+        if (log.isTraceEnabled()) log.trace ("average group: " + group)
         List<Integer> averageAgg = group["averageAgg"]
         if (averageAgg == null || averageAgg.size() == 0) return 0
         Integer sum = 0

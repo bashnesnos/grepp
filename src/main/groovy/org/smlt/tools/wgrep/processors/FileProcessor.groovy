@@ -94,7 +94,6 @@ class FileProcessor extends ModuleBase
             if (refreshConfigByFileName(file_.name))
             {            
                 filterChain = FilterChainFactory.createFilterChainByConfig(configInstance)
-                filesFilterChain.processEvent(Event.CONFIG_REFRESHED)
             }                
         }
         catch(IllegalArgumentException e) {
