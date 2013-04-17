@@ -59,6 +59,9 @@ public class ComplexFilter extends FilterBase {
 		if (blockData instanceof String)
 		{
 			String filterPtrn = PATTERN.toString();
+			if(log.isTraceEnabled()) {
+				log.trace("Current pattern: " + filterPtrn);
+			}
 			Matcher blockMtchr = Pattern.compile(filterPtrn).matcher((String) blockData);
 			return blockMtchr.find();
 		} 
@@ -258,8 +261,8 @@ public class ComplexFilter extends FilterBase {
 		for (Qualifier it: Qualifier.values()) {
 			qRegex += qRegex.length() > 0 ? "|%" + it + "%" : "%" + it + "%";
 		}
-		qRegex = qRegex.substring(0, qRegex.length()-2); //removing last |
-		
+
+		if (log.isTraceEnabled()) log.trace("Trying to match supplied pattern /" + val + "/ if it contains /" + qRegex + "/");
 		Matcher qualifierMatcher = Pattern.compile(qRegex).matcher(val); //matching any qualifiers with % signs
 		if (qualifierMatcher.find())
 		{
@@ -288,8 +291,7 @@ public class ComplexFilter extends FilterBase {
 		}
 		else
 		{
-			if (log.isTraceEnabled())
-				log.trace("No extended pattern supplied, might be a preserve thread");
+			if (log.isTraceEnabled()) log.trace("No extended pattern supplied, might be a preserve thread");
 			addExtendedFilterPattern(val, null);
 		}
 	}

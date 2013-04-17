@@ -140,7 +140,7 @@ Voo
 
         try
         {
-            facade.doProcessing(["Foo%and%Man Chu", HOME+"\\processing_test.log"])
+            facade.doProcessing(["Foo%and%Man Chu%or%#basic", HOME+"\\processing_test.log"])
         }
         catch (Exception e) {
             pipeOut.close()

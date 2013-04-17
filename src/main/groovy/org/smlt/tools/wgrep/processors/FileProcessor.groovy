@@ -22,7 +22,6 @@ class FileProcessor extends ModuleBase
     private ArrayList<File> fileList = []
     
     private boolean isMerging = null
-    private int curLine = 0
     private FilterBase filterChain = null
     private FilterBase filesFilterChain = null
  
@@ -100,7 +99,6 @@ class FileProcessor extends ModuleBase
             e.printStackTrace()
             return null
         }   
-        curLine = 0
         return file_
     }
 
@@ -113,21 +111,24 @@ class FileProcessor extends ModuleBase
     void process(def data)
     {
         if (data == null) return
-        def endLine = null
-        
+        def curLine = 0
+        FilterBase chain = filterChain //reassignig to get rid of GetEffectivePogo in the loop
         try {
             data.eachLine { String line ->
-                log.trace("curLine: " + curLine)
+                if (log.isTraceEnabled())
+                {
+                    log.trace("curLine: $curLine")
+                }
                 curLine += 1
-                filterChain.filter(line)
+                chain.filter(line)
             }
         }
         catch(TimeToIsOverduedException e) {
             log.trace("No point to read file further since supplied date TO is overdued")
-            filterChain.processEvent(Event.FLUSH)
+            chain.processEvent(Event.FLUSH)
         }
 		
-		if (!isMerging) filterChain.processEvent(Event.FILE_ENDED)
+		if (!isMerging) chain.processEvent(Event.FILE_ENDED)
         log.info("File ended. Lines processed: " + curLine)
     }
 
