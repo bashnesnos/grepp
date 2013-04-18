@@ -22,7 +22,7 @@ class EntryDateFilter extends FilterBase {
 	private Date FROM_DATE;
 	private Date TO_DATE;
 	private boolean isDateFromPassed = false;
-	private String logDatePtrn = null;
+	private Pattern logDatePtrn = null;
 
 	/**
 	 * Creates new EntryDateFilter on top of the supplied filter chain. <br>
@@ -36,8 +36,21 @@ class EntryDateFilter extends FilterBase {
 	public EntryDateFilter(FilterBase nextFilter_, String logDatePtrn_, String logDateFormat_,
 			Date from, Date to) {
 		super(nextFilter_, EntryDateFilter.class);
-		logDatePtrn = logDatePtrn_;
-		if (logDateFormat_ != null)	DATE_FORMAT = new SimpleDateFormat(logDateFormat_);
+		
+		if (logDatePtrn_ != null) {
+			logDatePtrn = Pattern.compile(logDatePtrn_);	
+		}
+		else {
+			log.warn("logDatePtrn_ is not supplied");
+		}
+		
+		if (logDateFormat_ != null) {
+			DATE_FORMAT = new SimpleDateFormat(logDateFormat_);
+		}	
+		else {
+			log.warn("logDateFormat_ is not supplied");
+		}
+
 		FROM_DATE = from;
 		TO_DATE = to;
 		if (log.isTraceEnabled())
@@ -68,11 +81,10 @@ class EntryDateFilter extends FilterBase {
 				if (blockData instanceof String) {
 					if (log.isTraceEnabled())
 						log.trace("Checking log entry " + blockData
-								+ " for log date pattern |" + logDatePtrn
+								+ " for log date pattern |" + logDatePtrn.toString()
 								+ "| and formatting to |"
 								+ DATE_FORMAT.toPattern() + "|");
-					Matcher entryDateMatcher = Pattern.compile(logDatePtrn)
-							.matcher((String) blockData);
+					Matcher entryDateMatcher = logDatePtrn.matcher((String) blockData);
 					if (entryDateMatcher.find()) {
 						timeString = entryDateMatcher.group(1);
 					} else {

@@ -21,7 +21,7 @@ class LogEntryFilter extends FilterBase {
 
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = null;
-	private String logEntryPtrn = null;
+	private Pattern logEntryPtrn = null;
 
 	/**
 	 * Creates filter on top of supplied fiter chain basing on supplied
@@ -34,8 +34,8 @@ class LogEntryFilter extends FilterBase {
 	 */
 	LogEntryFilter(FilterBase nextFilter_, String logEntryPtrn_) {
 		super(nextFilter_, LogEntryFilter.class);
-		logEntryPtrn = logEntryPtrn_;
-		log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());
+		logEntryPtrn = Pattern.compile(logEntryPtrn_);
+		if (log.isTraceEnabled()) log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());
 	}
 
 	/**
@@ -53,24 +53,23 @@ class LogEntryFilter extends FilterBase {
     {
     	if (blockData instanceof String)
     	{
-    		Matcher entryMtchr = Pattern.compile(logEntryPtrn).matcher((String) blockData); 
-    		if ( entryMtchr.find() )
+    		if ( logEntryPtrn.matcher((String) blockData).find() ) //finding match of current blockData
     		{
     			if (!isBlockMatched)
     			{
     				isBlockMatched = true;
-    				log.trace("appending");
+    				if (log.isTraceEnabled()) log.trace("appending");
     				appendCurBlock((String) blockData);
     			}
     			else if (isBlockMatched)
     			{
-    				log.trace("returning block");
+    				if (log.isTraceEnabled()) log.trace("returning block");
     				return true;
     			}
     		}
     		else if (isBlockMatched)
     		{
-    			log.trace("appending");
+    			if (log.isTraceEnabled()) log.trace("appending");
     			appendCurBlock((String) blockData);
     		}
     		return false;
@@ -112,7 +111,7 @@ class LogEntryFilter extends FilterBase {
         clearBuffer();
         if (line != null)
         {
-            log.trace("appending end, since it is the start of new block");
+            if (log.isTraceEnabled()) log.trace("appending end, since it is the start of new block");
             appendCurBlock(line);
         }
     }

@@ -93,15 +93,15 @@ public abstract class FilterBase {
 
     public Object passNext(Object blockData) throws ParseException, TimeToIsOverduedException
     {
-        log.trace("attempting to pass to next filter");
+        if (log.isTraceEnabled()) log.trace("attempting to pass to next filter");
         if (nextFilter != null)
         {
-            log.trace("nextFilter " + nextFilter.getClass());
+            if (log.isTraceEnabled()) log.trace("nextFilter " + nextFilter.getClass());
             return nextFilter.filter( passingVal != null ? passingVal : blockData );
         }
         else
         {
-			log.trace("is last in chain");
+			if (log.isTraceEnabled()) log.trace("is last in chain");
 			return passingVal != null ? passingVal : blockData ;
         }
     }
@@ -131,7 +131,7 @@ public abstract class FilterBase {
 	 */
 
     public boolean processEvent(Event event) throws ParseException, TimeToIsOverduedException {
-        log.trace("Passing event: " + event);
+        if (log.isTraceEnabled()) log.trace("Passing event: " + event);
         if (nextFilter != null)
         {
             return nextFilter.processEvent(event);

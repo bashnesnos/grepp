@@ -19,6 +19,7 @@ import org.smlt.tools.wgrep.filters.FilterBase;
 public class ComplexFilter extends FilterBase {
 
 	//Complex pattern processing and stuff
+	Pattern currentPattern = null;
 	StringBuilder PATTERN = new StringBuilder("(?ms)"); //for multiline support
 	List<String> EXTNDD_PTTRNS = new ArrayList<String>();
 	Map<String, Qualifier> EXTNDD_PTTRN_DICT = new HashMap<String, Qualifier>();
@@ -62,7 +63,13 @@ public class ComplexFilter extends FilterBase {
 			if(log.isTraceEnabled()) {
 				log.trace("Current pattern: " + filterPtrn);
 			}
-			Matcher blockMtchr = Pattern.compile(filterPtrn).matcher((String) blockData);
+			
+			if (currentPattern == null || currentPattern.toString() != filterPtrn) 
+			{
+				currentPattern = Pattern.compile(filterPtrn);
+			}
+
+			Matcher blockMtchr = currentPattern.matcher((String) blockData);
 			return blockMtchr.find();
 		} 
 		else throw new IllegalArgumentException("blockData should be String");

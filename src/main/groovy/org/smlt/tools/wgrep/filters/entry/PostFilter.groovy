@@ -2,6 +2,7 @@ package org.smlt.tools.wgrep.filters.entry
 
 import groovy.xml.dom.DOMCategory
 import java.util.regex.Matcher
+import java.util.regex.Pattern
 import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.enums.Qualifier
@@ -19,7 +20,7 @@ import org.smlt.tools.wgrep.filters.FilterBase
 class PostFilter extends FilterBase {
 
     //Postprocessing stuff
-    def PATTERN = new StringBuilder("(?ms)")
+    Pattern postFilterPattern = null
     def POST_PROCESS_PTTRNS = []
     def POST_PROCESS_SEP = null
     def POST_PROCESS_DICT = [:]
@@ -49,12 +50,13 @@ class PostFilter extends FilterBase {
             if (log.isTraceEnabled()) log.trace("Patterns found=" + pttrns)
             if (pttrns != null)
             {
+                def PATTERN = new StringBuilder()
                 pttrns.sort { it.'@order' }
                 pttrns.each { ptrn_node ->
                     String pttrn = config.getCDATA(ptrn_node)
                     setSeparator(ptrn_node.'@sep', config)
                     POST_PROCESS_PTTRNS.add(pttrn)
-                    PATTERN.append(pttrn).append(Qualifier.and.getPattern())
+                    PATTERN = PATTERN.size() == 0 ? PATTERN.append("(?ms)").append(pttrn) : PATTERN.append(Qualifier.and.getPattern()).append(pttrn)
                     def splitter_type = config.getParam('root').pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
                     def handler = splitter_type.'@handler'
                     POST_PROCESS_DICT[pttrn] = handler
@@ -64,7 +66,7 @@ class PostFilter extends FilterBase {
                     }
                     POST_PROCESS_HEADER = (POST_PROCESS_HEADER) ? POST_PROCESS_HEADER + POST_PROCESS_SEP + ptrn_node.'@col_name' : ptrn_node.'@col_name'
                 }
-                PATTERN.delete(PATTERN.length() - Qualifier.and.getPattern().length(), PATTERN.length()) //removing last and qualifier
+                postFilterPattern = Pattern.compile(PATTERN.toString())
             }
         }
     }
@@ -108,17 +110,19 @@ class PostFilter extends FilterBase {
     @Override
     boolean check(def blockData)
     {
-        result = null //invalidating result first
-        String postFilterPtrn = PATTERN.toString()
-        printHeader()
-        Matcher postPPatternMatcher = blockData =~ postFilterPtrn
-        if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
-        {
-            result = new StringBuilder("")
-            POST_PROCESS_PTTRNS.each { ptrn -> result = smartPostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn], POST_PROCESS_PTTRNS.indexOf(ptrn) + 1)} //TODO: new handlers model is needed
-        }
+        if (blockData instanceof String) {
+            result = null //invalidating result first
+            printHeader()
+            Matcher postPPatternMatcher = postFilterPattern.matcher(blockData)
+            if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
+            {
+                result = new StringBuilder("")
+                POST_PROCESS_PTTRNS.each { ptrn -> result = smartPostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn], POST_PROCESS_PTTRNS.indexOf(ptrn) + 1)} //TODO: new handlers model is needed
+            }
 
-        return result != null && result.size() > 0
+            return result != null && result.size() > 0
+        }
+        else throw new IllegalArgumentException("PostFilter accepts String only")
     }
 
     /**
