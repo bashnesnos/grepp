@@ -8,8 +8,6 @@ package org.smlt.tools.wgrep.exceptions;
  *
  */
 public class TimeToIsOverduedException extends Exception {
-
-	private static final long serialVersionUID = 8445675850527924574L;
 	
 	private String timeToString;
     public TimeToIsOverduedException(String timeTo) {
