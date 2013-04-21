@@ -12,8 +12,13 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 WgrepConfig config = new WgrepConfig(WGREP_CONFIG)
 WgrepFacade facade = new WgrepFacade(config)
 
-facade.doProcessing(["-t", "oo", "--some_timings", HOME+"\\processing_report_test.log"])
-		
+        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+        def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
+        def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
+        def testTimeStringFrom = dateFormat.format(fileTime)
+        def testTimeStringTo = dateFormat.format(new Date(fileTime.getTime() + 60*60*1000))
+
+            facade.doProcessing(["-t", "Foo", "--dtime", testTimeStringFrom, testTimeStringTo, HOME+"\\processing_time_test.log"])
     
 
 // println actualResult.toString()

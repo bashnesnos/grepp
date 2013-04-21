@@ -36,7 +36,7 @@ class ModuleBase {
 	}
 
 	// Getters
-
+	
 	/**
 	 * Getter for parsed <code>documentElement</code> of the parsed config.xml
 	 * @return Value of <code>root</code>

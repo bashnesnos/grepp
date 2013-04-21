@@ -1,8 +1,8 @@
 package org.smlt.tools.wgrep.filters.entry
 
-import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 import java.util.regex.Matcher
+import java.util.regex.Pattern
 import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.enums.Qualifier
@@ -17,11 +17,10 @@ import org.smlt.tools.wgrep.filters.FilterBase
  * @author Alexander Semelit 
  */
 
-@Slf4j
 class PostFilter extends FilterBase {
 
     //Postprocessing stuff
-    def PATTERN = new StringBuilder("(?ms)")
+    Pattern postFilterPattern = null
     def POST_PROCESS_PTTRNS = []
     def POST_PROCESS_SEP = null
     def POST_PROCESS_DICT = [:]
@@ -40,24 +39,25 @@ class PostFilter extends FilterBase {
     */
     PostFilter(FilterBase nextFilter_, WgrepConfig config)
     {
-        super(nextFilter_, config)
-		def pp_tag = getParam('POST_PROCESSING')
-        log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
+        super(nextFilter_, PostFilter.class)
+		def pp_tag = config.getParam('POST_PROCESSING')
+        if (log.isTraceEnabled()) log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
 
         use(DOMCategory)
         {
-            log.trace("Looking for splitters of type=" + pp_tag)
-            def pttrns = getRoot().custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
-            log.trace("Patterns found=" + pttrns)
+            if (log.isTraceEnabled()) log.trace("Looking for splitters of type=" + pp_tag)
+            def pttrns = config.getParam('root').custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
+            if (log.isTraceEnabled()) log.trace("Patterns found=" + pttrns)
             if (pttrns != null)
             {
+                def PATTERN = new StringBuilder()
                 pttrns.sort { it.'@order' }
                 pttrns.each { ptrn_node ->
-                    String pttrn = getCDATA(ptrn_node)
-                    setSeparator(ptrn_node.'@sep')
+                    String pttrn = config.getCDATA(ptrn_node)
+                    setSeparator(ptrn_node.'@sep', config)
                     POST_PROCESS_PTTRNS.add(pttrn)
-                    PATTERN.append(pttrn).append(Qualifier.and.getPattern())
-                    def splitter_type = getRoot().pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
+                    PATTERN = PATTERN.size() == 0 ? PATTERN.append("(?ms)").append(pttrn) : PATTERN.append(Qualifier.and.getPattern()).append(pttrn)
+                    def splitter_type = config.getParam('root').pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
                     def handler = splitter_type.'@handler'
                     POST_PROCESS_DICT[pttrn] = handler
                     if (splitter_type.'@handler_type' ==~ "group_method")
@@ -66,27 +66,16 @@ class PostFilter extends FilterBase {
                     }
                     POST_PROCESS_HEADER = (POST_PROCESS_HEADER) ? POST_PROCESS_HEADER + POST_PROCESS_SEP + ptrn_node.'@col_name' : ptrn_node.'@col_name'
                 }
-                PATTERN.delete(PATTERN.length() - Qualifier.and.getPattern().length(), PATTERN.length()) //removing last and qualifier
+                postFilterPattern = Pattern.compile(PATTERN.toString())
             }
         }
-    }
-
-    @Override
-    boolean isConfigValid() {
-        boolean checkResult = super.isConfigValid()
-        if (getParam('POST_PROCESSING') == null)
-        {
-            log.warn('POST_PROCESSING is not specified')
-            checkResult = false
-        }
-        return checkResult
     }
 
     /**
     * Looks for separator value in config.xml depending on supplied <separator> section id.
     * 
     */
-    void setSeparator(String sep_tag)
+    void setSeparator(String sep_tag, WgrepConfig config)
     {
         if (POST_PROCESS_SEP != null) return
 
@@ -98,13 +87,13 @@ class PostFilter extends FilterBase {
                 }
                 else 
                 {
-                    POST_PROCESS_SEP = getRoot().pp_config.'@default_sep'[0]
+                    POST_PROCESS_SEP = config.getParam('root').pp_config.'@default_sep'[0]
                 }
-                log.trace("Looking for separator=" + POST_PROCESS_SEP)
+                if (log.isTraceEnabled()) log.trace("Looking for separator=" + POST_PROCESS_SEP)
                 
-                def sep = getRoot().pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
+                def sep = config.getParam('root').pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
                 POST_PROCESS_SEP = sep.text()
-                if (sep.'@spool' != null) setSpoolingExt(sep.'@spool')
+                if (sep.'@spool' != null) config.setParam('SPOOLING_EXT', (sep.'@spool'))
         }
     }
 
@@ -121,17 +110,19 @@ class PostFilter extends FilterBase {
     @Override
     boolean check(def blockData)
     {
-        result = null //invalidating result first
-        setPattern(PATTERN.toString())
-        printHeader()
-        Matcher postPPatternMatcher = blockData =~ filterPtrn
-        if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
-        {
-            result = new StringBuilder("")
-            POST_PROCESS_PTTRNS.each { ptrn -> result = smartPostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn], POST_PROCESS_PTTRNS.indexOf(ptrn) + 1)} //TODO: new handlers model is needed
-        }
+        if (blockData instanceof String) {
+            result = null //invalidating result first
+            printHeader()
+            Matcher postPPatternMatcher = postFilterPattern.matcher(blockData)
+            if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
+            {
+                result = new StringBuilder("")
+                POST_PROCESS_PTTRNS.each { ptrn -> result = smartPostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn], POST_PROCESS_PTTRNS.indexOf(ptrn) + 1)} //TODO: new handlers model is needed
+            }
 
-        return result != null && result.size() > 0
+            return result != null && result.size() > 0
+        }
+        else throw new IllegalArgumentException("PostFilter accepts String only")
     }
 
     /**
@@ -141,9 +132,9 @@ class PostFilter extends FilterBase {
     */
 
     @Override
-    def passNext(def blockData)
+    void beforePassing(def blockData)
     {
-        return super.passNext(result.toString())
+        passingVal = result.toString()
     }
 	
 	/**
@@ -161,8 +152,11 @@ class PostFilter extends FilterBase {
 
     StringBuilder smartPostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
     {
-        log.trace(new StringBuilder('smart post processing, agg=') + ' agg=' + agg + ' method=' + method + ' groupIdx=' + groupIdx)
-        log.trace("mtch found")
+        if (log.isTraceEnabled()) 
+		{
+			log.trace(new StringBuilder('smart post processing, agg=') + ' agg=' + agg + ' method=' + method + ' groupIdx=' + groupIdx)
+			log.trace("mtch found")
+		}
         def mtchResult = this."$method"(mtchr, groupIdx)
         if (agg != null && mtchResult != null) //omitting printing since one of the results was null. Might be a grouping
         {
@@ -261,7 +255,7 @@ class PostFilter extends FilterBase {
             newIntVal = Integer.valueOf(mtchResults.group(groupIdx))            
         }
         catch(NumberFormatException e) {
-            log.trace("attempting to count current group")
+            if (log.isTraceEnabled()) log.trace("attempting to count current group")
             newIntVal = processPostCounter(mtchResults, groupIdx)
         }
 
@@ -274,7 +268,7 @@ class PostFilter extends FilterBase {
         {
             currentGroup["averageAgg"] = [newIntVal]
         }
-        log.trace ("added new val: " + newIntVal)
+        if (log.isTraceEnabled()) log.trace ("added new val: " + newIntVal)
         return null
     }
 
@@ -287,7 +281,7 @@ class PostFilter extends FilterBase {
 	 */
     def processPostAverage(Map group)
     {
-        log.trace ("average group: " + group)
+        if (log.isTraceEnabled()) log.trace ("average group: " + group)
         List<Integer> averageAgg = group["averageAgg"]
         if (averageAgg == null || averageAgg.size() == 0) return 0
         Integer sum = 0
@@ -333,7 +327,7 @@ class PostFilter extends FilterBase {
 	 * Listens for ALL_FILES_PROCESSED event to trigger all groups processing.
 	 * 
 	 */
-    def processEvent(Event event) {
+    boolean processEvent(Event event) {
         switch (event)
         {
             case Event.ALL_FILES_PROCESSED:
@@ -342,7 +336,7 @@ class PostFilter extends FilterBase {
             default:
                 break
         }
-        super.processEvent(event)
+        return super.processEvent(event)
     }
 
 }

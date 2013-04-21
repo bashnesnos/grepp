@@ -11,6 +11,7 @@ import org.smlt.tools.wgrep.filters.entry.PrintFilter;
 import org.smlt.tools.wgrep.filters.logfile.FileDateFilter;
 import org.smlt.tools.wgrep.filters.logfile.FileNameFilter;
 import org.smlt.tools.wgrep.filters.logfile.FileSortFilter;
+import groovy.xml.dom.DOMCategory;
 
 /**
  * Class which provide factory methods for filter chain creating. <br>
@@ -40,6 +41,8 @@ class FilterChainFactory
     static FilterBase createFilterChainByConfig(WgrepConfig config)
     {
         FilterBase filterChain_ = new PrintFilter()
+		def root = config.getParam('root')
+		
         if (config.getParam('POST_PROCESSING') != null)
         {
             filterChain_ = new PostFilter(filterChain_, config)
@@ -47,17 +50,40 @@ class FilterChainFactory
         
         if (config.getParam('DATE_TIME_FILTER') != null)
         {
-            filterChain_ = new EntryDateFilter(filterChain_, config)
+            filterChain_ = new EntryDateFilter(filterChain_, config.getParam('LOG_DATE_PATTERN'), config.getParam('LOG_DATE_FORMAT'), config.getParam('FROM_DATE'), config.getParam('TO_DATE'))
         } 
 
         if (config.getParam('FILTER_PATTERN') != null)
         {
-            filterChain_ = new ComplexFilter(filterChain_, config)
+            def pt_tag = config.getParam('PRESERVE_THREAD')
+            def preserveParams = [:]
+            use(DOMCategory)
+            {
+                if (pt_tag != null)
+                {
+                    def extrctrs = root.custom.thread_configs.extractor.findAll { it.'@tags' =~ pt_tag }
+                    def THRD_START_EXTRCTRS = [:]
+                    extrctrs.each { THRD_START_EXTRCTRS[it.text()] = it.'@qlfr' }
+                    preserveParams['THRD_START_EXTRCTRS'] = THRD_START_EXTRCTRS
+                    def pttrns = root.custom.thread_configs.pattern.findAll { it.'@tags' =~ pt_tag }
+                    pttrns.each { 
+                        if (preserveParams[it.'@clct'] != null)
+                        {
+                            preserveParams[it.'@clct'].add(it.text())     
+                        }
+                        else
+                        {
+                            preserveParams[it.'@clct'] = [it.text()]   
+                        }
+                    }
+                }
+            }
+            filterChain_ = new ComplexFilter(filterChain_, config.getParam('FILTER_PATTERN'), preserveParams)
         } 
 
         if (config.getParam('LOG_ENTRY_PATTERN') != null)
         {
-            filterChain_ = new LogEntryFilter(filterChain_, config)
+            filterChain_ = new LogEntryFilter(filterChain_, config.getParam('LOG_ENTRY_PATTERN'))
         }
 
         return filterChain_

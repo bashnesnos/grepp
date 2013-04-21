@@ -1,6 +1,5 @@
 package org.smlt.tools.wgrep.filters.logfile
 
-import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.filters.FilterBase
 
 /**
@@ -10,13 +9,12 @@ import org.smlt.tools.wgrep.filters.FilterBase
  * @author Alexander Semelit 
  */
 
-@Slf4j
 class FileSortFilter extends FilterBase {
 
 	protected List fileList = []
 
 	FileSortFilter(FilterBase nextFilter_) {
-		super(nextFilter_)
+		super(nextFilter_, FileSortFilter.class)
 	}
 
 	/**
@@ -32,8 +30,8 @@ class FileSortFilter extends FilterBase {
 	}
 
 	@Override
-	def passNext(def files) {
-		return super.passNext(fileList)
+	void beforePassing(def files) {
+		passingVal = fileList
 	}
 
 	/**
@@ -45,7 +43,7 @@ class FileSortFilter extends FilterBase {
 		if (files.size() < 2) return files
 		def fileList = files.clone()
 		fileList.sort { it.lastModified() }
-		log.trace("FileList has been sorted. ")
+		if (log.isTraceEnabled()) log.trace("FileList has been sorted. ")
 		return fileList
 	}
 }
