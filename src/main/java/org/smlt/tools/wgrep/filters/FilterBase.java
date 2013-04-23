@@ -130,12 +130,12 @@ public abstract class FilterBase {
 	 * @throws ParseException 
 	 */
 
-    public boolean processEvent(Event event) throws ParseException, TimeToIsOverduedException {
+    public Object processEvent(Event event) throws ParseException, TimeToIsOverduedException {
         if (log.isTraceEnabled()) log.trace("Passing event: " + event);
         if (nextFilter != null)
         {
             return nextFilter.processEvent(event);
         }
-        return true;
+        return null;
     }
 }

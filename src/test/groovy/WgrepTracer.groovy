@@ -12,14 +12,47 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 WgrepConfig config = new WgrepConfig(WGREP_CONFIG)
 WgrepFacade facade = new WgrepFacade(config)
 
-        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
-        def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
-        def testTimeStringFrom = dateFormat.format(fileTime)
-        def testTimeStringTo = dateFormat.format(new Date(fileTime.getTime() + 60*60*1000))
+        def oldStdout = System.out
+        def pipeOut = new PipedOutputStream()
+        def pipeIn = new PipedInputStream(pipeOut)
+        System.setOut(new PrintStream(pipeOut))
 
-            facade.doProcessing(["-t", "Foo", "--dtime", testTimeStringFrom, testTimeStringTo, HOME+"\\processing_time_test.log"])
-    
+        try
+        {
+            facade.doProcessing(["oo", "--avg_timings", HOME+"\\processing_report_test.log"])
+        }
+        catch (Exception e) {
+            pipeOut.close()
+            System.setOut(oldStdout)
+            throw e
+        }
+        finally {
+            System.setOut(oldStdout)
+            pipeOut.close()
+        }
 
-// println actualResult.toString()
-//	println expectedResult == actualResult.toString()
+        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
+
+        def line = '#'
+        StringBuffer actualResult = new StringBuffer()
+
+        if (outputReader.ready())
+        {
+            while (line != null)
+            {
+                actualResult = actualResult.append(line).append('\n')
+                line = outputReader.readLine()
+            }
+        }
+
+        def expectedResult = """\
+#
+some_cmd,avg_processing
+Foo,150
+Koo,200
+
+"""
+
+        //assertTrue( expectedResult == actualResult.toString() )
+println actualResult.toString()
+	println expectedResult == actualResult.toString()

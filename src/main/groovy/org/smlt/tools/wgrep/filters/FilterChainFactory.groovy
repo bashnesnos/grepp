@@ -40,7 +40,7 @@ class FilterChainFactory
 
     static FilterBase createFilterChainByConfig(WgrepConfig config)
     {
-        FilterBase filterChain_ = new PrintFilter()
+        FilterBase filterChain_ = null //new PrintFilter()
 		def root = config.getParam('root')
 		
         if (config.getParam('POST_PROCESSING') != null)

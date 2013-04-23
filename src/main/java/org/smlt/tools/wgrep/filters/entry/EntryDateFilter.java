@@ -149,7 +149,7 @@ class EntryDateFilter extends FilterBase {
 	 * 
 	 */
 	@Override
-	public boolean processEvent(Event event) throws ParseException, TimeToIsOverduedException {
+	public Object processEvent(Event event) throws ParseException, TimeToIsOverduedException {
 		switch (event) {
 		case FILE_ENDED:
 			isDateFromPassed = false;

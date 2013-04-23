@@ -423,6 +423,7 @@ Foo Koo
 some_cmd,count_of_operands
 Foo,3
 Koo,1
+
 """
 
         assertTrue( expectedResult == actualResult.toString() )
@@ -468,6 +469,7 @@ Koo,1
 some_cmd,avg_processing
 Foo,150
 Koo,200
+
 """
 
         assertTrue( expectedResult == actualResult.toString() )

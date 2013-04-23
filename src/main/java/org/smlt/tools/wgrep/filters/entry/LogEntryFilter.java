@@ -1,7 +1,6 @@
 package org.smlt.tools.wgrep.filters.entry;
 
 import java.text.ParseException;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException;
@@ -161,12 +160,11 @@ class LogEntryFilter extends FilterBase {
 	 */
 
 	@Override
-    public boolean processEvent(Event event) throws ParseException, TimeToIsOverduedException {
+    public Object processEvent(Event event) throws ParseException, TimeToIsOverduedException {
         switch (event)
         {
             case FILE_ENDED:
-                passNext(null);
-                break;
+                return passNext(null);
             case FLUSH:
                 flush();
                 break;

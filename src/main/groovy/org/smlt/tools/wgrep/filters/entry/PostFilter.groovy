@@ -66,6 +66,7 @@ class PostFilter extends FilterBase {
                     }
                     POST_PROCESS_HEADER = (POST_PROCESS_HEADER) ? POST_PROCESS_HEADER + POST_PROCESS_SEP + ptrn_node.'@col_name' : ptrn_node.'@col_name'
                 }
+				POST_PROCESS_HEADER += "\n"
                 postFilterPattern = Pattern.compile(PATTERN.toString())
             }
         }
@@ -112,7 +113,6 @@ class PostFilter extends FilterBase {
     {
         if (blockData instanceof String) {
             result = null //invalidating result first
-            printHeader()
             Matcher postPPatternMatcher = postFilterPattern.matcher(blockData)
             if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
             {
@@ -134,7 +134,15 @@ class PostFilter extends FilterBase {
     @Override
     void beforePassing(def blockData)
     {
-        passingVal = result.toString()
+        if (!HEADER_PRINTED) 
+        {   
+            HEADER_PRINTED = true
+            passingVal = new StringBuilder(POST_PROCESS_HEADER).append(result).toString()
+        }
+		else
+		{
+			passingVal = result.toString()
+		}
     }
 	
 	/**
@@ -298,41 +306,28 @@ class PostFilter extends FilterBase {
 	 * When all groups are processed it passes result to next filter.
 	 * 
 	 */
-    void processGroups()
+    def processGroups()
     {
-        POST_GROUPS.each { group ->
-            StringBuilder rslt = new StringBuilder(group.getKey())
+        StringBuilder rslt = new StringBuilder( !HEADER_PRINTED ? POST_PROCESS_HEADER : "");
+		POST_GROUPS.each { group ->
+            rslt.append(group.getKey())
             POST_GROUPS_METHODS.each { method ->
-                rslt = aggregatorAppend(rslt, POST_PROCESS_SEP, this."$method"(group.getValue()))
+                aggregatorAppend(rslt, POST_PROCESS_SEP, this."$method"(group.getValue()))
             }
-            super.passNext(rslt.toString()) //simply passes next whatever you supply
+			rslt.append("\n")
         }
-    }
-
-	/**
-	 * Simply passes header to next filter. <br>
-	 * Since PostFilter is considered to be a filter before last filter, it should possibly just print out the header.
-	 * 
-	 */
-    void printHeader()
-    {
-        if (!HEADER_PRINTED) 
-        {   
-            HEADER_PRINTED = true
-            nextFilter.filter(POST_PROCESS_HEADER) //if next filter won't allow to pass the header, that's ok. Flexibility though.
-        }
+		return passNext(rslt.toString())
     }
 
 	/**
 	 * Listens for ALL_FILES_PROCESSED event to trigger all groups processing.
 	 * 
 	 */
-    boolean processEvent(Event event) {
+    public Object processEvent(Event event) {
         switch (event)
         {
             case Event.ALL_FILES_PROCESSED:
-                processGroups()
-                break
+                return processGroups()
             default:
                 break
         }
