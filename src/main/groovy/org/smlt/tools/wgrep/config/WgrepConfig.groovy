@@ -32,7 +32,7 @@ class WgrepConfig {
 
 
 	//GENERAL
-	private List FILES = []
+	private List<File> FILES = []
 
 	//OPTIONS
 	private FilterParser filterParser =  null
@@ -320,10 +320,16 @@ class WgrepConfig {
 	* @param fileName String representing name of a file to be checked. Could be an absolute path as well.
 	*/
 
-	boolean refreshConfigByFileName(String fileName)
+	boolean refreshConfigByFile(File file)
+	{
+		return refreshConfigByFile(file.getName())
+	}
+	
+	boolean refreshConfigByFile(String fileName)
 	{
 		return isAutomationEnabled() ? paHelper.applySequenceByFileName(fileName) : false
 	}
+
 
 	/**
 	 * Enables extended pattern processing.

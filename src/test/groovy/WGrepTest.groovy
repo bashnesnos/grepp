@@ -25,11 +25,10 @@ class WGrepTest extends GroovyTestCase
     
     void testMainVarsProcessing()
     {
-        
         config.processInVars(["-L","test","test",HOME+"\\fpTest*"])
         assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "test" )
         assertTrue( config.getParam('FILTER_PATTERN') == "test" )
-        assertTrue( config.getParam('FILES') == [HOME+"\\fpTest*"] )
+        assertTrue( config.getParam('FILES') == [new File(HOME+"\\fpTest_test.log")] )
         assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
         assertTrue( config.getParam('HOME_DIR') != null )
     }
@@ -56,9 +55,8 @@ class WGrepTest extends GroovyTestCase
 
     void testAutomationProcessing()
     {
-        
         config.processInVars(["-i","test", HOME+"\\fpTest_*"])
-        config.refreshConfigByFileName(config.getParam('FILES')[0])
+        config.refreshConfigByFile(config.getParam('FILES')[0])
         assertTrue( config.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
         assertTrue( config.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
     }
@@ -69,7 +67,7 @@ class WGrepTest extends GroovyTestCase
         config.processInVars(["-sL", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
         assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
         assertTrue( config.getParam('FILTER_PATTERN') == "queryTime" )
-        assertTrue( config.getParam('FILES') == ["cmd_only_1.log"] )
+        assertTrue( config.getParam('FILES') == [new File("cmd_only_1.log")] )
         assertTrue( config.getParam('FOLDER_SEPARATOR') == "\\\\" )
         assertTrue( config.getParam('HOME_DIR') != null )
     }
@@ -423,7 +421,6 @@ Foo Koo
 some_cmd,count_of_operands
 Foo,3
 Koo,1
-
 """
 
         assertTrue( expectedResult == actualResult.toString() )

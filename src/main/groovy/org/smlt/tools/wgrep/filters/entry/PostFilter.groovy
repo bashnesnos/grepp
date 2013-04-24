@@ -4,6 +4,7 @@ import groovy.xml.dom.DOMCategory
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import org.smlt.tools.wgrep.config.WgrepConfig
+import org.smlt.tools.wgrep.exceptions.FilteringIsInterruptedException;
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.enums.Qualifier
 import org.smlt.tools.wgrep.filters.FilterBase
@@ -17,13 +18,12 @@ import org.smlt.tools.wgrep.filters.FilterBase
  * @author Alexander Semelit 
  */
 
-class PostFilter extends FilterBase {
+class PostFilter extends FilterBase<String> {
 
     //Postprocessing stuff
     Pattern postFilterPattern = null
-    def POST_PROCESS_PTTRNS = []
     def POST_PROCESS_SEP = null
-    def POST_PROCESS_DICT = [:]
+    def POST_PROCESS_DICT = new LinkedHashMap()
     def POST_PROCESS_HEADER = null
     def POST_GROUPS = [:]
     def currentGroup = null
@@ -37,66 +37,16 @@ class PostFilter extends FilterBase {
     * Also it parses from config.xml post filter pattern configuration basing on fulfilled POST_PROCESSING parameter.
     *
     */
-    PostFilter(FilterBase nextFilter_, WgrepConfig config)
+    PostFilter(FilterBase<String> nextFilter_, Map postFilterParams)
     {
         super(nextFilter_, PostFilter.class)
-		def pp_tag = config.getParam('POST_PROCESSING')
-        if (log.isTraceEnabled()) log.trace("Added on top of " + nextFilter.getClass().getCanonicalName())
-
-        use(DOMCategory)
-        {
-            if (log.isTraceEnabled()) log.trace("Looking for splitters of type=" + pp_tag)
-            def pttrns = config.getParam('root').custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
-            if (log.isTraceEnabled()) log.trace("Patterns found=" + pttrns)
-            if (pttrns != null)
-            {
-                def PATTERN = new StringBuilder()
-                pttrns.sort { it.'@order' }
-                pttrns.each { ptrn_node ->
-                    String pttrn = config.getCDATA(ptrn_node)
-                    setSeparator(ptrn_node.'@sep', config)
-                    POST_PROCESS_PTTRNS.add(pttrn)
-                    PATTERN = PATTERN.size() == 0 ? PATTERN.append("(?ms)").append(pttrn) : PATTERN.append(Qualifier.and.getPattern()).append(pttrn)
-                    def splitter_type = config.getParam('root').pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
-                    def handler = splitter_type.'@handler'
-                    POST_PROCESS_DICT[pttrn] = handler
-                    if (splitter_type.'@handler_type' ==~ "group_method")
-                    {
-                        POST_GROUPS_METHODS.add(handler)
-                    }
-                    POST_PROCESS_HEADER = (POST_PROCESS_HEADER) ? POST_PROCESS_HEADER + POST_PROCESS_SEP + ptrn_node.'@col_name' : ptrn_node.'@col_name'
-                }
-				POST_PROCESS_HEADER += "\n"
-                postFilterPattern = Pattern.compile(PATTERN.toString())
-            }
-        }
+		POST_PROCESS_SEP = postFilterParams["POST_PROCESS_SEP"]
+		POST_PROCESS_DICT = postFilterParams["POST_PROCESS_DICT"]
+		POST_PROCESS_HEADER = postFilterParams["POST_PROCESS_HEADER"]
+		POST_GROUPS_METHODS = postFilterParams["POST_GROUPS_METHODS"]
+        postFilterPattern = Pattern.compile(postFilterParams["PATTERN"])
     }
 
-    /**
-    * Looks for separator value in config.xml depending on supplied <separator> section id.
-    * 
-    */
-    void setSeparator(String sep_tag, WgrepConfig config)
-    {
-        if (POST_PROCESS_SEP != null) return
-
-        use(DOMCategory)
-        {
-                if (sep_tag != null && sep_tag != '') 
-                {
-                    POST_PROCESS_SEP = sep_tag
-                }
-                else 
-                {
-                    POST_PROCESS_SEP = config.getParam('root').pp_config.'@default_sep'[0]
-                }
-                if (log.isTraceEnabled()) log.trace("Looking for separator=" + POST_PROCESS_SEP)
-                
-                def sep = config.getParam('root').pp_config.pp_separators.separator.find { it.'@id' ==~ POST_PROCESS_SEP}
-                POST_PROCESS_SEP = sep.text()
-                if (sep.'@spool' != null) config.setParam('SPOOLING_EXT', (sep.'@spool'))
-        }
-    }
 
     /**
     * Tries to match all post processing patterns at the same time to received block data. <br>
@@ -117,7 +67,8 @@ class PostFilter extends FilterBase {
             if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
             {
                 result = new StringBuilder("")
-                POST_PROCESS_PTTRNS.each { ptrn -> result = smartPostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, POST_PROCESS_DICT[ptrn], POST_PROCESS_PTTRNS.indexOf(ptrn) + 1)} //TODO: new handlers model is needed
+				int ptrnIndex = 1
+                POST_PROCESS_DICT.each { ptrn, handler -> aggregatePostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, handler, ptrnIndex++)} //TODO: new handlers model is needed
             }
 
             return result != null && result.size() > 0
@@ -158,7 +109,7 @@ class PostFilter extends FilterBase {
 	 * @return accumulator with appended substring for current group
 	 */
 
-    StringBuilder smartPostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
+    StringBuilder aggregatePostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
     {
         if (log.isTraceEnabled()) 
 		{
@@ -323,15 +274,22 @@ class PostFilter extends FilterBase {
 	 * Listens for ALL_FILES_PROCESSED event to trigger all groups processing.
 	 * 
 	 */
-    public Object processEvent(Event event) {
+	@Override
+	protected StringBuilder gatherPrintableState(Event event, StringBuilder agg) {
         switch (event)
         {
             case Event.ALL_FILES_PROCESSED:
-                return processGroups()
+                try {
+					appendNotNull(agg, processGroups())
+                }
+            	catch (FilteringIsInterruptedException e) {
+            		log.error("Filtering interrupted by", e);
+            	}
+				break;
             default:
                 break
         }
-        return super.processEvent(event)
+        return super.gatherPrintableState(event, agg)
     }
 
 }

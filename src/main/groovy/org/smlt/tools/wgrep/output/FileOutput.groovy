@@ -26,7 +26,7 @@ public class FileOutput implements WgrepOutput{
 	
 	@Override
 	public void printToOutput(Object data) {
-		if (data != null)
+		if (data != null && !data.equals(""))
 		{
 			printer.println(data)
 		}

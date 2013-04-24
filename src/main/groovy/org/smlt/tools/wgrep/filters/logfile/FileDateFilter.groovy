@@ -17,7 +17,7 @@ import org.smlt.tools.wgrep.filters.FilterBase
  *
  */
 
-class FileDateFilter extends FilterBase
+class FileDateFilter extends FilterBase<List<File>>
 {
     //Checking dates everywhere
 
@@ -29,7 +29,7 @@ class FileDateFilter extends FilterBase
     protected int LOG_FILE_THRESHOLD = 24
     protected int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
 
-    FileDateFilter(FilterBase nextFilter_, WgrepConfig config)
+    FileDateFilter(FilterBase<List<File>> nextFilter_, WgrepConfig config)
     {
         super(nextFilter_, FileDateFilter.class)
         FROM_DATE = config.getParam('FROM_DATE')

@@ -126,12 +126,12 @@ class ModuleBase {
 
 	/**
 	 * Sets value of <code>FILES</code> field which exists in <code>WgrepConfig</code> in a classical setter way.
-	 * @param fileName <code>String</code> filename to be added
+	 * @param file <code>File</code> instance to be added for analysis
 	 */
 	
-	void addFileName(String fileName)
+	void addFile(File file)
 	{
-		setParam('FILES', fileName)
+		setParam('FILES', file)
 	}
 	
 	/**
@@ -141,9 +141,9 @@ class ModuleBase {
 	 * @return true if config was changed, false otherwise
 	 */
 
-	boolean refreshConfigByFileName(String fileName)
+	boolean refreshConfigByFile(String fileName)
 	{
-		return configInstance.refreshConfigByFileName(fileName)
+		return configInstance.refreshConfigByFile(fileName)
 	}
 	
 	/**

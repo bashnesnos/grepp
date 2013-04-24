@@ -16,7 +16,7 @@ import org.smlt.tools.wgrep.filters.FilterBase;
  *
  */
 
-public class ComplexFilter extends FilterBase {
+public class ComplexFilter extends FilterBase<String> {
 
 	//Complex pattern processing and stuff
 	Pattern currentPattern = null;
@@ -36,7 +36,7 @@ public class ComplexFilter extends FilterBase {
 	 * @param config WgrepConfig instance is needed to get supplied params.
 	 */
 	@SuppressWarnings("unchecked")
-	ComplexFilter(FilterBase nextFilter_, String filterPattern, Map<String, Object> preserveParams)
+	ComplexFilter(FilterBase<String> nextFilter_, Map<String, Object> preserveParams)
 	{
 		super(nextFilter_, ComplexFilter.class);
 		THRD_START_EXTRCTRS = (Map<String, String>) preserveParams.get("THRD_START_EXTRCTRS");
@@ -44,9 +44,12 @@ public class ComplexFilter extends FilterBase {
 		THRD_SKIP_END_PTTRNS = (List<String>) ((preserveParams.get("THRD_SKIP_END_PTTRNS") != null) ? preserveParams.get("THRD_SKIP_END_PTTRNS") : new ArrayList<String>());
 		THRD_END_PTTRNS = (List<String>) ((preserveParams.get("THRD_END_PTTRNS") != null) ? preserveParams.get("THRD_END_PTTRNS") : new ArrayList<String>());
 		if (log.isTraceEnabled()) {
-			log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());	
+			if (nextFilter_ != null)
+			{
+				log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());	
+			}
 		}
-		processExtendedPattern(filterPattern);
+		processExtendedPattern((String) preserveParams.get("FILTER_PATTERN"));
 	}
 
 

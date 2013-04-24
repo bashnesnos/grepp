@@ -125,7 +125,7 @@ class WgrepFacade extends ModuleBase {
 		catch(Exception e)
 		{
 			log.error("An unexpected exception occured", e)
-			consoleOutput.printToOutput("Abnormal termination due to " + e.message + ". Check details in the log")
+			consoleOutput.printToOutput("Abnormal termination due to: " + e.message + ". Check details in the log")
 		}
 	}
 

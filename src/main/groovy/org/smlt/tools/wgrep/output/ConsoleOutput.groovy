@@ -21,7 +21,7 @@ public class ConsoleOutput implements WgrepOutput {
 			printer = console.writer()	
 		}
 		else {
-			log.warn("There is no associated console to use with this output! Deafaulting to System.out");
+			log.warn("There is no associated console to use with this output! Defaulting to System.out");
 			printer = new PrintWriter(System.out, true)
 		}
 	}

@@ -16,7 +16,7 @@ import org.smlt.tools.wgrep.filters.FilterBase;
  * 
  */
 
-class EntryDateFilter extends FilterBase {
+class EntryDateFilter extends FilterBase<String> {
 
 	private SimpleDateFormat DATE_FORMAT;
 	private Date FROM_DATE;
@@ -33,7 +33,7 @@ class EntryDateFilter extends FilterBase {
 	 * @param config
 	 *            WgrepConfig instance
 	 */
-	public EntryDateFilter(FilterBase nextFilter_, String logDatePtrn_, String logDateFormat_,
+	public EntryDateFilter(FilterBase<String> nextFilter_, String logDatePtrn_, String logDateFormat_,
 			Date from, Date to) {
 		super(nextFilter_, EntryDateFilter.class);
 		
@@ -70,8 +70,7 @@ class EntryDateFilter extends FilterBase {
 	 */
 
 	@Override
-	public boolean check(Object blockData) throws ParseException,
-			TimeToIsOverduedException {
+	public boolean check(Object blockData) throws TimeToIsOverduedException {
 		if (blockData != null && logDatePtrn != null && DATE_FORMAT != null) {
 
 			Date entryDate = null;
@@ -103,8 +102,13 @@ class EntryDateFilter extends FilterBase {
 					throw new IllegalArgumentException(
 							"blockData should be either Matcher or String");
 				}
-
-				entryDate = DATE_FORMAT.parse(timeString);
+				
+				try {
+					entryDate = DATE_FORMAT.parse(timeString);
+				} catch (ParseException e) {
+					throw new RuntimeException(e); //re-throwing as unchecked exception, as it will mean that date time config is invalid 
+				}
+				
 			} else {
 				if (log.isTraceEnabled())
 					log.trace("Date check was skipped, dateFromPassed="
@@ -149,7 +153,7 @@ class EntryDateFilter extends FilterBase {
 	 * 
 	 */
 	@Override
-	public Object processEvent(Event event) throws ParseException, TimeToIsOverduedException {
+	protected StringBuilder gatherPrintableState(Event event, StringBuilder agg) {
 		switch (event) {
 		case FILE_ENDED:
 			isDateFromPassed = false;
@@ -157,7 +161,7 @@ class EntryDateFilter extends FilterBase {
 		default:
 			break;
 		}
-		return super.processEvent(event);
+		return super.gatherPrintableState(event, agg);
 	}
 
 }

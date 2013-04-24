@@ -51,7 +51,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
 		output = output_
 		filterChain = filterChain_
         filesFilterChain = filesFilterChain_
-		List<String> files_ = getParam('FILES')
+		List<File> files_ = getParam('FILES')
         log.trace("Total files to analyze: " + files_.size())
         fileList = filesFilterChain.filter(files_)
         isMerging = getParam('FILE_MERGING') != null
@@ -82,7 +82,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
     {
         log.info("Initializating " + file_.name)
         try {
-            if (refreshConfigByFileName(file_.name))
+            if (refreshConfigByFile(file_.name))
             {            
                 filterChain = FilterChainFactory.createFilterChainByConfig(configInstance)
             }                
@@ -104,7 +104,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
     {
         if (data == null) return
         def curLine = 0
-        FilterBase chain = filterChain //reassignig to get rid of GetEffectivePogo in the loop
+        FilterBase chain = filterChain //reassigning to get rid of GetEffectivePogo in the loop
         try {
             data.eachLine { String line ->
                 if (log.isTraceEnabled())
@@ -115,12 +115,12 @@ class FileProcessor extends ModuleBase implements DataProcessor
                 output.printToOutput(chain.filter(line))
             }
         }
-        catch(TimeToIsOverduedException e) {
-            log.trace("No point to read file further since supplied date TO is overdued")
+        catch(FilteringIsInterruptedException e) {
+            log.trace("No point to read file further as identified by filter chain")
             chain.processEvent(Event.FLUSH)
         }
 		
-		if (!isMerging) chain.processEvent(Event.FILE_ENDED)
+		if (!isMerging) output.printToOutput(chain.processEvent(Event.FILE_ENDED))
         log.info("File ended. Lines processed: " + curLine)
     }
 
