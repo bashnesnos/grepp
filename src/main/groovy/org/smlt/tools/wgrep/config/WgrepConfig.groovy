@@ -102,6 +102,7 @@ class WgrepConfig {
 
 	def getParam(String field)
 	{
+		if (field == null) return
 		return hasField(field) ? this."$field" : this.params[field]
 	}
 
@@ -196,7 +197,7 @@ class WgrepConfig {
 
 	private int processOptions(String arg)
 	{
-		if (arg =~/^-(?!-)/)
+		if (arg =~/^-(?![-0-9])/) //option should be a char and not a number
 		{
 			processSimpleArg(arg.substring(1)) //skipping '-' itself
 			return 1

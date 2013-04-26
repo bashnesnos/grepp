@@ -61,6 +61,5 @@ class FileNameParser extends ParserBase {
 		}
 
 		fileList.each{addFile(it)}
-		if (log.isTraceEnabled()) log.trace("Total files for wgrep: " + fileList)
 	}
 }

@@ -53,9 +53,10 @@ class EntryDateFilter extends FilterBase<String> {
 
 		FROM_DATE = from;
 		TO_DATE = to;
-		if (log.isTraceEnabled())
-			log.trace("Added on top of "
-					+ nextFilter.getClass().getCanonicalName());
+		if (log.isTraceEnabled()) {
+			if (nextFilter != null)
+				log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());
+		}
 	}
 
 	/**
