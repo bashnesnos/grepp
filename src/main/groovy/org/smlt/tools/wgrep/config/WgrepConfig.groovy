@@ -12,6 +12,9 @@ import org.smlt.tools.wgrep.config.varparsers.*
 import org.smlt.tools.wgrep.util.WgrepUtil;
 import org.w3c.dom.Document
 import org.w3c.dom.Element
+import javax.xml.XMLConstants
+import javax.xml.transform.stream.StreamSource
+import javax.xml.validation.SchemaFactory
 
 /**
  * Class represents wgrep config, which will be used to parse incoming arguments, config.xml and would be a source for processing, filtering etc. 
@@ -51,11 +54,35 @@ class WgrepConfig {
 	 */
 	WgrepConfig(String configFilePath)
 	{
+		this(configFilePath, null)	
+	}
+	
+	
+	WgrepConfig(String configFilePath, String configXSDpath)
+	{
+		if (configXSDpath == null || validateConfigFile(configFilePath, configXSDpath)) {
+			initConfig(configFilePath)
+		}
+		else {
+			throw new RuntimeException("config.xml is invalid")
+		}
+	}
+	
+	private void initConfig(String configFilePath) {
 		cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
 		root = cfgDoc.documentElement
 		loadDefaults()
 	}
-
+	
+	private boolean validateConfigFile(String configFilePath, String configXSDpath) {
+		log.trace("Validating the config")
+		def factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+		def schema = factory.newSchema(new StreamSource(new FileReader(configXSDpath)))
+		def validator = schema.newValidator()
+		validator.validate(new StreamSource(new FileReader(configFilePath)))
+		return true
+	}
+	
 	/**
 	 *  Method loads defaults and spooling extension as configured in config.xml's <code>global</code> section.
 	 *  Loads some values set via System properties as well.

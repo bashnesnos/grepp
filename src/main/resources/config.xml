@@ -1,4 +1,6 @@
-<root>
+<root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+ xmlns="http://www.smltools.org/config"
+ xsi:schemaLocation="http://www.smltools.org/config config.xsd">
 	<global>
         <spooling>.log</spooling>
         <default_options>-a</default_options>

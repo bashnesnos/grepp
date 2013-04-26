@@ -9,10 +9,11 @@ class WGrepTest extends GroovyTestCase {
 	def BASE_HOME = System.getProperty("wgrep.home")
 	def HOME = BASE_HOME + "\\build\\resources\\test"
 	def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
+	def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config.xsd"
 	def defalutOut = System.out
 
 	void setUp() {
-		config = new WgrepConfig(WGREP_CONFIG)
+		config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 		facade = new WgrepFacade(config)
 	}
 
