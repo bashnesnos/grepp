@@ -123,7 +123,8 @@ class DateTimeParser extends ParserBase
      * Aplies first pattern by default and sets date as an offset from a param; or from NOW if it is not specified . <br>
      * Returns null, if no minutes were supplied, i.e. if it is an indefinite offset.
      * 
-     * @param dateStr String in format -\d* or +\d*
+     * @param paramName param which should be taken as a base to calculate offset from. Is nullable.
+     * @param offsetStr String in format -\d* or +\d*, which shows how many minutes to sbutract/add.
      * @return Date value of supplied String if it was parsed by configured date patterns.
      */
     def parseOffset(def paramName, def offsetStr)

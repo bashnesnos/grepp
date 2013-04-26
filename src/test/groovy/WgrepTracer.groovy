@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.config.varparsers.*
 import java.util.*
+import WGrepTest
 
 def BASE_HOME = System.getProperty("wgrep.home")
 def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
@@ -20,21 +21,30 @@ WgrepFacade facade = new WgrepFacade(config)
         def testTimeStringFrom = dateFormat.format(fileTime)
         def testTimeStringTo = dateFormat.format(new Date(fileTime.getTime() + 60*60*1000))
 
-            //config.processInVars(["-t", "Foo", "--dtime", "-10", "+", HOME+"\\processing_time_test.log"])
-            def offsetStr = "+10"
-            def matcher = offsetStr =~ /^\+.*/
-            println matcher.find()
-            def date;
-            switch(offsetStr) {
-                case ~/^\+.*/:
-                    println("adding")
-                    date = new Date(new Date().getTime() + 10*60*1000) //adding minutes to NOW
-                    break
-                case ~/^-.*/:
-                    println("subtracting")
-                    date = new Date(new Date().getTime() - 10*60*1000) //subtracting minutes to NOW
-                    break
-            }
-            println date;
+def test = new WGrepTest()
+	def actualResult = test.getOutput {			facade.doProcessing([
+				"-i",
+				"Foo",
+				HOME+"\\processing_test.log"
+			])
+	}
+def expectedResult = """\
+2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo Koo
+
+2013-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
+Too
+2014-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' ThreadEnd1
+Goo
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
+Foo Man Chu
+#basic
+2012-10-20 05:05:57,952 [ACTIVE] ThreadStart: '1' SkipPattern
+Loo
+2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
+Voo
+#complex"""
+	println actualResult
+	println actualResult == expectedResult
 //println actualResult.toString()
 //println expectedResult == actualResult.toString()
