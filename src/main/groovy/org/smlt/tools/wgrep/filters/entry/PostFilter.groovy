@@ -1,6 +1,7 @@
 package org.smlt.tools.wgrep.filters.entry
 
 import groovy.xml.dom.DOMCategory
+import org.smlt.tools.wgrep.util.WgrepUtil;
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import org.smlt.tools.wgrep.config.WgrepConfig
@@ -40,7 +41,8 @@ class PostFilter extends FilterBase<String> {
     PostFilter(FilterBase<String> nextFilter_, Map postFilterParams)
     {
         super(nextFilter_, PostFilter.class)
-		POST_PROCESS_SEP = postFilterParams["POST_PROCESS_SEP"]
+		POST_PROCESS_SEP = postFilterParams["POST_PROCESS_SEP"] //nulls allowed here, will be validated
+		WgrepUtil.throwIllegalAEifNull(POST_PROCESS_SEP, "Post separator shouldn't be null")
 		POST_PROCESS_DICT = postFilterParams["POST_PROCESS_DICT"]
 		POST_PROCESS_HEADER = postFilterParams["POST_PROCESS_HEADER"]
 		POST_GROUPS_METHODS = postFilterParams["POST_GROUPS_METHODS"]

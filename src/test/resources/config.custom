@@ -20,10 +20,16 @@
 			<pattern alevel="entry_pattern">processing_</pattern>
 		</config>
 		<thread_configs alevel="execute_thread">
-			<extractor qlfr="or" tags="to_test, pr_test">ThreadStart: '\d{1,}'</extractor>
-			<pattern clct="THRD_SKIP_END_PTTRNS" tags="to_test, pr_test">SkipPattern</pattern>
-			<pattern clct="THRD_END_PTTRNS" tags="to_test, pr_test">ThreadEnd1</pattern>
-			<pattern clct="THRD_END_PTTRNS" tags="to_test, pr_test">ThreadEnd2</pattern>
+			<extractors>
+				<pattern tags="to_test, pr_test">ThreadStart: '\d{1,}'</pattern>	
+			</extractors>
+			<skipends>
+				<pattern tags="to_test, pr_test">SkipPattern</pattern>
+			</skipends>
+			<ends>
+				<pattern tags="to_test, pr_test">ThreadEnd1</pattern>
+				<pattern tags="to_test, pr_test">ThreadEnd2</pattern>
+			</ends>
 		</thread_configs>
 		<pp_splitters>
 			<splitter col_name="some_cmd" order="1" tags="some_timings" type="filter">Command name="?(.*?)"</splitter>

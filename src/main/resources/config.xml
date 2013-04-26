@@ -9,7 +9,6 @@
 		<opt field="HELP" handler="printHelp">?</opt>
 		<opt field="SPOOLING" handler="setParam">s</opt>
 		<opt field="FILE_MERGING" handler="setParam">m</opt>
-		<opt field="EXTNDD_PATTERN" handler="setExtendedPattern">e</opt>
 		<opt field="USER_ENTRY_PATTERN" handler="setUserLEPattern">L</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">a</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">i</opt>

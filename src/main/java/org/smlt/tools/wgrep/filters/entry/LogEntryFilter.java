@@ -35,7 +35,6 @@ class LogEntryFilter extends FilterBase<String> {
 	LogEntryFilter(FilterBase<String> nextFilter_, String logEntryPtrn_) {
 		super(nextFilter_, LogEntryFilter.class);
 		logEntryPtrn = Pattern.compile(logEntryPtrn_);
-		if (log.isTraceEnabled()) log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());
 	}
 
 	/**

@@ -9,6 +9,7 @@ import groovy.util.logging.Slf4j
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
 import org.smlt.tools.wgrep.config.varparsers.*
+import org.smlt.tools.wgrep.util.WgrepUtil;
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 
@@ -86,12 +87,7 @@ class WgrepConfig {
 
 	String getCDATA(Element node)
 	{
-		if (node == null) return
-		use(DOMCategory)
-		{
-			String txt = node.text()
-			return (txt != null) ? txt : node.getFirstChild().getNodeValue()
-		}
+		return WgrepUtil.getCDATA(node)
 	}
 
 	/**

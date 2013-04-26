@@ -10,6 +10,8 @@ import org.smlt.tools.wgrep.filters.entry.PostFilter;
 import org.smlt.tools.wgrep.filters.logfile.FileDateFilter;
 import org.smlt.tools.wgrep.filters.logfile.FileSortFilter;
 import org.smlt.tools.wgrep.filters.enums.Qualifier;
+import org.w3c.dom.Element;
+
 import groovy.xml.dom.DOMCategory;
 
 /**
@@ -95,24 +97,15 @@ class FilterChainFactory {
 		def cfParams = [:]
 		use(DOMCategory) {
 			if (pt_tag != null) {
-				def extrctrs = root.custom.thread_configs.extractor.findAll { it.'@tags' =~ pt_tag }
-				def THRD_START_EXTRCTRS = [:]
-				extrctrs.each { THRD_START_EXTRCTRS[it.text()] = it.'@qlfr' }
-				cfParams['THRD_START_EXTRCTRS'] = THRD_START_EXTRCTRS
-				def pttrns = root.custom.thread_configs.pattern.findAll { it.'@tags' =~ pt_tag }
-				pttrns.each {
-					if (cfParams[it.'@clct'] != null) {
-						cfParams[it.'@clct'].add(it.text())
-					}
-					else {
-						cfParams[it.'@clct'] = [it.text()]
-					}
-				}
+				cfParams['THRD_START_EXTRCTRS'] = root.custom.thread_configs.extractors.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
+				cfParams['THRD_SKIP_END_PTTRNS'] = root.custom.thread_configs.skipends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
+				cfParams['THRD_END_PTTRNS'] = root.custom.thread_configs.ends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
 			}
 		}
 		cfParams['FILTER_PATTERN'] = config.getParam('FILTER_PATTERN') 
 		return cfParams
 	}
+	
 	/**
 	 * Creates filter chain for entries depending on fulfilled parameters in the config. <br>
 	 * <li> 0. {@link PrintFilter} is always instantiated as last in chain. </li>

@@ -30,6 +30,12 @@ public abstract class FilterBase<E> {
 			@SuppressWarnings("rawtypes") Class subclazz) {
 		nextFilter = nextFilter_;
 		log = LoggerFactory.getLogger(subclazz);
+		if (log.isTraceEnabled()) {
+			if (nextFilter_ != null)
+			{
+				log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());	
+			}
+		}
 	}
 
 	/**
