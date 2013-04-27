@@ -8,5 +8,6 @@ Once pulled you can run "$wgrep_home/gradle makeEmbeddedJar" to build embedded j
 After that you'll be able to execute "gradle releaseDev" or "gradle release" which will allow to distribute jar and other resources into those folders.
 
 TODO: 
-add config.xml validation and some default config implementation.
-refactor .bat compiling and application content assembling via gradle 'application' plugin 
+try to re-organize/optimize configuration files etc.
+refactor .bat compiling and application content assembling via gradle 'application' plugin
+research if logging systems configuration(logback/commons/log4j) files could be parsed into pattern and to config's automatically 
