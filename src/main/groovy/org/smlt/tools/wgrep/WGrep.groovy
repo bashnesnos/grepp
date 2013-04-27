@@ -37,7 +37,7 @@ class WGrep
 		if ( argsToParseCount == 0) return
 		
 		def WGREP_CONFIG = args[0]
-		def WGREP_CONFIG_XSD = WGREP_CONFIG.replace(".xml", ".xsd")
+		def WGREP_CONFIG_XSD = WGREP_CONFIG.replace(".xml", ".xsd") //.xsd is assumed to be located near the config.xml
 		WgrepConfig config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 		WgrepFacade facade = new WgrepFacade(config)
 		facade.doProcessing(args[1..argsToParseCount])

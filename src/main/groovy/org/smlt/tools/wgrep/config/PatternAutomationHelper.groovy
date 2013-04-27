@@ -160,6 +160,14 @@ class PatternAutomationHelper extends ModuleBase
         }
     }
 	
+	boolean checkIfConfigExsits(String tag) {
+		use(DOMCategory)
+		{
+			def customCfg = getRoot().custom.config.find { it.'@id' ==~ tag }
+			return customCfg != null
+		}
+	}
+	
 	/**
 	 * Looks for <filter> element with "tags" parameter containing supplied tag. Method fills: <br>
 	 * FILTER_PATTERN
@@ -184,6 +192,14 @@ class PatternAutomationHelper extends ModuleBase
             }
         }
     }
+	
+	boolean checkIfFilterExsits(String tag) {
+		use(DOMCategory)
+		{
+			def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
+			return customFilter != null
+		}
+	}
 	
 	/**
 	 * Simply sets POST_PROCESSING to a supplied tag value

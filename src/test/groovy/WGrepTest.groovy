@@ -72,6 +72,21 @@ class WGrepTest extends GroovyTestCase {
 		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
 		assertTrue( config.getParam('HOME_DIR') != null )
 	}
+	
+	void testConfigsProcessing() {
+		config.processInVars([
+			"--to_test",
+			"--predef",
+			HOME+"\\fpTest*"
+		])
+		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "####\\[\\D{1,}\\].*(\\d{4}-\\d{1,2}-\\d{1,2} \\d{2}:\\d{2}:\\d{2})" )
+		assertTrue( config.getParam('FILTER_PATTERN') == "Something::" )
+		assertTrue( config.getParam('FILES') == [
+			new File(HOME+"\\fpTest_test.log")]
+		)
+		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
+		assertTrue( config.getParam('HOME_DIR') != null )
+	}
 
 	void testFailAutomationProcessing() {
 		facade.doProcessing([

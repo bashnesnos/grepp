@@ -279,7 +279,23 @@ class WgrepConfig {
 				def handler = optElem['@handler']
 				this."$handler"(optElem['@field'], optElem.text())
 			}
-			else throw new IllegalArgumentException("Invalid option=" + opt)
+			else {
+				if (isAutomationEnabled()) {
+					 if (paHelper.checkIfConfigExsits(opt)) { //checking if there exists a config with such id and applying it if so
+						 setPredefinedConfig("PREDEF_TAG", opt)
+					 }
+					 else if (paHelper.checkIfFilterExsits(opt)) { //checking if there exists a filter with such id and applying it if so
+						 setPredefinedFilter("PREDEF_TAG", opt)
+					 } 
+					 else {
+						 throw new IllegalArgumentException("Invalid option, doesn't match any config's/filters id too=" + opt)
+					 }
+				}
+				else
+				{
+					throw new IllegalArgumentException("Invalid option=" + opt)
+				}
+			}
 		}
 	}
 
@@ -449,7 +465,7 @@ class WgrepConfig {
 	{
 		setParam(field, val)
 		isAutomationEnabled() ? paHelper.applySequenceByTag(val) : log.warn("Attempt to predefine config with disabled automation")
-		disableAutomation()
+		//disableAutomation() //not disabling, so it can be reconfigured if supplied files have heterogenous log entry patterns 
 	}
 
 	/**
