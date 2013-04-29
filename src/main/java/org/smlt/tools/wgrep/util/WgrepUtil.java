@@ -1,7 +1,7 @@
 package org.smlt.tools.wgrep.util;
 
 import java.util.Map;
-
+import java.net.URL;
 import org.w3c.dom.Element;
 
 /**
@@ -29,5 +29,16 @@ public class WgrepUtil {
 	public static void throwIllegalAEifNull(Object o, String message)
 	{
 		if (o == null) throw new IllegalArgumentException(message);
+	}
+
+	public static String getResourcePathOrNull(String name) {
+		URL resourceURL = WgrepUtil.class.getClassLoader().getResource(name);
+		if (resourceURL != null)
+		{
+			return resourceURL.getPath();
+		}
+		else {
+			return null;
+		}
 	}
 }

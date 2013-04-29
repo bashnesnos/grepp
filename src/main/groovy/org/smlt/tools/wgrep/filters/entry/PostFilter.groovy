@@ -261,6 +261,7 @@ class PostFilter extends FilterBase<String> {
 	 */
     def processGroups()
     {
+        passingVal = null //invalidating passingVal
         StringBuilder rslt = new StringBuilder( !HEADER_PRINTED ? POST_PROCESS_HEADER : "");
 		POST_GROUPS.each { group ->
             rslt.append(group.getKey())

@@ -491,18 +491,21 @@ class WgrepConfig {
 CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
 
 Usage: 
-java -cp wgrep.jar org.smlt.tools.wgrep.WGrep CONFIG_FILE [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+java -cp wgrep.jar org.smlt.tools.wgrep.WGrep [CONFIG_FILE] [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
 Usage via supplied .bat or .sh file: 
 wgrep [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
 
 Examples:
 
 Using in Windows
-wgrep -s \"SomethingINeedToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
-wrep -s \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log
+wgrep -s \"Something_I#Need ToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
+wgrep -s \"SomethingINeed To Find\" D:\\myfolder\\LOGS\\myapp\\node*.log
+wgrep -s SomethingINeedToFind D:\\myfolder\\LOGS\\myapp\\node*.log
+wgrep -L \"RecordStart\" \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log*
 
 Using on NIX 
 wgrep --my_predefined_config --dtime 2011-11-11T11:10 2011-11-11T11:11 myapp.log 
+wgrep --my_predefined_config --dtime 2011-11-11T11:10 -10 myapp.log 
 wgrep --my_predefined_config myapp.log 
 wgrep 'SomethingINeedToFind' myanotherapp.log 
 wgrep -s 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 

@@ -17,20 +17,13 @@ def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
 def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config.xsd"
 //def WGREP_CONFIG = BASE_HOME + "\\dev\\config.xml"
 def HOME = BASE_HOME + "\\build\\resources\\test"
-def config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
-def facade = new WgrepFacade(config)
-
-		config.processInVars([
-			"--to_test",
-			"--predef",
-			HOME+"\\fpTest*"
-		])
 		
-		println config.getParam('LOG_ENTRY_PATTERN')
-		println config.getParam('FILTER_PATTERN') 
-		println config.getParam('FILES') 
-		println config.getParam('FOLDER_SEPARATOR') 
-		println config.getParam('HOME_DIR') 
+		WGrep.main([ "-v",
+				"Foo",
+				HOME+"\\processing_test.log"
+		].toArray(new String[2]))
+
+
 
 //println actualResult.toString()
 //println expectedResult == actualResult.toString()

@@ -21,7 +21,7 @@ public class ConsoleOutput implements WgrepOutput {
 			printer = console.writer()	
 		}
 		else {
-			log.warn("There is no associated console to use with this output! Defaulting to System.out");
+			log.debug("There is no associated console to use with this output! Defaulting to System.out.");
 			printer = new PrintWriter(System.out, true)
 		}
 	}
@@ -40,7 +40,7 @@ public class ConsoleOutput implements WgrepOutput {
 
 	@Override
 	public void closeOutput() {
-		printer.close()		
+		//ignoring close since it will close whole console or STDOUT	
 	}
 
 }

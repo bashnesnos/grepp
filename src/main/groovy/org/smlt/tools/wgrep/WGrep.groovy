@@ -3,7 +3,7 @@ package org.smlt.tools.wgrep
 /**
 * CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
 * <p>
-* Usage: java -cp wgrep.jar org.smlt.tools.wgrep.WGrep CONFIG_FILE [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME] <br>
+* Usage: java -cp wgrep.jar org.smlt.tools.wgrep.WGrep [CONFIG_FILE] [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME] <br>
 * Usage via supplied .bat or .sh file: wgrep [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
 * <p>
 * Examples:
@@ -25,21 +25,42 @@ package org.smlt.tools.wgrep
 */
 import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.config.WgrepConfig
+import org.smlt.tools.wgrep.util.WgrepUtil
 
 @Slf4j
 class WGrep 
 {
 	public static void main(String[] args)
 	{
-		log.debug(args.toString())
+		log.info(args.toString())
 		if (args == null) return
 		int argsToParseCount = args.size() - 1
 		if ( argsToParseCount == 0) return
 		
-		def WGREP_CONFIG = args[0]
-		def WGREP_CONFIG_XSD = WGREP_CONFIG.replace(".xml", ".xsd") //.xsd is assumed to be located near the config.xml
+		def argsToParse = args
+		def WGREP_CONFIG = argsToParse[0]
+		def WGREP_CONFIG_XSD = null
+		if (WGREP_CONFIG =~ /config.xml$/) {
+			argsToParse = args[1..argsToParseCount] //excluding config.xml file path from parameters
+		}
+		else {
+			WGREP_CONFIG = WgrepUtil.getResourcePathOrNull("config.xml") //looking in the classpath
+		}
+
+		if (WGREP_CONFIG == null){ // it has not been found
+			println "config.xml should be either in classpath or specified explicitly"
+			return
+		}
+
+		WGREP_CONFIG_XSD = WgrepUtil.getResourcePathOrNull("config.xsd") //looking in the classpath
+		if (WGREP_CONFIG_XSD == null){ //xsd has not been found 
+			log.warn("config.xsd cannot be found in the classpath. Validation will be skipped")
+		}
+		 
 		WgrepConfig config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 		WgrepFacade facade = new WgrepFacade(config)
-		facade.doProcessing(args[1..argsToParseCount])
+		facade.doProcessing(argsToParse)
 	}
+
+
 }

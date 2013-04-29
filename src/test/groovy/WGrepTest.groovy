@@ -309,4 +309,23 @@ Koo,200
 			])
 		}
 	}
+
+	void testWgrepMain() {
+		
+		def expectedResult = """\
+2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo Koo
+
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
+Foo Man Chu
+#basic"""
+		
+		assertWgrepOutput(expectedResult) {
+			WGrep.main([
+				"Foo",
+				HOME+"\\processing_test.log"
+			].toArray(new String[2]))
+		}
+	}
+
 }
