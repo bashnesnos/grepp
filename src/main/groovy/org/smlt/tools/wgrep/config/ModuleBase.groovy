@@ -157,4 +157,24 @@ class ModuleBase {
 		return configInstance != null
 	}
 
+
+	/**
+	 * Method delegates checks if mandatory and optional parameters are filled to config instance.
+	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 */
+
+	boolean check(List<String> mandatory, List<String> optional)
+	{
+		return configInstance.check(mandatory, optional)
+	}
+
+	/**
+	 * Method delegates check if param is filled to config instance
+	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 */
+
+	boolean checkParamIsEmpty(String paramName) {
+		return configInstance.checkParamIsEmpty(paramName)
+	}
+
 }

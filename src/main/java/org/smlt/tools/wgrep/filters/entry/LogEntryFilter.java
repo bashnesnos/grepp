@@ -35,6 +35,8 @@ class LogEntryFilter extends FilterBase<String> {
 	LogEntryFilter(FilterBase<String> nextFilter_, String logEntryPtrn_) {
 		super(nextFilter_, LogEntryFilter.class);
 		logEntryPtrn = Pattern.compile(logEntryPtrn_);
+        curBlock = new StringBuilder();
+        clearBuffer();
 	}
 
 	/**
@@ -89,10 +91,6 @@ class LogEntryFilter extends FilterBase<String> {
         {
             if (curBlock.length() != 0) curBlock = curBlock.append('\n');
             curBlock = curBlock.append(line);
-        }
-        else 
-        {
-            curBlock = new StringBuilder(line);
         }
     }
 

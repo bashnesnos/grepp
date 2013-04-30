@@ -17,12 +17,12 @@ def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
 def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config.xsd"
 //def WGREP_CONFIG = BASE_HOME + "\\dev\\config.xml"
 def HOME = BASE_HOME + "\\build\\resources\\test"
-		
-		WGrep.main([ "-v",
-				"Foo",
-				HOME+"\\processing_test.log"
-		].toArray(new String[2]))
 
+			WGrep.main([
+			"-it",
+			"test",
+			HOME+"\\config*"
+		].toArray(new String[2]))
 
 
 //println actualResult.toString()

@@ -85,7 +85,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
             if (refreshConfigByFile(file_.name))
             {            
                 filterChain = FilterChainFactory.createFilterChainByConfig(configInstance)
-            }                
+            }
         }
         catch(IllegalArgumentException e) {
             e.printStackTrace()

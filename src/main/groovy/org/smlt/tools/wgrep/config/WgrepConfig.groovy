@@ -42,7 +42,6 @@ class WgrepConfig {
 	private FilterParser filterParser =  null
 	private FileNameParser fileNameParser =  null
 	private PatternAutomationHelper paHelper = null
-
 	private List<ParserBase> varParsers = [] //organized as LIFO
 	private Map params = [:] //all params as a Map
 
@@ -102,6 +101,7 @@ class WgrepConfig {
 				defaultOptions.text().split(" ").each { opt -> processOptions(opt) } //processing default options
 			}
 		}
+		paHelper = new PatternAutomationHelper(this) //creating it by default
 	}
 
 	// Getters
@@ -152,6 +152,51 @@ class WgrepConfig {
 	}
 
 	/**
+	 * Method checks if mandatory and optional parameters are filled.
+	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 */
+
+	boolean check(List<String> mandatory, List<String> optional)
+	{
+		boolean checkResult = true
+		
+		mandatory.findAll{ paramName -> checkParamIsEmpty(paramName)}
+			.each{ paramName ->
+					log.error("Mandatory param " + paramName + " is empty")
+					if (checkResult)
+						checkResult = false
+			}
+
+		optional.findAll{ paramName -> checkParamIsEmpty(paramName)}
+			.each{ paramName ->
+				log.warn("Optional param " + paramName + " is empty")
+			}
+
+		return checkResult
+	}
+
+	/**
+	 * Method checks if param is filled.
+	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 */
+
+	boolean checkParamIsEmpty(String paramName) {
+		def param = getParam(paramName)
+		if (param != null) {
+			if (param instanceof Collection) {
+				return param.size() == 0
+			}
+			if (param instanceof Map) {
+				return param.size() == 0
+			}
+			return false
+		}
+		else {
+			return true
+		}
+	}
+
+	/**
 	* Checks if specified field is declared or not. 
 	* Used to determine whether the field should be looked up in the <code>params</code> Map or not.
 	*
@@ -167,6 +212,8 @@ class WgrepConfig {
 		}
 		return true
 	}
+
+
 	// INITIALIZATION
 
 	/**
@@ -280,21 +327,18 @@ class WgrepConfig {
 				this."$handler"(optElem['@field'], optElem.text())
 			}
 			else {
-				if (isAutomationEnabled()) {
-					 if (paHelper.checkIfConfigExsits(opt)) { //checking if there exists a config with such id and applying it if so
-						 setPredefinedConfig("PREDEF_TAG", opt)
-					 }
-					 else if (paHelper.checkIfFilterExsits(opt)) { //checking if there exists a filter with such id and applying it if so
-						 setPredefinedFilter("PREDEF_TAG", opt)
-					 } 
-					 else {
-						 throw new IllegalArgumentException("Invalid option, doesn't match any config's/filters id too=" + opt)
-					 }
-				}
-				else
-				{
-					throw new IllegalArgumentException("Invalid option=" + opt)
-				}
+				 if (paHelper.checkIfConfigExsits(opt)) { //checking if there exists a config with such id and applying it if so
+					setPredefinedConfig("PREDEF_TAG", opt)
+				 }
+				 else if (paHelper.checkIfFilterExsits(opt)) { //checking if there exists a filter with such id and applying it if so
+					setPredefinedFilter("PREDEF_TAG", opt)
+				 } 
+				 else if (paHelper.checkIfPostProcessExsits(opt)) { //checking if there exists a post_processing config with such id and applying it if so
+				 	setPostProcessing("POST_PROCESSING", opt)
+				 }
+				 else {
+					 throw new IllegalArgumentException("Invalid option, doesn't match any config's/filters id too=" + opt)
+				 }
 			}
 		}
 	}
@@ -351,7 +395,7 @@ class WgrepConfig {
 
 	boolean isAutomationEnabled()
 	{
-		return paHelper != null
+		return paHelper.isAutomationEnabled()
 	}
 
 	/**
@@ -391,6 +435,7 @@ class WgrepConfig {
 	private void setPostProcessing(String field, def val)
 	{
 		setParam(field, val)
+		paHelper.parsePostFilterConfig(val)
 	}
 
 	/**
@@ -440,7 +485,7 @@ class WgrepConfig {
 	{
 		filterParser.unsubscribe()
 		setParam(field, val)
-		isAutomationEnabled() ? paHelper.parseFilterConfig(val) : log.warn("Attempt to predefine filter with disabled automation")
+		paHelper.parseFilterConfig(val)
 	}
 
 	/**
@@ -453,7 +498,7 @@ class WgrepConfig {
 	{
 		filterParser.unsubscribe()
 		setParam(field, val)
-		isAutomationEnabled() ? paHelper.parseBulkFilterConfig(val) : log.warn("Attempt to predefine bulk filter with disabled automation")
+		paHelper.parseBulkFilterConfig(val)
 	}
 
 	/**
@@ -475,7 +520,7 @@ class WgrepConfig {
 
 	private void disableAutomation()
 	{
-		paHelper = null
+		paHelper.disableSequence()
 	}
 
 
@@ -520,7 +565,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 	* Method enforces TRACE level of logging by resetting logback config and redirects it to STDOUT.
 	*/
 
-	void enforceTrace(String field, def val)
+	private void enforceTrace(String field, def val)
 	{
 		log.debug("Enabling trace")
 		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -558,7 +603,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 	* Method enforces INFO level of logging by resetting logback config and redirects it to STDOUT.
 	*/
 
-	void enforceInfo(String field, def val)
+	private void enforceInfo(String field, def val)
 	{
 		log.debug("Redirecting info to STDOUT")
 		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();

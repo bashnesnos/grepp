@@ -54,32 +54,6 @@ class WgrepFacade extends ModuleBase {
 		return dataProcessor
 	}
 
-	/**
-	 * Method checks if all the main vars are fulfilled.
-	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
-	 */
-
-	boolean check()
-	{
-
-		if (configInstance.getParam('FILES').isEmpty())
-		{
-			println "No file to wgrep"
-			return false
-		}
-
-		if (configInstance.getParam('LOG_ENTRY_PATTERN') == null)
-		{
-			log.warn("No log entry pattern.")
-		}
-
-		if (configInstance.getParam('FILTER_PATTERN') == null)
-		{
-			log.warn("No filter pattern.")
-		}
-
-		return true
-	}
 
 	//General
 
@@ -116,7 +90,7 @@ class WgrepFacade extends ModuleBase {
 		try {
 			configInstance.processInVars(args)
 			moduleInit()
-			if (!check()) {
+			if (!check(['FILES'], null)) {
 				return
 			}
 			dataProcessor.process()
@@ -128,6 +102,5 @@ class WgrepFacade extends ModuleBase {
 			consoleOutput.printToOutput("Abnormal termination due to: " + e.message + ". Check details in the log")
 		}
 	}
-
 
 }

@@ -37,10 +37,10 @@ public class ComplexFilter extends FilterBase<String> {
 	 * @param config WgrepConfig instance is needed to get supplied params.
 	 */
 	@SuppressWarnings("unchecked")
-	ComplexFilter(FilterBase<String> nextFilter_, Map<String, Object> preserveParams)
+	ComplexFilter(FilterBase<String> nextFilter_, String filterPattern, Map<String, Object> preserveParams)
 	{
 		super(nextFilter_, ComplexFilter.class);
-		THRD_START_EXTRCTRS = (List<String>) preserveParams.get("THRD_START_EXTRCTRS"); //if null indicates that thread preserving is disabled
+		THRD_START_EXTRCTRS = (List<String>) (preserveParams != null ? preserveParams.get("THRD_START_EXTRCTRS") : null); //if null indicates that thread preserving is disabled
 		if (isThreadPreserveEnabled())
 		{
 			THRD_START_PTTRNS = (List<String>) WgrepUtil.getNotNull(preserveParams, "THRD_START_PTTRNS", new ArrayList<String>()); //could be empty, as it will be extracted in runtime
@@ -54,7 +54,7 @@ public class ComplexFilter extends FilterBase<String> {
 				log.trace(THRD_END_PTTRNS.toString());
 			}
 		}
-		processExtendedPattern((String) preserveParams.get("FILTER_PATTERN"));
+		processExtendedPattern(filterPattern);
 	}
 
 	
@@ -294,7 +294,7 @@ public class ComplexFilter extends FilterBase<String> {
 				{
 					if (log.isTraceEnabled()) log.trace("Next group in match: " + grp);
 					qualifierMatcher = Pattern.compile(qRegex).matcher(grp);
-					if (qualifierMatcher.find())
+					if (qualifierMatcher.matches())
 					{
 						nextQualifier = qualifierMatcher.group();
 						continue;
