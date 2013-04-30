@@ -88,15 +88,6 @@ class WGrepTest extends GroovyTestCase {
 		assertTrue( config.getParam('HOME_DIR') != null )
 	}
 
-	void testFailAutomationProcessing() {
-		facade.doProcessing([
-			"-i",
-			"test",
-			HOME+"\\config*"
-		])
-		assertTrue( true )
-	}
-
 	void testExtendedPatternProcessing() {
 
 		config.processInVars([
@@ -124,7 +115,7 @@ class WGrepTest extends GroovyTestCase {
 
 	void testAutomationProcessing() {
 		config.processInVars([
-			"-i",
+			"-e",
 			"test",
 			HOME+"\\fpTest_*"
 		])
@@ -170,7 +161,7 @@ Voo
 		
 		assertWgrepOutput(expectedResult) {
 			facade.doProcessing([
-				"-i",
+				"-e",
 				"Foo",
 				HOME+"\\processing_test.log"
 			])

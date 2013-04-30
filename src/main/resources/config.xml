@@ -3,7 +3,7 @@
  xsi:schemaLocation="http://www.smltools.org/config config.xsd">
 	<global>
         <spooling>.log</spooling>
-        <default_options>-a</default_options>
+        <default_options>-c</default_options>
 	</global>
 	<options>
 		<opt field="VERBOSE" handler="enforceInfo">v</opt>
@@ -12,8 +12,10 @@
 		<opt field="SPOOLING" handler="setParam">s</opt>
 		<opt field="FILE_MERGING" handler="setParam">m</opt>
 		<opt field="USER_ENTRY_PATTERN" handler="setUserLEPattern">L</opt>
+		<opt field="ATMTN_LEVEL" handler="setAutomation">c</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">a</opt>
-		<opt field="ATMTN_LEVEL" handler="setAutomation">i</opt>
+		<opt field="ATMTN_LEVEL" handler="setAutomation">f</opt>
+		<opt field="ATMTN_LEVEL" handler="setAutomation">e</opt>
 		<opt field="DATE_TIME_FILTER" handler="setDateTimeFilter">dtime</opt>
 	</options>
 	<pp_config default_sep="csv">
@@ -28,8 +30,10 @@
 		</pp_separators>
 	</pp_config>
 	<automation>
-		<level handler="parseCustomConfig" id="entry_pattern" order="1" tags="a, i"/>
-		<level handler="parseExecuteThreadConfig" id="execute_thread" order="2" tags="i"/>
+		<level handler="parseCustomConfig" id="entry_pattern" order="1" tags="c, e, a"/>
+		<level handler="parseFilterConfig" id="filter_pattern" order="2" tags="f, a"/>
+		<level handler="parseExecuteThreadConfig" id="execute_thread" order="2" tags="e, a"/>
+		<level handler="parsePostFilterConfig" id="post_process_pattern" order="2" tags="f, a"/>
 	</automation>
 	<date_time_config>
 			<pattern id="INPUT_DATE_TIME_FORMAT" order="1" tags="dtime">yyyy-MM-dd'T'HH:mm:ss</pattern>

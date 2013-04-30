@@ -332,9 +332,12 @@ class WgrepConfig {
 				 }
 				 else if (paHelper.checkIfFilterExsits(opt)) { //checking if there exists a filter with such id and applying it if so
 					setPredefinedFilter("PREDEF_TAG", opt)
-				 } 
+				 }
+				 else if (paHelper.checkIfExecuteThreadExsits(opt)) { //checking if there exists a thread preserving patterns with such id and applying it if so
+					setThreadPreserving("PREDEF_TAG", opt)
+				 }
 				 else if (paHelper.checkIfPostProcessExsits(opt)) { //checking if there exists a post_processing config with such id and applying it if so
-				 	setPostProcessing("POST_PROCESSING", opt)
+				 	setPostProcessing("PREDEF_TAG", opt)
 				 }
 				 else {
 					 throw new IllegalArgumentException("Invalid option, doesn't match any config's/filters id too=" + opt)
@@ -414,30 +417,6 @@ class WgrepConfig {
 		return isAutomationEnabled() ? paHelper.applySequenceByFileName(fileName) : false
 	}
 
-
-	/**
-	 * Enables extended pattern processing.
-	 * @param field Field to be set. Either <code>EXTNDD_PATTERN</code> for just enabling or <code>PRESERVE_THREAD</code> if it should enable thread parsing as well.
-	 * @param val <code>String</code> value to be set. Either <code>e</code> if it just enabling, and a valid config preset tag from <code>thread_configs</code> section otherwise.
-	 */
-
-	private void setExtendedPattern(String field, def val)
-	{
-		setParam(field, val)
-	}
-
-	/**
-	 * Enables post processing.
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
-	 */
-
-	private void setPostProcessing(String field, def val)
-	{
-		setParam(field, val)
-		paHelper.parsePostFilterConfig(val)
-	}
-
 	/**
 	 * Enables post processing. Initializes {@link DateTimeParser}.
 	 * @param field Field to be set
@@ -474,7 +453,20 @@ class WgrepConfig {
 		setParam(field, val)
 		paHelper = new PatternAutomationHelper(this) //refreshing PatternAutomation instance
 	}
+	
+	/**
+	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
+	 * @param field Field to be set
+	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+	 */
+	private void setPredefinedConfig(String field, def val)
+	{
+		setParam(field, val)
+		isAutomationEnabled() ? paHelper.applySequenceByTag(val) : log.warn("Attempt to predefine config with disabled automation")
+		//disableAutomation() //not disabling, so it can be reconfigured if supplied files have heterogenous log entry patterns 
+	}
 
+	
 	/**
 	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
 	 * Calls {@link PatternAutomation.parseFilterConfig}
@@ -488,31 +480,30 @@ class WgrepConfig {
 		paHelper.parseFilterConfig(val)
 	}
 
+	
 	/**
-	 * Sets <code>FILTER_PATTERN</code> and <code>POST_PROCESSING</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
-	 * Calls {@link PatternAutomation.parseBulkFilterConfig}
+	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
+	 * Calls {@link PatternAutomation.parseFilterConfig}
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
-	private void setPredefinedBulkFilter(String field, def val)
+	private void setThreadPreserving(String field, def val)
 	{
-		filterParser.unsubscribe()
-		setParam(field, val)
-		paHelper.parseBulkFilterConfig(val)
+		paHelper.parseExecuteThreadConfig(val)
 	}
 
+	
 	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
+	 * Enables post processing.
 	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
 	 */
-	private void setPredefinedConfig(String field, def val)
-	{
-		setParam(field, val)
-		isAutomationEnabled() ? paHelper.applySequenceByTag(val) : log.warn("Attempt to predefine config with disabled automation")
-		//disableAutomation() //not disabling, so it can be reconfigured if supplied files have heterogenous log entry patterns 
-	}
 
+	private void setPostProcessing(String field, def val)
+	{
+		paHelper.parsePostFilterConfig(val)
+	}
+	
 	/**
 	*
 	* Disables pattern automation. Simply by setting paHelper to null

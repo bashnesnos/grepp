@@ -15,7 +15,6 @@ class PatternAutomationHelper extends ModuleBase
 {
 
     List ATMTN_SEQ = []
-    Map ATMTN_DICT = [:]
     String currentConfigPtrn = null
     String currentConfigId = null
     boolean isAmmended = false
@@ -38,14 +37,13 @@ class PatternAutomationHelper extends ModuleBase
         use(DOMCategory)
         {
             def levels = getRoot().automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
-            levels.each { ATMTN_SEQ.add(it.'@handler'); ATMTN_DICT[it.'@handler'] = it.'@id' }
+            levels.each { ATMTN_SEQ.add(it.'@handler'); }
         }
     }
 
     void disableSequence() {
         lv_tag = null
         ATMTN_SEQ = []
-        ATMTN_DICT = [:]
     }
 
     boolean isAutomationEnabled() {
@@ -86,7 +84,7 @@ class PatternAutomationHelper extends ModuleBase
         }
 		
         ATMTN_SEQ.each { handler ->
-			currentConfigId = (currentConfigId != null) ? currentConfigId : findConfigIdByData(ATMTN_DICT[handler], filename)
+			currentConfigId = (currentConfigId != null) ? currentConfigId : findConfigIdByData(filename)
 			applyMethod(currentConfigId, handler)
         }
         return isAmmended
@@ -231,7 +229,7 @@ class PatternAutomationHelper extends ModuleBase
     boolean checkIfPostProcessExsits(String tag) {
         use(DOMCategory)
         {
-            def postPatterns = getRoot().custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
+            def postPatterns = getRoot().custom.pp_splitters.splitter.findAll { it.'@tags' =~ tag}
             return postPatterns != null && !postPatterns.isEmpty()
         }
     }
@@ -286,23 +284,15 @@ class PatternAutomationHelper extends ModuleBase
                 }
                 POST_PROCESS_HEADER += "\n"
             }
+			else {
+				log.trace('POST_PROCESSING is not defined')
+			}
         }
         return ["POST_PROCESS_SEP":POST_PROCESS_SEP,
             "POST_PROCESS_DICT":POST_PROCESS_DICT,
             "POST_GROUPS_METHODS":POST_GROUPS_METHODS,
             "POST_PROCESS_HEADER":POST_PROCESS_HEADER,
             "PATTERN":PATTERN.toString()]
-    }
-	/**
-	 * Method applies parseFilterConfig and parsePostFilter to one tag.
-	 * 
-	 * @param tag One of "tags", which could be found in <filter> element which is at the same time one of a <splitter> element tags
-	 */
-	
-    void parseBulkFilterConfig(String tag)
-    {
-        parseFilterConfig(tag)
-        parsePostFilterConfig(tag)
     }
 
 	/**
@@ -317,7 +307,14 @@ class PatternAutomationHelper extends ModuleBase
         setParam('PRESERVE_THREAD_PARAMS', parseComplexFilterParams(tag))
         isAmmended = true
     }
-
+	
+	boolean checkIfExecuteThreadExsits(String tag) {
+		use(DOMCategory)
+		{
+			def startExtractors = getRoot().custom.thread_configs.extractors.pattern.findAll { it.'@tags' =~ tag}
+			return startExtractors != null && !startExtractors.isEmpty()
+		}
+	}
 
     /**
      * 
@@ -337,18 +334,20 @@ class PatternAutomationHelper extends ModuleBase
                 cfParams['THRD_SKIP_END_PTTRNS'] = root.custom.thread_configs.skipends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
                 cfParams['THRD_END_PTTRNS'] = root.custom.thread_configs.ends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
             }
+			else {
+				log.trace('Thread preserving is undefined')
+			}
         }
         return cfParams
     }
 	/**
 	 * Finds config id by specified String. Method looks up for <config> element containing matching <pattern> with "alevel" parameter equal to level.
 	 * 
-	 * @param level One of levels as specified in <automation> section of the config.xml
 	 * @param data String which would be matched to <pattern> element values which have corresponding to level "alevel" parameter.
 	 * @return
 	 */
 	
-    String findConfigIdByData(String level, String data)
+    String findConfigIdByData(String data)
     {
         log.trace("findConfigByData started")
 
@@ -360,7 +359,7 @@ class PatternAutomationHelper extends ModuleBase
         String id = null
         use(DOMCategory)
         {
-            def configs = getRoot().custom.config.findAll { it.pattern[0].'@alevel' ==~ level }
+            def configs = getRoot().custom.config.findAll { it.pattern[0] }
             def config = configs.find { config ->
                 currentConfigPtrn = getCDATA(config.pattern[0])
                 log.trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")

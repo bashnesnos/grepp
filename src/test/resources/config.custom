@@ -1,25 +1,19 @@
 <root>
 	<custom xmlns="http://www.smltools.org/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.smltools.org/config config.xsd">
-		<options>
-			<opt field="POST_PROCESSING" handler="setPostProcessing">some_timings</opt>
-			<opt field="POST_PROCESSING" handler="setPostProcessing">avg_timings</opt>
-			<opt field="POST_PROCESSING" handler="setPostProcessing">avg_operands</opt>
-			<opt field="PREDEF_TAG" handler="setPredefinedConfig">fake</opt>
-		</options>
 		<config id="to_test">
 			<date_format>yyyy-MM-dd HH:mm:ss</date_format>
 			<date>(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})</date>
 			<starter>####\[\D{1,}\].*</starter>
 			<log_threshold>4</log_threshold>
-			<pattern alevel="entry_pattern">fpTest_</pattern>
+			<pattern>fpTest_</pattern>
 		</config>
 		<config id="pr_test">
 			<date_format>yyyy-MM-dd HH:mm:ss</date_format>
 			<date>(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})</date>
 			<log_threshold>24</log_threshold>
-			<pattern alevel="entry_pattern">processing_</pattern>
+			<pattern>processing_</pattern>
 		</config>
-		<thread_configs alevel="execute_thread">
+		<thread_configs>
 			<extractors>
 				<pattern tags="to_test, pr_test">ThreadStart: '\d{1,}'</pattern>	
 			</extractors>
