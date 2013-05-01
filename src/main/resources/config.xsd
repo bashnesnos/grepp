@@ -87,7 +87,8 @@
     	<attribute name="handler" type="string"></attribute>
     	<attribute name="id" type="string"></attribute>
     	<attribute name="order" type="int"></attribute>
-    	<attribute name="tags" type="string"></attribute>
+    	<attribute name="fireonce" type="string"></attribute>
+        <attribute name="tags" type="string"></attribute>
     </complexType>
 
     <complexType name="date_time_config">

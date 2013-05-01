@@ -91,7 +91,10 @@ class WgrepConfig {
 		FOLDER_SEPARATOR = System.getProperty("file.separator")
 		HOME_DIR = System.getProperty("wgrep.home") + FOLDER_SEPARATOR
 		CWD = System.getProperty("user.dir")
-		if (FOLDER_SEPARATOR == "\\") FOLDER_SEPARATOR += "\\"
+		if (FOLDER_SEPARATOR == "\\") {
+			FOLDER_SEPARATOR += "\\"
+		}
+		paHelper = new PatternAutomationHelper(this) //creating it by default
 		use(DOMCategory)
 		{
 			SPOOLING_EXT = root.global.spooling[0].text()
@@ -101,7 +104,7 @@ class WgrepConfig {
 				defaultOptions.text().split(" ").each { opt -> processOptions(opt) } //processing default options
 			}
 		}
-		paHelper = new PatternAutomationHelper(this) //creating it by default
+		
 	}
 
 	// Getters
@@ -327,6 +330,9 @@ class WgrepConfig {
 				this."$handler"(optElem['@field'], optElem.text())
 			}
 			else {
+				 if (isAutomationEnabled() && paHelper.applySequenceByTag(opt)) { //trying to apply sequence first
+				 	log.info("Applied sequence for: $opt")
+				 }				  
 				 if (paHelper.checkIfConfigExsits(opt)) { //checking if there exists a config with such id and applying it if so
 					setPredefinedConfig("PREDEF_TAG", opt)
 				 }
@@ -451,7 +457,7 @@ class WgrepConfig {
 	private void setAutomation(String field, def val)
 	{
 		setParam(field, val)
-		paHelper = new PatternAutomationHelper(this) //refreshing PatternAutomation instance
+		paHelper.enableSequence(val) //refreshing PatternAutomation instance
 	}
 	
 	/**
@@ -506,7 +512,7 @@ class WgrepConfig {
 	
 	/**
 	*
-	* Disables pattern automation. Simply by setting paHelper to null
+	* Disables pattern automation.
 	*/
 
 	private void disableAutomation()

@@ -27,7 +27,7 @@ println WGREP_CONFIG
 def config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 def facade = new WgrepFacade(config)
 
-			facade.doProcessing([
+			facade.doProcessing([ "-t",
 				"Foo",
 				HOME+"\\processing_test.log"
 			])

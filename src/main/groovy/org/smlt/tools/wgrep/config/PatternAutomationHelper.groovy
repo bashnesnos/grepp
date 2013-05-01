@@ -15,6 +15,7 @@ class PatternAutomationHelper extends ModuleBase
 {
 
     List ATMTN_SEQ = []
+    List FIRE_ONCE_METHODS = []
     String currentConfigPtrn = null
     String currentConfigId = null
     boolean isAmmended = false
@@ -28,16 +29,15 @@ class PatternAutomationHelper extends ModuleBase
     PatternAutomationHelper(WgrepConfig config)
     {
 		super(config)
-		lv_tag = getParam('ATMTN_LEVEL')
-        enableSequence(lv_tag)
-
     }        
 	
     void enableSequence(String level_tag) {
+        lv_tag = level_tag
         use(DOMCategory)
         {
             def levels = getRoot().automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
-            levels.each { ATMTN_SEQ.add(it.'@handler'); }
+            ATMTN_SEQ = levels.collect { it.'@handler' }
+            FIRE_ONCE_METHODS = levels.findAll { it.'@fireonce' == "true" }.collect{ it.'@handler'}
         }
     }
 
@@ -50,21 +50,15 @@ class PatternAutomationHelper extends ModuleBase
         return lv_tag != null
     }
 
-	/**
-	 * Overriden method to check if needed params are fulfilled in the config.
-	 * @return true if config has desired params, false otherwise. 
-	 */
-	
-	@Override
-    boolean isConfigValid() {
-        boolean checkResult = super.isConfigValid()
-        if (getParam('ATMTN_LEVEL') == null)
-        {
-            log.warn('ATMTN_LEVEL is not specified')
-            checkResult = false
+    void applyAutomationSequence(String tag) {
+        ATMTN_SEQ.each { handler ->
+            applyMethod(tag, handler)
         }
-        return checkResult
+        log.trace("Fired methods: " + FIRE_ONCE_METHODS) //is executed here only, since it is triggered for tags explicitly
+        ATMTN_SEQ.removeAll(FIRE_ONCE_METHODS)
+        log.trace("Config ${isAmmended ? "was": "wasn't"} ammended")
     }
+
 
 	/**
 	 * Applies automation sequence to the filename and tries to find <config> section which has matching pattern. <br>
@@ -76,17 +70,15 @@ class PatternAutomationHelper extends ModuleBase
 	
     boolean applySequenceByFileName(String filename)
     {
-        String tag = null
         isAmmended = false
         if (currentConfigPtrn != null)
         {
             if (filename =~ currentConfigPtrn) return isAmmended
         }
 		
-        ATMTN_SEQ.each { handler ->
-			currentConfigId = (currentConfigId != null) ? currentConfigId : findConfigIdByData(filename)
-			applyMethod(currentConfigId, handler)
-        }
+        currentConfigId = (currentConfigId != null) ? currentConfigId : findConfigIdByData(filename)
+        applyAutomationSequence(currentConfigId)
+
         return isAmmended
     }
 
@@ -105,12 +97,11 @@ class PatternAutomationHelper extends ModuleBase
             if (tag ==~ currentConfigId) return isAmmended
         }
 
-        ATMTN_SEQ.each { handler ->
-            applyMethod(tag, handler)
-        }
+        applyAutomationSequence(tag)
+
         return isAmmended
     }
-	
+
 	/**
 	 * Applies method of PatternAutomationHelper to a via reflection. <br>
 	 * 
