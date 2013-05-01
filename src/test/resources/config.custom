@@ -35,6 +35,8 @@
 		</pp_splitters>
 		<filters>
 			<filter tags="predef">Something::</filter>
+			<filter tags="foo">Foo</filter>
+			<filter tags="some_timings, avg_timings">oo</filter>
 		</filters>
 	</custom>
 </root>

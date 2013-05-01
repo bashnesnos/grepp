@@ -33,11 +33,12 @@ class PatternAutomationHelper extends ModuleBase
 	
     void enableSequence(String level_tag) {
         lv_tag = level_tag
+		log.trace("Enabling level /$lv_tag/ sequence")
         use(DOMCategory)
         {
             def levels = getRoot().automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
-            ATMTN_SEQ = levels.collect { it.'@handler' }
-            FIRE_ONCE_METHODS = levels.findAll { it.'@fireonce' == "true" }.collect{ it.'@handler'}
+            ATMTN_SEQ.addAll(levels.collect { it.'@handler' })
+            FIRE_ONCE_METHODS.addAll(levels.findAll { it.'@fireonce' == "true" }.collect{ it.'@handler'})
         }
     }
 
@@ -51,10 +52,11 @@ class PatternAutomationHelper extends ModuleBase
     }
 
     void applyAutomationSequence(String tag) {
-        ATMTN_SEQ.each { handler ->
+		log.trace("Current sequence: " + ATMTN_SEQ)
+		ATMTN_SEQ.each { handler ->
             applyMethod(tag, handler)
         }
-        log.trace("Fired methods: " + FIRE_ONCE_METHODS) //is executed here only, since it is triggered for tags explicitly
+        log.trace("Fired methods: " + FIRE_ONCE_METHODS)
         ATMTN_SEQ.removeAll(FIRE_ONCE_METHODS)
         log.trace("Config ${isAmmended ? "was": "wasn't"} ammended")
     }

@@ -260,7 +260,7 @@ Foo Koo
 """
 		assertWgrepOutput(expectedResult) {
 			facade.doProcessing([
-				"Foo",
+				"--foo",
 				"--dtime",
 				"+",
 				testTimeStringTo,
@@ -278,7 +278,7 @@ Koo,1"""
 
 		assertWgrepOutput(expectedResult) {
 			facade.doProcessing([
-				"oo",
+				"--f",
 				"--some_timings",
 				HOME+"\\processing_report_test.log"
 			])
@@ -294,7 +294,7 @@ Koo,200
 """
 		assertWgrepOutput(expectedResult) {
 			facade.doProcessing([
-				"oo",
+				"-f",
 				"--avg_timings",
 				HOME+"\\processing_report_test.log"
 			])

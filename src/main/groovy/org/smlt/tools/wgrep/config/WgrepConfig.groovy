@@ -332,11 +332,14 @@ class WgrepConfig {
 			else {
 				 if (isAutomationEnabled() && paHelper.applySequenceByTag(opt)) { //trying to apply sequence first
 				 	log.info("Applied sequence for: $opt")
+					if (!checkParamIsEmpty('FILTER_PATTERN')) {
+						filterParser.unsubscribe()
+					}
 				 }				  
-				 if (paHelper.checkIfConfigExsits(opt)) { //checking if there exists a config with such id and applying it if so
+				 if (paHelper.checkIfConfigExsits(opt)) { //checking if  there exists a config with such id and applying it if so
 					setPredefinedConfig("PREDEF_TAG", opt)
 				 }
-				 else if (paHelper.checkIfFilterExsits(opt)) { //checking if there exists a filter with such id and applying it if so
+				 else if (checkParamIsEmpty('FILTER_PATTERN') && paHelper.checkIfFilterExsits(opt)) { //checking filter wasn't supplied explicitly and there exists a filter with such id and applying it if so
 					setPredefinedFilter("PREDEF_TAG", opt)
 				 }
 				 else if (paHelper.checkIfExecuteThreadExsits(opt)) { //checking if there exists a thread preserving patterns with such id and applying it if so
