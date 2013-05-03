@@ -3,114 +3,146 @@ import org.smlt.tools.wgrep.config.WgrepConfig
 
 import groovy.util.GroovyTestCase
 import java.text.SimpleDateFormat
-class WGrepTest extends GroovyTestCase
-{
-    WgrepFacade facade = null
+class WGrepTest extends GroovyTestCase {
+	WgrepFacade facade = null
 	WgrepConfig config = null
-    def BASE_HOME = System.getProperty("wgrep.home")
-    def HOME = BASE_HOME + "\\build\\resources\\test"
+	def BASE_HOME = System.getProperty("wgrep.home")
+	def HOME = BASE_HOME + "\\build\\resources\\test"
 	def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
-    def defalutOut = System.out
+	def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config.xsd"
+	def defalutOut = System.out
 
-    void setUp() 
-    {
-		config = new WgrepConfig(WGREP_CONFIG)
+	void setUp() {
+		config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 		facade = new WgrepFacade(config)
-    }
-    
-    void tearDown()
-    {
-        System.setOut(defalutOut)
-    }
-    
-    void testMainVarsProcessing()
-    {
-        
-        config.processInVars(["-L","test","test",HOME+"\\fpTest*"])
-        assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "test" )
-        assertTrue( config.getParam('FILTER_PATTERN') == "test" )
-        assertTrue( config.getParam('FILES') == [HOME+"\\fpTest*"] )
-        assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
-        assertTrue( config.getParam('HOME_DIR') != null )
-    }
+	}
 
-    void testFailAutomationProcessing()
-    {
-        facade.doProcessing(["-i","test", HOME+"\\config*"])
-        assertTrue( true )
-    }
-    
-    void testExtendedPatternProcessing()
-    {
-        
-		config.processInVars(["-L","test","test%and%tets",HOME+"\\test*"])
-        assertTrue( config.getParam('FILTER_PATTERN') == "test%and%tets" )
-    }
-    
-    void testComplexVarsProcessing()
-    {
-        
-        config.processInVars(["-L","test","test","--dtime", "2013-01-25T12:00:00", "+", HOME+"\\test*"])
-        assertTrue( config.getParam('DATE_TIME_FILTER') == "dtime" )
-    }
+	void tearDown() {
+		System.setOut(defalutOut)
+	}
 
-    void testAutomationProcessing()
-    {
-        
-        config.processInVars(["-i","test", HOME+"\\fpTest_*"])
-        config.refreshConfigByFileName(config.getParam('FILES')[0])
-        assertTrue( config.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
-        assertTrue( config.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
-    }
+	public <V> String getOutput(Closure<V> operation) {
+		def oldStdout = System.out
+		def pipeOut = new PipedOutputStream()
+		def pipeIn = new PipedInputStream(pipeOut)
+		System.setOut(new PrintStream(pipeOut))
 
-    void testMoreComplexVarsProcessing()
-    {
-        
-        config.processInVars(["-sL", "stCommand", "queryTime", "--some_timings", "cmd_only_1.log"])
-        assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
-        assertTrue( config.getParam('FILTER_PATTERN') == "queryTime" )
-        assertTrue( config.getParam('FILES') == ["cmd_only_1.log"] )
-        assertTrue( config.getParam('FOLDER_SEPARATOR') == "\\\\" )
-        assertTrue( config.getParam('HOME_DIR') != null )
-    }
+		try {
+			operation.call()
+		}
+		catch (Exception e) {
+			pipeOut.close()
+			System.setOut(oldStdout)
+			throw e
+		}
+		finally {
+			System.setOut(oldStdout)
+			pipeOut.close()
+		}
 
-    void testComplexFiltering()
-    {
-        def oldStdout = System.out
-        def pipeOut = new PipedOutputStream()
-        def pipeIn = new PipedInputStream(pipeOut)
-        System.setOut(new PrintStream(pipeOut))
+		def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
 
-        try
-        {
-            facade.doProcessing(["-i", "Foo", HOME+"\\processing_test.log"])
-        }
-        catch (Exception e) {
-            pipeOut.close()
-            System.setOut(oldStdout)
-            throw e
-        }
-        finally {
-            System.setOut(oldStdout)
-            pipeOut.close()
-        }
+		StringBuffer actualResult = new StringBuffer()
+		if (outputReader.ready()) {
+			def line = outputReader.readLine()
+			while (line != null) {
+				actualResult.size() > 0 ? actualResult.append('\n').append(line) : actualResult.append(line)
+				line = outputReader.readLine()
+			}
+		}
+		return actualResult.toString()
+	}
 
-        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
+	public <V> void assertWgrepOutput(String expectedResult, Closure<V> operation) {
+		assertTrue(expectedResult == getOutput(operation))
+	}
 
-        def line = '#'
-        StringBuffer actualResult = new StringBuffer()
+	void testMainVarsProcessing() {
+		config.processInVars([
+			"-L",
+			"test",
+			"test",
+			HOME+"\\fpTest*"
+		])
+		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "test" )
+		assertTrue( config.getParam('FILTER_PATTERN') == "test" )
+		assertTrue( config.getParam('FILES') == [
+			new File(HOME+"\\fpTest_test.log")]
+		)
+		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
+		assertTrue( config.getParam('HOME_DIR') != null )
+	}
+	
+	void testConfigsProcessing() {
+		config.processInVars([
+			"--to_test",
+			"--predef",
+			HOME+"\\fpTest*"
+		])
+		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "####\\[\\D{1,}\\].*(\\d{4}-\\d{1,2}-\\d{1,2} \\d{2}:\\d{2}:\\d{2})" )
+		assertTrue( config.getParam('FILTER_PATTERN') == "Something::" )
+		assertTrue( config.getParam('FILES') == [
+			new File(HOME+"\\fpTest_test.log")]
+		)
+		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
+		assertTrue( config.getParam('HOME_DIR') != null )
+	}
 
-        if (outputReader.ready())
-        {
-            while (line != null)
-            {
-                actualResult = actualResult.append(line).append('\n')
-                line = outputReader.readLine()
-            }
-        }
+	void testExtendedPatternProcessing() {
 
-def expectedResult = """\
-#
+		config.processInVars([
+			"-L",
+			"test",
+			"test%and%tets",
+			HOME+"\\test*"
+		])
+		assertTrue( config.getParam('FILTER_PATTERN') == "test%and%tets" )
+	}
+
+	void testComplexVarsProcessing() {
+
+		config.processInVars([
+			"-L",
+			"test",
+			"test",
+			"--dtime",
+			"2013-01-25T12:00:00",
+			"+",
+			HOME+"\\test*"
+		])
+		assertTrue( config.getParam('DATE_TIME_FILTER') == "dtime" )
+	}
+
+	void testAutomationProcessing() {
+		config.processInVars([
+			"-e",
+			"test",
+			HOME+"\\fpTest_*"
+		])
+		config.refreshConfigByFile(config.getParam('FILES')[0])
+		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
+		assertTrue( config.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
+	}
+
+	void testMoreComplexVarsProcessing() {
+
+		config.processInVars([
+			"-sL",
+			"stCommand",
+			"queryTime",
+			"--some_timings",
+			"cmd_only_1.log"
+		])
+		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
+		assertTrue( config.getParam('FILTER_PATTERN') == "queryTime" )
+		assertTrue( config.getParam('FILES') == [new File("cmd_only_1.log")])
+		assertTrue( config.getParam('FOLDER_SEPARATOR') == "\\\\" )
+		assertTrue( config.getParam('HOME_DIR') != null )
+	}
+
+	void testComplexFiltering() {
+
+		def expectedResult = """\
 2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
 
@@ -125,351 +157,166 @@ Foo Man Chu
 Loo
 2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
 Voo
-#complex
-"""
-    
-        assertTrue( expectedResult == actualResult.toString() )
-    }
+#complex"""
+		
+		assertWgrepOutput(expectedResult) {
+			facade.doProcessing([
+				"-e",
+				"Foo",
+				HOME+"\\processing_test.log"
+			])
+		}
+	}
 
-    void testComplexUserPatternFiltering()
-    {
-        def oldStdout = System.out
-        def pipeOut = new PipedOutputStream()
-        def pipeIn = new PipedInputStream(pipeOut)
-        System.setOut(new PrintStream(pipeOut))
+	void testComplexUserPatternFiltering() {
 
-        try
-        {
-            facade.doProcessing(["Foo%and%Man Chu%or%#basic", HOME+"\\processing_test.log"])
-        }
-        catch (Exception e) {
-            pipeOut.close()
-            System.setOut(oldStdout)
-            throw e
-        }
-        finally {
-            System.setOut(oldStdout)
-            pipeOut.close()
-        }
-
-        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-
-        def line = '#'
-        StringBuffer actualResult = new StringBuffer()
-
-        if (outputReader.ready())
-        {
-            while (line != null)
-            {
-                actualResult = actualResult.append(line).append('\n')
-                line = outputReader.readLine()
-            }
-        }
-
-def expectedResult = """\
-#
+		def expectedResult = """\
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo Man Chu
-#basic
-"""
-    
-        assertTrue( expectedResult == actualResult.toString() )
-    }
+#basic"""
+		assertWgrepOutput(expectedResult) {
+			facade.doProcessing([
+				"Foo%and%Man Chu%or%#basic",
+				HOME+"\\processing_test.log"
+			])
+		}
+	}
 
-    void testBasicFiltering()
-    {
-       
-        def oldStdout = System.out
-        def pipeOut = new PipedOutputStream()
-        def pipeIn = new PipedInputStream(pipeOut)
-        System.setOut(new PrintStream(pipeOut))
+	void testBasicFiltering() {
 
-        try
-        {
-            facade.doProcessing(["Foo", HOME+"\\processing_test.log"])
-        }
-        catch (Exception e) {
-            pipeOut.close()
-            System.setOut(oldStdout)
-            throw e
-        }
-        finally {
-            System.setOut(oldStdout)
-            pipeOut.close()
-        }
-
-        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-
-        def line = '#'
-        StringBuffer actualResult = new StringBuffer()
-
-        if (outputReader.ready())
-        {
-            while (line != null)
-            {
-                actualResult = actualResult.append(line).append('\n')
-                line = outputReader.readLine()
-            }
-        }
-
-def expectedResult = """\
-#
+		def expectedResult = """\
 2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
 
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo Man Chu
-#basic
-"""
-    
-        assertTrue( expectedResult == actualResult.toString() )
-    }
+#basic"""
+		
+		assertWgrepOutput(expectedResult) {
+			facade.doProcessing([
+				"Foo",
+				HOME+"\\processing_test.log"
+			])
+		}
+	}
 
-    void testTimeFiltering()
-    {
-        
-        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
-        def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
-        def testTimeStringFrom = dateFormat.format(fileTime)
-        def testTimeStringTo = dateFormat.format(new Date(fileTime.getTime() + 60*60*1000))
+	void testTimeFiltering() {
 
-        def oldStdout = System.out
-        def pipeOut = new PipedOutputStream()
-        def pipeIn = new PipedInputStream(pipeOut)
-        System.setOut(new PrintStream(pipeOut))
+		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
+		def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
+		def testTimeStringFrom = dateFormat.format(fileTime)
 
-        try
-        {
-            facade.doProcessing(["Foo", "--dtime", testTimeStringFrom, testTimeStringTo, HOME+"\\processing_time_test.log"])
-        }
-        catch (Exception e) {
-            pipeOut.close()
-            System.setOut(oldStdout)
-            throw e
-        }
-        finally {
-            System.setOut(oldStdout)
-            pipeOut.close()
-        }
-
-        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-
-        def line = '#'
-        StringBuffer actualResult = new StringBuffer()
-
-        if (outputReader.ready())
-        {
-            while (line != null)
-            {
-                actualResult = actualResult.append(line).append('\n')
-                line = outputReader.readLine()
-            }
-        }
-
-def expectedResult = """\
-#
+		def expectedResult = """\
 ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
-
 """
-    
-        assertTrue( expectedResult == actualResult.toString() )
-    }
+		assertWgrepOutput(expectedResult) {
+			facade.doProcessing([
+				"Foo",
+				"--dtime",
+				testTimeStringFrom,
+				"+60",
+				HOME+"\\processing_time_test.log"
+			])
+		}
+	}
 
-    void testTimeLeftBoundOnlyFiltering()
-    {
-        
-        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
-        def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
-        def testTimeStringFrom = dateFormat.format(fileTime)
+	void testTimeLeftBoundOnlyFiltering() {
 
-        def oldStdout = System.out
-        def pipeOut = new PipedOutputStream()
-        def pipeIn = new PipedInputStream(pipeOut)
-        System.setOut(new PrintStream(pipeOut))
+		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
+		def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
+		def testTimeStringFrom = dateFormat.format(fileTime)
 
-        try
-        {
-            facade.doProcessing(["Foo", "--dtime", testTimeStringFrom, "+", HOME+"\\processing_time_test.log"])
-        }
-        catch (Exception e) {
-            pipeOut.close()
-            System.setOut(oldStdout)
-            throw e
-        }
-        finally {
-            System.setOut(oldStdout)
-            pipeOut.close()
-        }
-
-        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-
-        def line = '#'
-        StringBuffer actualResult = new StringBuffer()
-
-        if (outputReader.ready())
-        {
-            while (line != null)
-            {
-                actualResult = actualResult.append(line).append('\n')
-                line = outputReader.readLine()
-            }
-        }
-
-def expectedResult = """\
-#
+		def expectedResult = """\
 ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
 
 ${logDateFormat.format(new Date(fileTime.getTime() + 3*60*60*1000))}:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo Man Chu
-#basic
-"""
-    
-        assertTrue( expectedResult == actualResult.toString() )
-    }
+#basic"""
+		assertWgrepOutput(expectedResult) {
+			facade.doProcessing([
+				"Foo",
+				"--dtime",
+				testTimeStringFrom,
+				"+",
+				HOME+"\\processing_time_test.log"
+			])
+		}
+	}
 
-    void testTimeRightBoundOnlyFiltering()
-    {
-        
-        def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-        def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
-        def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
-        def testTimeStringTo = dateFormat.format(new Date(fileTime.getTime() + 60*60*1000))
+	void testTimeRightBoundOnlyFiltering() {
 
+		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
+		def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
+		def testTimeStringTo = dateFormat.format(new Date(fileTime.getTime() + 60*60*1000))
 
-        def oldStdout = System.out
-        def pipeOut = new PipedOutputStream()
-        def pipeIn = new PipedInputStream(pipeOut)
-        System.setOut(new PrintStream(pipeOut))
-
-        try
-        {
-            facade.doProcessing(["Foo", "--dtime", "+", testTimeStringTo, HOME+"\\processing_time_test.log"])
-        }
-        catch (Exception e) {
-            pipeOut.close()
-            System.setOut(oldStdout)
-            throw e
-        }
-        finally {
-            System.setOut(oldStdout)
-            pipeOut.close()
-        }
-
-        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-
-        def line = '#'
-        StringBuffer actualResult = new StringBuffer()
-
-        if (outputReader.ready())
-        {
-            while (line != null)
-            {
-                actualResult = actualResult.append(line).append('\n')
-                line = outputReader.readLine()
-            }
-        }
-
-def expectedResult = """\
-#
+		def expectedResult = """\
 ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
-
 """
-    
-        assertTrue( expectedResult == actualResult.toString() )
-    }
-    
-    void testPostFiltering()
-    {
-        def oldStdout = System.out
-        def pipeOut = new PipedOutputStream()
-        def pipeIn = new PipedInputStream(pipeOut)
-        System.setOut(new PrintStream(pipeOut))
+		assertWgrepOutput(expectedResult) {
+			facade.doProcessing([
+				"--foo",
+				"--dtime",
+				"+",
+				testTimeStringTo,
+				HOME+"\\processing_time_test.log"
+			])
+		}
+	}
 
-        try
-        {
-            facade.doProcessing(["oo", "--some_timings", HOME+"\\processing_report_test.log"])
-        }
-        catch (Exception e) {
-            pipeOut.close()
-            System.setOut(oldStdout)
-            throw e
-        }
-        finally {
-            System.setOut(oldStdout)
-            pipeOut.close()
-        }
+	void testPostFiltering() {
 
-        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-
-        def line = '#'
-        StringBuffer actualResult = new StringBuffer()
-
-        if (outputReader.ready())
-        {
-            while (line != null)
-            {
-                actualResult = actualResult.append(line).append('\n')
-                line = outputReader.readLine()
-            }
-        }
-
-        def expectedResult = """\
-#
+		def expectedResult = """\
 some_cmd,count_of_operands
 Foo,3
-Koo,1
-"""
+Koo,1"""
 
-        assertTrue( expectedResult == actualResult.toString() )
-    }
+		assertWgrepOutput(expectedResult) {
+			facade.doProcessing([
+				"--f",
+				"--some_timings",
+				HOME+"\\processing_report_test.log"
+			])
+		}
+	}
 
-    void testPostAverageFiltering()
-    {
-        def oldStdout = System.out
-        def pipeOut = new PipedOutputStream()
-        def pipeIn = new PipedInputStream(pipeOut)
-        System.setOut(new PrintStream(pipeOut))
+	void testPostAverageFiltering() {
 
-        try
-        {
-            facade.doProcessing(["oo", "--avg_timings", HOME+"\\processing_report_test.log"])
-        }
-        catch (Exception e) {
-            pipeOut.close()
-            System.setOut(oldStdout)
-            throw e
-        }
-        finally {
-            System.setOut(oldStdout)
-            pipeOut.close()
-        }
-
-        def outputReader = new BufferedReader(new InputStreamReader(pipeIn))
-
-        def line = '#'
-        StringBuffer actualResult = new StringBuffer()
-
-        if (outputReader.ready())
-        {
-            while (line != null)
-            {
-                actualResult = actualResult.append(line).append('\n')
-                line = outputReader.readLine()
-            }
-        }
-
-        def expectedResult = """\
-#
+		def expectedResult = """\
 some_cmd,avg_processing
 Foo,150
 Koo,200
 """
+		assertWgrepOutput(expectedResult) {
+			facade.doProcessing([
+				"-f",
+				"--avg_timings",
+				HOME+"\\processing_report_test.log"
+			])
+		}
+	}
 
-        assertTrue( expectedResult == actualResult.toString() )
-    }
+	void testWgrepMain() {
+		
+		def expectedResult = """\
+2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo Koo
+
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
+Foo Man Chu
+#basic"""
+		
+		assertWgrepOutput(expectedResult) {
+			WGrep.main([
+				"Foo",
+				HOME+"\\processing_test.log"
+			].toArray(new String[2]))
+		}
+	}
+
 }

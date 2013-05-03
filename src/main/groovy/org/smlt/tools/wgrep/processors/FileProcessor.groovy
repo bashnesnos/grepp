@@ -6,6 +6,7 @@ import java.util.regex.Matcher
 import java.lang.StringBuilder
 import org.smlt.tools.wgrep.filters.*
 import org.smlt.tools.wgrep.filters.enums.Event
+import org.smlt.tools.wgrep.output.WgrepOutput
 import org.smlt.tools.wgrep.exceptions.*
 import org.smlt.tools.wgrep.config.ModuleBase;
 import org.smlt.tools.wgrep.config.WgrepConfig
@@ -17,13 +18,14 @@ import org.smlt.tools.wgrep.config.WgrepConfig
  *
  */
 @Slf4j
-class FileProcessor extends ModuleBase
+class FileProcessor extends ModuleBase implements DataProcessor
 {
     private ArrayList<File> fileList = []
     
     private boolean isMerging = null
     private FilterBase filterChain = null
     private FilterBase filesFilterChain = null
+	private WgrepOutput output = null
  
 	/**
 	 * Simple factory method, which takes WgrepConfig instance and initializes appropriate filter chains.       
@@ -31,9 +33,9 @@ class FileProcessor extends ModuleBase
 	 * @param config WgrepConfig instance
 	 * @return new FileProcessor instance
 	 */
-    static FileProcessor getInstance(WgrepConfig config) 
+    static FileProcessor getInstance(WgrepConfig config, WgrepOutput output) 
     {
-        return new FileProcessor(config, FilterChainFactory.createFilterChainByConfig(config), FilterChainFactory.createFileFilterChainByConfig(config))
+        return new FileProcessor(config, output, FilterChainFactory.createFilterChainByConfig(config), FilterChainFactory.createFileFilterChainByConfig(config))
     }
 
 	/**
@@ -43,12 +45,13 @@ class FileProcessor extends ModuleBase
 	 * @param filterChain_ FilterBase chain which will be used to filter each file line
 	 * @param filesFilterChain_ FilterBase chain which will be used to filter filename List
 	 */
-    FileProcessor(WgrepConfig config, FilterBase filterChain_, FilterBase filesFilterChain_) 
+    FileProcessor(WgrepConfig config, WgrepOutput output_, FilterBase filterChain_, FilterBase filesFilterChain_) 
     {
         super(config)
+		output = output_
 		filterChain = filterChain_
         filesFilterChain = filesFilterChain_
-		List<String> files_ = getParam('FILES')
+		List<File> files_ = getParam('FILES')
         log.trace("Total files to analyze: " + files_.size())
         fileList = filesFilterChain.filter(files_)
         isMerging = getParam('FILE_MERGING') != null
@@ -70,17 +73,6 @@ class FileProcessor extends ModuleBase
     }
 
 	/**
-	 * Method which iterates through filtered fileList and process each.
-	 */
-    void processAll()
-    {
-        fileList.each {
-            process(initFile(it))
-        }
-        filterChain.processEvent(Event.ALL_FILES_PROCESSED)
-    }
-
-	/**
 	 * Hook method which is called prior to file processing. Needed for check and configInstance refreshing if it is on. 
 	 * 
 	 * @param file_ a File instance which is needed to be initialized.
@@ -90,10 +82,10 @@ class FileProcessor extends ModuleBase
     {
         log.info("Initializating " + file_.name)
         try {
-            if (refreshConfigByFileName(file_.name))
+            if (refreshConfigByFile(file_.name))
             {            
                 filterChain = FilterChainFactory.createFilterChainByConfig(configInstance)
-            }                
+            }
         }
         catch(IllegalArgumentException e) {
             e.printStackTrace()
@@ -108,11 +100,11 @@ class FileProcessor extends ModuleBase
 	 * 
 	 * @param data Supposed to be a File, or anything that supports eachLine method which returns String
 	 */
-    void process(def data)
+    void processData(def data)
     {
         if (data == null) return
         def curLine = 0
-        FilterBase chain = filterChain //reassignig to get rid of GetEffectivePogo in the loop
+        FilterBase chain = filterChain //reassigning to get rid of GetEffectivePogo in the loop
         try {
             data.eachLine { String line ->
                 if (log.isTraceEnabled())
@@ -120,15 +112,15 @@ class FileProcessor extends ModuleBase
                     log.trace("curLine: $curLine")
                 }
                 curLine += 1
-                chain.filter(line)
+                output.printToOutput(chain.filter(line))
             }
         }
-        catch(TimeToIsOverduedException e) {
-            log.trace("No point to read file further since supplied date TO is overdued")
+        catch(FilteringIsInterruptedException e) {
+            log.trace("No point to read file further as identified by filter chain")
             chain.processEvent(Event.FLUSH)
         }
 		
-		if (!isMerging) chain.processEvent(Event.FILE_ENDED)
+		if (!isMerging) output.printToOutput(chain.processEvent(Event.FILE_ENDED))
         log.info("File ended. Lines processed: " + curLine)
     }
 
@@ -141,4 +133,13 @@ class FileProcessor extends ModuleBase
     {
         return fileList
     }
+
+	@Override
+	public void process() {
+        fileList.each {
+            processData(initFile(it))
+        }
+        output.printToOutput(filterChain.processEvent(Event.ALL_FILES_PROCESSED))
+		output.closeOutput()
+	}
 }

@@ -1,29 +1,29 @@
 <root>
-	<custom>
-		<options>
-			<opt field="POST_PROCESSING" handler="setPostProcessing">some_timings</opt>
-			<opt field="POST_PROCESSING" handler="setPostProcessing">avg_timings</opt>
-			<opt field="POST_PROCESSING" handler="setPostProcessing">avg_operands</opt>
-			<opt field="PREDEF_TAG" handler="setPredefinedConfig">fake</opt>
-		</options>
+	<custom xmlns="http://www.smltools.org/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.smltools.org/config config.xsd">
 		<config id="to_test">
 			<date_format>yyyy-MM-dd HH:mm:ss</date_format>
-			<starter>####\[\D{1,}\].*</starter>
 			<date>(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})</date>
+			<starter>####\[\D{1,}\].*</starter>
 			<log_threshold>4</log_threshold>
-			<pattern alevel="entry_pattern">fpTest_</pattern>
+			<pattern>fpTest_</pattern>
 		</config>
 		<config id="pr_test">
 			<date_format>yyyy-MM-dd HH:mm:ss</date_format>
 			<date>(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})</date>
 			<log_threshold>24</log_threshold>
-			<pattern alevel="entry_pattern">processing_</pattern>
+			<pattern>processing_</pattern>
 		</config>
-		<thread_configs alevel="execute_thread">
-			<extractor qlfr="or" tags="to_test, pr_test">ThreadStart: '\d{1,}'</extractor>
-			<pattern clct="THRD_SKIP_END_PTTRNS" tags="to_test, pr_test">SkipPattern</pattern>
-			<pattern clct="THRD_END_PTTRNS" tags="to_test, pr_test">ThreadEnd1</pattern>
-			<pattern clct="THRD_END_PTTRNS" tags="to_test, pr_test">ThreadEnd2</pattern>
+		<thread_configs>
+			<extractors>
+				<pattern tags="to_test, pr_test">ThreadStart: '\d{1,}'</pattern>	
+			</extractors>
+			<skipends>
+				<pattern tags="to_test, pr_test">SkipPattern</pattern>
+			</skipends>
+			<ends>
+				<pattern tags="to_test, pr_test">ThreadEnd1</pattern>
+				<pattern tags="to_test, pr_test">ThreadEnd2</pattern>
+			</ends>
 		</thread_configs>
 		<pp_splitters>
 			<splitter col_name="some_cmd" order="1" tags="some_timings" type="filter">Command name="?(.*?)"</splitter>
@@ -35,6 +35,8 @@
 		</pp_splitters>
 		<filters>
 			<filter tags="predef">Something::</filter>
+			<filter tags="foo">Foo</filter>
+			<filter tags="some_timings, avg_timings">oo</filter>
 		</filters>
 	</custom>
 </root>

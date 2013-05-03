@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.regex.*;
 import org.smlt.tools.wgrep.filters.enums.*;
 import org.smlt.tools.wgrep.filters.FilterBase;
+import org.smlt.tools.wgrep.util.WgrepUtil;
 
 
 
@@ -16,7 +17,7 @@ import org.smlt.tools.wgrep.filters.FilterBase;
  *
  */
 
-public class ComplexFilter extends FilterBase {
+public class ComplexFilter extends FilterBase<String> {
 
 	//Complex pattern processing and stuff
 	Pattern currentPattern = null;
@@ -24,7 +25,7 @@ public class ComplexFilter extends FilterBase {
 	List<String> EXTNDD_PTTRNS = new ArrayList<String>();
 	Map<String, Qualifier> EXTNDD_PTTRN_DICT = new HashMap<String, Qualifier>();
 
-	Map<String, String> THRD_START_EXTRCTRS;
+	List<String> THRD_START_EXTRCTRS;
 	List<String> THRD_START_PTTRNS;
 	List<String> THRD_SKIP_END_PTTRNS;
 	List<String> THRD_END_PTTRNS;
@@ -36,19 +37,27 @@ public class ComplexFilter extends FilterBase {
 	 * @param config WgrepConfig instance is needed to get supplied params.
 	 */
 	@SuppressWarnings("unchecked")
-	ComplexFilter(FilterBase nextFilter_, String filterPattern, Map<String, Object> preserveParams)
+	ComplexFilter(FilterBase<String> nextFilter_, String filterPattern, Map<String, Object> preserveParams)
 	{
 		super(nextFilter_, ComplexFilter.class);
-		THRD_START_EXTRCTRS = (Map<String, String>) preserveParams.get("THRD_START_EXTRCTRS");
-		THRD_START_PTTRNS = (List<String>) ((preserveParams.get("THRD_START_PTTRNS") != null) ? preserveParams.get("THRD_START_PTTRNS") : new ArrayList<String>());
-		THRD_SKIP_END_PTTRNS = (List<String>) ((preserveParams.get("THRD_SKIP_END_PTTRNS") != null) ? preserveParams.get("THRD_SKIP_END_PTTRNS") : new ArrayList<String>());
-		THRD_END_PTTRNS = (List<String>) ((preserveParams.get("THRD_END_PTTRNS") != null) ? preserveParams.get("THRD_END_PTTRNS") : new ArrayList<String>());
-		if (log.isTraceEnabled()) {
-			log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());	
+		THRD_START_EXTRCTRS = (List<String>) (preserveParams != null ? preserveParams.get("THRD_START_EXTRCTRS") : null); //if null indicates that thread preserving is disabled
+		if (isThreadPreserveEnabled())
+		{
+			THRD_START_PTTRNS = (List<String>) WgrepUtil.getNotNull(preserveParams, "THRD_START_PTTRNS", new ArrayList<String>()); //could be empty, as it will be extracted in runtime
+			THRD_SKIP_END_PTTRNS = (List<String>) WgrepUtil.getNotNull(preserveParams, "THRD_SKIP_END_PTTRNS", new ArrayList<String>()); //could be empty, which will mean that there are no ends to skip
+			THRD_END_PTTRNS = (List<String>) WgrepUtil.getNotNull(preserveParams, "THRD_END_PTTRNS", new ArrayList<String>()); //if empty, than it is probably an wrong configuration, since first thread will consume all output
+			if (THRD_END_PTTRNS.isEmpty()) log.warn("No thread end patterns were specified! Output could be unrepresentative");
+			if (log.isTraceEnabled()) {
+				log.trace(THRD_START_EXTRCTRS.toString());
+				log.trace(THRD_START_PTTRNS.toString());
+				log.trace(THRD_SKIP_END_PTTRNS.toString());
+				log.trace(THRD_END_PTTRNS.toString());
+			}
 		}
 		processExtendedPattern(filterPattern);
 	}
 
+	
 
 	/**
 	 * Checks is data matches current pattern 
@@ -130,14 +139,16 @@ public class ComplexFilter extends FilterBase {
 	private Map<String, String> extractThreadStarts(String data)
 	{
 		HashMap<String, String> extractedStarts = new HashMap<String, String>();
-		for (Map.Entry<String, String> extractorEntry : THRD_START_EXTRCTRS.entrySet()) {
-			log.trace(extractorEntry.getKey());
-			Matcher extractorMatcher = Pattern.compile(extractorEntry.getKey()).matcher(data);
+		for (String extractorPattern : THRD_START_EXTRCTRS) {
+			if (log.isTraceEnabled())
+				log.trace(extractorPattern);
+			Matcher extractorMatcher = Pattern.compile(extractorPattern).matcher(data);
 			if (extractorMatcher.find())
 			{
 				String start = extractorMatcher.group();
-				log.trace("extracted; " + start);
-				extractedStarts.put(start, extractorEntry.getValue());
+				if (log.isTraceEnabled())
+					log.trace("extracted; " + start);
+				extractedStarts.put(start, Qualifier.or.toString()); //adding extractor as or, since any could be a thread start
 			}
 		}
 		return extractedStarts;
@@ -283,7 +294,7 @@ public class ComplexFilter extends FilterBase {
 				{
 					if (log.isTraceEnabled()) log.trace("Next group in match: " + grp);
 					qualifierMatcher = Pattern.compile(qRegex).matcher(grp);
-					if (qualifierMatcher.find())
+					if (qualifierMatcher.matches())
 					{
 						nextQualifier = qualifierMatcher.group();
 						continue;

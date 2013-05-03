@@ -1,9 +1,9 @@
 package org.smlt.tools.wgrep.filters.entry;
 
 import java.text.ParseException;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.smlt.tools.wgrep.exceptions.FilteringIsInterruptedException;
 import org.smlt.tools.wgrep.exceptions.TimeToIsOverduedException;
 import org.smlt.tools.wgrep.filters.enums.Event;
 import org.smlt.tools.wgrep.filters.FilterBase;
@@ -17,7 +17,7 @@ import org.smlt.tools.wgrep.filters.FilterBase;
  * @author Alexander Semelit
  */
 
-class LogEntryFilter extends FilterBase {
+class LogEntryFilter extends FilterBase<String> {
 
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = null;
@@ -32,10 +32,11 @@ class LogEntryFilter extends FilterBase {
 	 * @param config
 	 *            Instanntiated config instance
 	 */
-	LogEntryFilter(FilterBase nextFilter_, String logEntryPtrn_) {
+	LogEntryFilter(FilterBase<String> nextFilter_, String logEntryPtrn_) {
 		super(nextFilter_, LogEntryFilter.class);
 		logEntryPtrn = Pattern.compile(logEntryPtrn_);
-		if (log.isTraceEnabled()) log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());
+        curBlock = new StringBuilder();
+        clearBuffer();
 	}
 
 	/**
@@ -90,10 +91,6 @@ class LogEntryFilter extends FilterBase {
         {
             if (curBlock.length() != 0) curBlock = curBlock.append('\n');
             curBlock = curBlock.append(line);
-        }
-        else 
-        {
-            curBlock = new StringBuilder(line);
         }
     }
 
@@ -161,18 +158,23 @@ class LogEntryFilter extends FilterBase {
 	 */
 
 	@Override
-    public boolean processEvent(Event event) throws ParseException, TimeToIsOverduedException {
+	protected StringBuilder gatherPrintableState(Event event, StringBuilder agg) {
         switch (event)
         {
             case FILE_ENDED:
-                passNext(null);
-                break;
+            	try {
+            		appendNotNull(agg, (passNext(curBlock.toString())));
+            	}
+            	catch (FilteringIsInterruptedException e) {
+            		log.error("Filtering interrupted by", e);
+            	}
+            	break;
             case FLUSH:
                 flush();
                 break;
             default:
                 break;
         }
-        return super.processEvent(event);
+        return super.gatherPrintableState(event, agg);
     }
 }

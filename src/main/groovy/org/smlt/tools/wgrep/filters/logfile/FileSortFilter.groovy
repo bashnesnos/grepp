@@ -9,11 +9,11 @@ import org.smlt.tools.wgrep.filters.FilterBase
  * @author Alexander Semelit 
  */
 
-class FileSortFilter extends FilterBase {
+class FileSortFilter extends FilterBase<List<File>> {
 
 	protected List fileList = []
 
-	FileSortFilter(FilterBase nextFilter_) {
+	FileSortFilter(FilterBase<List<File>> nextFilter_) {
 		super(nextFilter_, FileSortFilter.class)
 	}
 

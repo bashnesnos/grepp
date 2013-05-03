@@ -7,7 +7,8 @@ package org.smlt.tools.wgrep.exceptions;
  * @author Alexander Semelit
  *
  */
-public class TimeToIsOverduedException extends Exception {
+@SuppressWarnings("serial")
+public class TimeToIsOverduedException extends FilteringIsInterruptedException {
 	
 	private String timeToString;
     public TimeToIsOverduedException(String timeTo) {

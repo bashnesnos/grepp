@@ -126,12 +126,12 @@ class ModuleBase {
 
 	/**
 	 * Sets value of <code>FILES</code> field which exists in <code>WgrepConfig</code> in a classical setter way.
-	 * @param fileName <code>String</code> filename to be added
+	 * @param file <code>File</code> instance to be added for analysis
 	 */
 	
-	void addFileName(String fileName)
+	void addFile(File file)
 	{
-		setParam('FILES', fileName)
+		setParam('FILES', file)
 	}
 	
 	/**
@@ -141,9 +141,9 @@ class ModuleBase {
 	 * @return true if config was changed, false otherwise
 	 */
 
-	boolean refreshConfigByFileName(String fileName)
+	boolean refreshConfigByFile(String fileName)
 	{
-		return configInstance.refreshConfigByFileName(fileName)
+		return configInstance.refreshConfigByFile(fileName)
 	}
 	
 	/**
@@ -155,6 +155,26 @@ class ModuleBase {
 	boolean isConfigValid()
 	{
 		return configInstance != null
+	}
+
+
+	/**
+	 * Method delegates checks if mandatory and optional parameters are filled to config instance.
+	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 */
+
+	boolean check(List<String> mandatory, List<String> optional)
+	{
+		return configInstance.check(mandatory, optional)
+	}
+
+	/**
+	 * Method delegates check if param is filled to config instance
+	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 */
+
+	boolean checkParamIsEmpty(String paramName) {
+		return configInstance.checkParamIsEmpty(paramName)
 	}
 
 }

@@ -9,8 +9,12 @@ import groovy.util.logging.Slf4j
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
 import org.smlt.tools.wgrep.config.varparsers.*
+import org.smlt.tools.wgrep.util.WgrepUtil;
 import org.w3c.dom.Document
 import org.w3c.dom.Element
+import javax.xml.XMLConstants
+import javax.xml.transform.stream.StreamSource
+import javax.xml.validation.SchemaFactory
 
 /**
  * Class represents wgrep config, which will be used to parse incoming arguments, config.xml and would be a source for processing, filtering etc. 
@@ -32,13 +36,12 @@ class WgrepConfig {
 
 
 	//GENERAL
-	private List FILES = []
+	private List<File> FILES = []
 
 	//OPTIONS
 	private FilterParser filterParser =  null
 	private FileNameParser fileNameParser =  null
 	private PatternAutomationHelper paHelper = null
-
 	private List<ParserBase> varParsers = [] //organized as LIFO
 	private Map params = [:] //all params as a Map
 
@@ -50,11 +53,35 @@ class WgrepConfig {
 	 */
 	WgrepConfig(String configFilePath)
 	{
+		this(configFilePath, null)	
+	}
+	
+	
+	WgrepConfig(String configFilePath, String configXSDpath)
+	{
+		if (configXSDpath == null || validateConfigFile(configFilePath, configXSDpath)) {
+			initConfig(configFilePath)
+		}
+		else {
+			throw new RuntimeException("config.xml is invalid")
+		}
+	}
+	
+	private void initConfig(String configFilePath) {
 		cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
 		root = cfgDoc.documentElement
 		loadDefaults()
 	}
-
+	
+	private boolean validateConfigFile(String configFilePath, String configXSDpath) {
+		log.trace("Validating the config")
+		def factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+		def schema = factory.newSchema(new StreamSource(new FileReader(configXSDpath)))
+		def validator = schema.newValidator()
+		validator.validate(new StreamSource(new FileReader(configFilePath)))
+		return true
+	}
+	
 	/**
 	 *  Method loads defaults and spooling extension as configured in config.xml's <code>global</code> section.
 	 *  Loads some values set via System properties as well.
@@ -64,7 +91,10 @@ class WgrepConfig {
 		FOLDER_SEPARATOR = System.getProperty("file.separator")
 		HOME_DIR = System.getProperty("wgrep.home") + FOLDER_SEPARATOR
 		CWD = System.getProperty("user.dir")
-		if (FOLDER_SEPARATOR == "\\") FOLDER_SEPARATOR += "\\"
+		if (FOLDER_SEPARATOR == "\\") {
+			FOLDER_SEPARATOR += "\\"
+		}
+		paHelper = new PatternAutomationHelper(this) //creating it by default
 		use(DOMCategory)
 		{
 			SPOOLING_EXT = root.global.spooling[0].text()
@@ -74,6 +104,7 @@ class WgrepConfig {
 				defaultOptions.text().split(" ").each { opt -> processOptions(opt) } //processing default options
 			}
 		}
+		
 	}
 
 	// Getters
@@ -86,12 +117,7 @@ class WgrepConfig {
 
 	String getCDATA(Element node)
 	{
-		if (node == null) return
-		use(DOMCategory)
-		{
-			String txt = node.text()
-			return (txt != null) ? txt : node.getFirstChild().getNodeValue()
-		}
+		return WgrepUtil.getCDATA(node)
 	}
 
 	/**
@@ -102,6 +128,7 @@ class WgrepConfig {
 
 	def getParam(String field)
 	{
+		if (field == null) return
 		return hasField(field) ? this."$field" : this.params[field]
 	}
 
@@ -128,6 +155,51 @@ class WgrepConfig {
 	}
 
 	/**
+	 * Method checks if mandatory and optional parameters are filled.
+	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 */
+
+	boolean check(List<String> mandatory, List<String> optional)
+	{
+		boolean checkResult = true
+		
+		mandatory.findAll{ paramName -> checkParamIsEmpty(paramName)}
+			.each{ paramName ->
+					log.error("Mandatory param " + paramName + " is empty")
+					if (checkResult)
+						checkResult = false
+			}
+
+		optional.findAll{ paramName -> checkParamIsEmpty(paramName)}
+			.each{ paramName ->
+				log.warn("Optional param " + paramName + " is empty")
+			}
+
+		return checkResult
+	}
+
+	/**
+	 * Method checks if param is filled.
+	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 */
+
+	boolean checkParamIsEmpty(String paramName) {
+		def param = getParam(paramName)
+		if (param != null) {
+			if (param instanceof Collection) {
+				return param.size() == 0
+			}
+			if (param instanceof Map) {
+				return param.size() == 0
+			}
+			return false
+		}
+		else {
+			return true
+		}
+	}
+
+	/**
 	* Checks if specified field is declared or not. 
 	* Used to determine whether the field should be looked up in the <code>params</code> Map or not.
 	*
@@ -143,6 +215,8 @@ class WgrepConfig {
 		}
 		return true
 	}
+
+
 	// INITIALIZATION
 
 	/**
@@ -196,7 +270,7 @@ class WgrepConfig {
 
 	private int processOptions(String arg)
 	{
-		if (arg =~/^-(?!-)/)
+		if (arg =~/^-(?![-0-9])/) //option should be a char and not a number
 		{
 			processSimpleArg(arg.substring(1)) //skipping '-' itself
 			return 1
@@ -255,7 +329,29 @@ class WgrepConfig {
 				def handler = optElem['@handler']
 				this."$handler"(optElem['@field'], optElem.text())
 			}
-			else throw new IllegalArgumentException("Invalid option=" + opt)
+			else {
+				 if (isAutomationEnabled() && paHelper.applySequenceByTag(opt)) { //trying to apply sequence first
+				 	log.info("Applied sequence for: $opt")
+					if (!checkParamIsEmpty('FILTER_PATTERN')) {
+						filterParser.unsubscribe()
+					}
+				 }				  
+				 if (paHelper.checkIfConfigExsits(opt)) { //checking if  there exists a config with such id and applying it if so
+					setPredefinedConfig("PREDEF_TAG", opt)
+				 }
+				 else if (checkParamIsEmpty('FILTER_PATTERN') && paHelper.checkIfFilterExsits(opt)) { //checking filter wasn't supplied explicitly and there exists a filter with such id and applying it if so
+					setPredefinedFilter("PREDEF_TAG", opt)
+				 }
+				 else if (paHelper.checkIfExecuteThreadExsits(opt)) { //checking if there exists a thread preserving patterns with such id and applying it if so
+					setThreadPreserving("PREDEF_TAG", opt)
+				 }
+				 else if (paHelper.checkIfPostProcessExsits(opt)) { //checking if there exists a post_processing config with such id and applying it if so
+				 	setPostProcessing("PREDEF_TAG", opt)
+				 }
+				 else {
+					 throw new IllegalArgumentException("Invalid option, doesn't match any config's/filters id too=" + opt)
+				 }
+			}
 		}
 	}
 
@@ -311,7 +407,7 @@ class WgrepConfig {
 
 	boolean isAutomationEnabled()
 	{
-		return paHelper != null
+		return paHelper.isAutomationEnabled()
 	}
 
 	/**
@@ -320,31 +416,14 @@ class WgrepConfig {
 	* @param fileName String representing name of a file to be checked. Could be an absolute path as well.
 	*/
 
-	boolean refreshConfigByFileName(String fileName)
+	boolean refreshConfigByFile(File file)
+	{
+		return refreshConfigByFile(file.getName())
+	}
+	
+	boolean refreshConfigByFile(String fileName)
 	{
 		return isAutomationEnabled() ? paHelper.applySequenceByFileName(fileName) : false
-	}
-
-	/**
-	 * Enables extended pattern processing.
-	 * @param field Field to be set. Either <code>EXTNDD_PATTERN</code> for just enabling or <code>PRESERVE_THREAD</code> if it should enable thread parsing as well.
-	 * @param val <code>String</code> value to be set. Either <code>e</code> if it just enabling, and a valid config preset tag from <code>thread_configs</code> section otherwise.
-	 */
-
-	private void setExtendedPattern(String field, def val)
-	{
-		setParam(field, val)
-	}
-
-	/**
-	 * Enables post processing.
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
-	 */
-
-	private void setPostProcessing(String field, def val)
-	{
-		setParam(field, val)
 	}
 
 	/**
@@ -381,9 +460,22 @@ class WgrepConfig {
 	private void setAutomation(String field, def val)
 	{
 		setParam(field, val)
-		paHelper = new PatternAutomationHelper(this) //refreshing PatternAutomation instance
+		paHelper.enableSequence(val) //refreshing PatternAutomation instance
+	}
+	
+	/**
+	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
+	 * @param field Field to be set
+	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+	 */
+	private void setPredefinedConfig(String field, def val)
+	{
+		setParam(field, val)
+		isAutomationEnabled() ? paHelper.applySequenceByTag(val) : log.warn("Attempt to predefine config with disabled automation")
+		//disableAutomation() //not disabling, so it can be reconfigured if supplied files have heterogenous log entry patterns 
 	}
 
+	
 	/**
 	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
 	 * Calls {@link PatternAutomation.parseFilterConfig}
@@ -394,42 +486,41 @@ class WgrepConfig {
 	{
 		filterParser.unsubscribe()
 		setParam(field, val)
-		isAutomationEnabled() ? paHelper.parseFilterConfig(val) : log.warn("Attempt to predefine filter with disabled automation")
+		paHelper.parseFilterConfig(val)
 	}
 
+	
 	/**
-	 * Sets <code>FILTER_PATTERN</code> and <code>POST_PROCESSING</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
-	 * Calls {@link PatternAutomation.parseBulkFilterConfig}
+	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
+	 * Calls {@link PatternAutomation.parseFilterConfig}
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
-	private void setPredefinedBulkFilter(String field, def val)
+	private void setThreadPreserving(String field, def val)
 	{
-		filterParser.unsubscribe()
-		setParam(field, val)
-		isAutomationEnabled() ? paHelper.parseBulkFilterConfig(val) : log.warn("Attempt to predefine bulk filter with disabled automation")
+		paHelper.parseExecuteThreadConfig(val)
 	}
 
+	
 	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
+	 * Enables post processing.
 	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
 	 */
-	private void setPredefinedConfig(String field, def val)
-	{
-		setParam(field, val)
-		isAutomationEnabled() ? paHelper.applySequenceByTag(val) : log.warn("Attempt to predefine config with disabled automation")
-		disableAutomation()
-	}
 
+	private void setPostProcessing(String field, def val)
+	{
+		paHelper.parsePostFilterConfig(val)
+	}
+	
 	/**
 	*
-	* Disables pattern automation. Simply by setting paHelper to null
+	* Disables pattern automation.
 	*/
 
 	private void disableAutomation()
 	{
-		paHelper = null
+		paHelper.disableSequence()
 	}
 
 
@@ -445,18 +536,21 @@ class WgrepConfig {
 CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
 
 Usage: 
-java -cp wgrep.jar org.smlt.tools.wgrep.WGrep CONFIG_FILE [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+java -cp wgrep.jar org.smlt.tools.wgrep.WGrep [CONFIG_FILE] [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
 Usage via supplied .bat or .sh file: 
 wgrep [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
 
 Examples:
 
 Using in Windows
-wgrep -s \"SomethingINeedToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
-wrep -s \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log
+wgrep -s \"Something_I#Need ToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
+wgrep -s \"SomethingINeed To Find\" D:\\myfolder\\LOGS\\myapp\\node*.log
+wgrep -s SomethingINeedToFind D:\\myfolder\\LOGS\\myapp\\node*.log
+wgrep -L \"RecordStart\" \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log*
 
 Using on NIX 
 wgrep --my_predefined_config --dtime 2011-11-11T11:10 2011-11-11T11:11 myapp.log 
+wgrep --my_predefined_config --dtime 2011-11-11T11:10 -10 myapp.log 
 wgrep --my_predefined_config myapp.log 
 wgrep 'SomethingINeedToFind' myanotherapp.log 
 wgrep -s 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 
@@ -471,7 +565,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 	* Method enforces TRACE level of logging by resetting logback config and redirects it to STDOUT.
 	*/
 
-	void enforceTrace(String field, def val)
+	private void enforceTrace(String field, def val)
 	{
 		log.debug("Enabling trace")
 		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -509,7 +603,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 	* Method enforces INFO level of logging by resetting logback config and redirects it to STDOUT.
 	*/
 
-	void enforceInfo(String field, def val)
+	private void enforceInfo(String field, def val)
 	{
 		log.debug("Redirecting info to STDOUT")
 		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();

@@ -12,8 +12,9 @@ def tmplt_suffix = ''
 def doZip = false
 def params = [:]
 def embedded = true //flag to embedd groovy-all into wgrep.jar
-def oldJdkCompatibility //populate if app is going to be ran on JRE older than yours. Works on 1.5
-def oldJreLibPath //populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
+def oldJdkCompatibility //e.g. =  1.5//; populate if app is going to be ran on JRE older than yours. Works on 1.5
+def oldJreLibPath //e.g. = "C:\\Program Files\\Java\\jre1.5.0_10\\lib"//; populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
+def printTestClasspath = false
 
 repositories {
     mavenCentral()
@@ -56,6 +57,8 @@ test {
 	systemProperty 'wgrep.home', rootDir.getAbsolutePath()
 	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main')
 	setClasspath(newCP)
+    if (printTestClasspath)
+        newCP.getFiles().each {print it.getCanonicalPath() + ";"}
 }
 
 processTestResources {
