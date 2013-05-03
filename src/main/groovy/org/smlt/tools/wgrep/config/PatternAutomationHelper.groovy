@@ -76,10 +76,11 @@ class PatternAutomationHelper extends ModuleBase
         if (currentConfigPtrn != null)
         {
             if (filename =~ currentConfigPtrn) return isAmmended
+            else currentConfigPtrn = null //since it's a different file
         }
 		
-        currentConfigId = (currentConfigId != null) ? currentConfigId : findConfigIdByData(filename)
-        applyAutomationSequence(currentConfigId)
+        currentConfigId = findConfigIdByData(filename)
+        applySequenceByTag(currentConfigId)
 
         return isAmmended
     }
@@ -94,13 +95,7 @@ class PatternAutomationHelper extends ModuleBase
     boolean applySequenceByTag(String tag)
     {
         isAmmended = false
-        if (currentConfigId != null)
-        {
-            if (tag ==~ currentConfigId) return isAmmended
-        }
-
         applyAutomationSequence(tag)
-
         return isAmmended
     }
 
@@ -215,7 +210,6 @@ class PatternAutomationHelper extends ModuleBase
     {
         setParam('POST_PROCESSING', tag)
         setParam('POST_PROCESS_PARAMS', parsePostFilterParams(tag))
-        isAmmended = true
     }
 	
 
@@ -276,6 +270,7 @@ class PatternAutomationHelper extends ModuleBase
                     POST_PROCESS_HEADER = (POST_PROCESS_HEADER != null) ? POST_PROCESS_HEADER + POST_PROCESS_SEP + ptrn_node.'@col_name' : ptrn_node.'@col_name'
                 }
                 POST_PROCESS_HEADER += "\n"
+                isAmmended = true
             }
 			else {
 				log.trace('POST_PROCESSING is not defined')
@@ -298,7 +293,6 @@ class PatternAutomationHelper extends ModuleBase
     {
         setParam('PRESERVE_THREAD', tag)
         setParam('PRESERVE_THREAD_PARAMS', parseComplexFilterParams(tag))
-        isAmmended = true
     }
 	
 	boolean checkIfExecuteThreadExsits(String tag) {
@@ -326,6 +320,7 @@ class PatternAutomationHelper extends ModuleBase
                 cfParams['THRD_START_EXTRCTRS'] = root.custom.thread_configs.extractors.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
                 cfParams['THRD_SKIP_END_PTTRNS'] = root.custom.thread_configs.skipends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
                 cfParams['THRD_END_PTTRNS'] = root.custom.thread_configs.ends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
+                isAmmended = true
             }
 			else {
 				log.trace('Thread preserving is undefined')

@@ -30,8 +30,10 @@ import org.smlt.tools.wgrep.util.WgrepUtil
 @Slf4j
 class WGrep 
 {
+
 	public static void main(String[] args)
 	{
+		Date startTime = new Date()
 		log.info(args.toString())
 		if (args == null) return
 		int argsToParseCount = args.size() - 1
@@ -40,6 +42,7 @@ class WGrep
 		def argsToParse = args
 		def WGREP_CONFIG = argsToParse[0]
 		def WGREP_CONFIG_XSD = null
+		
 		if (WGREP_CONFIG =~ /config.xml$/) {
 			argsToParse = args[1..argsToParseCount] //excluding config.xml file path from parameters
 		}
@@ -56,10 +59,11 @@ class WGrep
 		if (WGREP_CONFIG_XSD == null){ //xsd has not been found 
 			log.warn("config.xsd cannot be found in the classpath. Validation will be skipped")
 		}
-		 
+
 		WgrepConfig config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 		WgrepFacade facade = new WgrepFacade(config)
 		facade.doProcessing(argsToParse)
+		log.info("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
 	}
 
 

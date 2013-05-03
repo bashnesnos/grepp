@@ -301,7 +301,7 @@ Koo,200
 		}
 	}
 
-	void testWgrepMain() {
+	void testHeteroFilesWgrepMain() {
 		
 		def expectedResult = """\
 2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
@@ -314,7 +314,8 @@ Foo Man Chu
 		assertWgrepOutput(expectedResult) {
 			WGrep.main([
 				"Foo",
-				HOME+"\\processing_test.log"
+				HOME+"\\processing_test.log",
+				HOME+"\\fpTest_test.log"
 			].toArray(new String[2]))
 		}
 	}
