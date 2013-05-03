@@ -22,27 +22,17 @@ def WGREP_CONFIG_XSD = WgrepUtil.getResourcePathOrNull("config.xsd")
 //def WGREP_CONFIG = BASE_HOME + "\\dev\\config.xml"
 def HOME = BASE_HOME + "\\build\\resources\\test"
 
-println WGREP_CONFIG
-println WGREP_CONFIG_XSD
+//println WGREP_CONFIG
+//println WGREP_CONFIG_XSD
 
 def config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 def facade = new WgrepFacade(config)
 
-		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
-		def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
-		def testTimeStringFrom = dateFormat.format(fileTime)
-
-		def expectedResult = """\
-${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22' 
-Foo Koo
-"""
-
-			facade.doProcessing([
-				"-f",
-				"--some_timings",
-				HOME+"\\processing_report_test.log"
-			])
+			WGrep.main([
+				"Foo",
+				HOME+"\\processing_tgest.log",
+				HOME+"\\fpTest_test.log"
+			].toArray(new String[2]))
 
 //println actualResult.toString()
 //println expectedResult == actualResult.toString()

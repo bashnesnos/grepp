@@ -16,8 +16,6 @@ import org.smlt.tools.wgrep.config.ModuleBase;
  */
 @Slf4j
 class WgrepFacade extends ModuleBase {
-	private Date startTime = new Date()
-
 	private DataProcessor dataProcessor = null
 	private ConsoleOutput consoleOutput = new ConsoleOutput()
 	private WgrepOutput output
@@ -94,7 +92,6 @@ class WgrepFacade extends ModuleBase {
 				return
 			}
 			dataProcessor.process()
-			log.info("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
 		}
 		catch(Exception e)
 		{
