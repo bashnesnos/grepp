@@ -26,6 +26,8 @@ dependencies {
 	compile group: 'org.slf4j', name:'slf4j-api', version: '1.7.5'
 	compile group: 'ch.qos.logback', name:'logback-classic', version: '1.0.11'
 
+    compile group: 'org.springframework', name: 'spring-beans', version: '3.2.2.RELEASE'
+
     if (oldJdkCompatibility == 1.5) {
         compile group: 'org.livetribe', name:'livetribe-jsr223', version: '2.0.1', transitive: true //for 1.5 compatibility
     }

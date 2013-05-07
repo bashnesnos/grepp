@@ -2,6 +2,8 @@ package org.smlt.tools.wgrep.config
 
 import groovy.util.logging.Slf4j;
 import org.w3c.dom.Element
+import org.springframework.beans.factory.annotation.Autowired
+
 /**
  * Base class for wgrep modules. Provides alias methods for used params, shortcut to WgrepConfig to ease initialization and parameter access. <br>
  * Also delegates some basic WgrepConfig methods like param getting and setting. 
@@ -12,6 +14,7 @@ import org.w3c.dom.Element
 @Slf4j
 class ModuleBase {
 
+	@Autowired
 	protected WgrepConfig configInstance
 	
 	/**

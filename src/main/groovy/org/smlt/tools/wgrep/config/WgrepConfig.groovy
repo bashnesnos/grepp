@@ -24,7 +24,9 @@ import javax.xml.validation.SchemaFactory
  */
 @Slf4j
 class WgrepConfig {
+
 	//internal
+	private def configValidator
 	private Document cfgDoc = null
 	private Element root = null
 	//GLOBAL
@@ -59,7 +61,11 @@ class WgrepConfig {
 	
 	WgrepConfig(String configFilePath, String configXSDpath)
 	{
-		if (configXSDpath == null || validateConfigFile(configFilePath, configXSDpath)) {
+		loadConfigInternal(configFilePath, configXSDpath)
+	}
+
+	public void loadConfig(String configFilePath) {
+		if (configValidator == null || validateConfigFile(configFilePath)) {
 			initConfig(configFilePath)
 		}
 		else {
@@ -67,21 +73,35 @@ class WgrepConfig {
 		}
 	}
 	
+	private void loadConfigInternal(String configFilePath, String configXSDpath) {
+		if (configXSDpath == null || validateConfigFile(configFilePath, configXSDpath)) {
+			initConfig(configFilePath)
+		}
+		else {
+			throw new RuntimeException("config.xml is invalid")
+		}
+	}
+
+	private boolean validateConfigFile(String configFilePath) {
+		log.trace("Validating the config")
+		configValidator.validate(new StreamSource(new FileReader(configFilePath)))
+		return true
+	}
+	
+	private boolean validateConfigFile(String configFilePath, String configXSDpath) {
+		log.trace("Loading validator")
+		def factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+		def schema = factory.newSchema(new StreamSource(new FileReader(configXSDpath)))
+		configValidator = schema.newValidator()
+		return validateConfigFile(configFilePath)
+	}
+	
 	private void initConfig(String configFilePath) {
 		cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
 		root = cfgDoc.documentElement
 		loadDefaults()
 	}
-	
-	private boolean validateConfigFile(String configFilePath, String configXSDpath) {
-		log.trace("Validating the config")
-		def factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-		def schema = factory.newSchema(new StreamSource(new FileReader(configXSDpath)))
-		def validator = schema.newValidator()
-		validator.validate(new StreamSource(new FileReader(configFilePath)))
-		return true
-	}
-	
+
 	/**
 	 *  Method loads defaults and spooling extension as configured in config.xml's <code>global</code> section.
 	 *  Loads some values set via System properties as well.

@@ -11,6 +11,9 @@ package org.smlt.tools.wgrep
 import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.util.WgrepUtil
+import org.springframework.beans.factory.xml.XmlBeanFactory
+import org.springframework.core.io.ClassPathResource
+
 
 @Slf4j
 class WGrep 
@@ -21,10 +24,12 @@ class WGrep
 		Date startTime = new Date()
 		log.info(args.toString())
 		if (args == null || args.size() < 1) return
+
+		ClassPathResource springConfig = new ClassPathResource("wgrep-context.xml");
+		XmlBeanFactory factory = new XmlBeanFactory(springConfig);
 		
 		def argsToParse = args
 		def WGREP_CONFIG = argsToParse[0]
-		def WGREP_CONFIG_XSD = null
 
 		if (WGREP_CONFIG =~ /config.xml$/) {
 			if (args.size() > 1) {
@@ -34,23 +39,10 @@ class WGrep
 				println "Nothing to do except config parsing"
 				return //only config.xml was passed
 			}
-		}
-		else {
-			WGREP_CONFIG = WgrepUtil.getResourcePathOrNull("config.xml") //looking in the classpath
+			factory.getBean("configInstance").loadConfig(WGREP_CONFIG)
 		}
 
-		if (WGREP_CONFIG == null){ // it has not been found
-			println "config.xml should be either in classpath or specified explicitly"
-			return
-		}
-
-		WGREP_CONFIG_XSD = WgrepUtil.getResourcePathOrNull("config.xsd") //looking in the classpath
-		if (WGREP_CONFIG_XSD == null){ //xsd has not been found 
-			log.warn("config.xsd cannot be found in the classpath. Validation will be skipped")
-		}
-
-		WgrepConfig config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
-		WgrepFacade facade = new WgrepFacade(config)
+		def facade = factory.getBean("facade")
 		facade.doProcessing(argsToParse)
 		log.info("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
 	}
