@@ -9,7 +9,7 @@ class WGrepTest extends GroovyTestCase {
 	def BASE_HOME = System.getProperty("wgrep.home")
 	def HOME = BASE_HOME + "\\build\\resources\\test"
 	def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
-	def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config.xsd"
+	def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
 	def defalutOut = System.out
 
 	void setUp() {
@@ -18,10 +18,11 @@ class WGrepTest extends GroovyTestCase {
 	}
 
 	void tearDown() {
-		System.setOut(defalutOut)
+		if (!System.out == defalutOut)
+			System.setOut(defalutOut)
 	}
 
-	public <V> String getOutput(Closure<V> operation) {
+	public static String getOutput(Closure operation) {
 		def oldStdout = System.out
 		def pipeOut = new PipedOutputStream()
 		def pipeIn = new PipedInputStream(pipeOut)
@@ -53,7 +54,7 @@ class WGrepTest extends GroovyTestCase {
 		return actualResult.toString()
 	}
 
-	public <V> void assertWgrepOutput(String expectedResult, Closure<V> operation) {
+	public static void assertWgrepOutput(String expectedResult, Closure operation) {
 		assertTrue(expectedResult == getOutput(operation))
 	}
 
@@ -70,7 +71,6 @@ class WGrepTest extends GroovyTestCase {
 			new File(HOME+"\\fpTest_test.log")]
 		)
 		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
-		assertTrue( config.getParam('HOME_DIR') != null )
 	}
 	
 	void testConfigsProcessing() {
@@ -85,7 +85,6 @@ class WGrepTest extends GroovyTestCase {
 			new File(HOME+"\\fpTest_test.log")]
 		)
 		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
-		assertTrue( config.getParam('HOME_DIR') != null )
 	}
 
 	void testExtendedPatternProcessing() {
@@ -137,7 +136,6 @@ class WGrepTest extends GroovyTestCase {
 		assertTrue( config.getParam('FILTER_PATTERN') == "queryTime" )
 		assertTrue( config.getParam('FILES') == [new File("cmd_only_1.log")])
 		assertTrue( config.getParam('FOLDER_SEPARATOR') == "\\\\" )
-		assertTrue( config.getParam('HOME_DIR') != null )
 	}
 
 	void testComplexFiltering() {

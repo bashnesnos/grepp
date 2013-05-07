@@ -21,7 +21,6 @@ class FileNameParser extends ParserBase {
 	FileNameParser(WgrepConfig config) {
 		super(config)
 		fSeparator = getParam('FOLDER_SEPARATOR')
-		curDir = config.getParam('CWD')
 	}
 
 	/**

@@ -1,46 +1,16 @@
-wgrep installation.
-Example for terminal which has access to application boxes. Afterwards, the same mechanism could be used for updates.
+Prereq's for running:
+1. Set up JAVA_HOME
+2. Make sure 'java --version' returns java version, and that it's not less than 1.5 (it is the earliest tested)
 
-1. Unzip wgrep.zip
-2. Copy wgrep folder to terminal into 'myfiles' dir.
-3. Edit remote_install_wgrep.sh:
-	Change $USER variable to your username.
-	E.g.: USER='cooluser'
-4. Run: 
-	chmod +x make_execs.sh
-5. Execute 
-	./make_execs.sh
-	./rinstall_wgrep.sh
-6. To update run
-	./rinstall_wgrep.sh -u
+Run via wgrep.bat(Win) or wgrep(Unix)
+To check if it works, execute 
+	wgrep -?
 
-Now wgrep is installed into your's user 'home' directory on each box.
+It should show some help on how to use wgrep.
 
-- If you have public key login set up, you won't be treated for a password each time the script will be logging in. 
-If not, you'll be prompted 2*(number of servers) times.
+Distrib structure:
+./bin 		- Win and nix executables
+./config 	- wgrep config, xsd and logging config files. Feel free to change their contents, according to your needs.
+./lib 		- wgrep libs. It's not neccessary to replace the libs. But if you know what you're doing, why not.
 
-- Once the script is finished you can start using the tool.
-
-- Simple way to use the command is the following.
-[run each time you login] 1) Login to server which has the tool.
-
-[run each time you login] 2) Navigate to wgrep dir. Could be done like this:
-				cd ~/wgrep
-
-[run each time you login] 3) Init the tool by executing(all the dots are important):
-				. ./set_wgrep.sh
-
-		  	    4) Afterwards, you can use the tool anywhere on the server, just typing wgrep and your arguments. 
-			    5) Just try 'wgrep ?' first to get some examples.	
-
-- There is a way to use the tools remotely.
-	1) Login to terminal
-	2) Navigate to ~/myfiles/wgrep/remote
-	3) Edit the file 'remote_wgrep.sh' to populate the parameters you need to look for.
-	4) Execute:
-		./remote_wgrep.sh
-	5) Find your results in the 'results' folder:
-		~/myfiles/wgrep/results
-		e.g. 'rwgrep_box1.log'
-
-Enjoy!
+It's worth adding ./bin into your PATH either in Win or Unix, so you can run wgrep from anywhere on the machine.

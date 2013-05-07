@@ -3,9 +3,9 @@
 ########
 .gradle/
 build/
-dev/
-stable/
-release/
+dev*
+release*
+default*
 
 ########
 # Idea

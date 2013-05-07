@@ -17,7 +17,6 @@ import org.smlt.tools.wgrep.config.ModuleBase;
 @Slf4j
 class WgrepFacade extends ModuleBase {
 	private DataProcessor dataProcessor = null
-	private ConsoleOutput consoleOutput = new ConsoleOutput()
 	private WgrepOutput output
 
 	/**
@@ -96,7 +95,6 @@ class WgrepFacade extends ModuleBase {
 		catch(Exception e)
 		{
 			log.error("An unexpected exception occured", e)
-			consoleOutput.printToOutput("Abnormal termination due to: " + e.message + ". Check details in the log")
 		}
 	}
 
