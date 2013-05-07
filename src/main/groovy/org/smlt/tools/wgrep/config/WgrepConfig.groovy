@@ -90,7 +90,6 @@ class WgrepConfig {
 	{
 		FOLDER_SEPARATOR = System.getProperty("file.separator")
 		HOME_DIR = System.getProperty("wgrep.home") + FOLDER_SEPARATOR
-		CWD = System.getProperty("user.dir")
 		if (FOLDER_SEPARATOR == "\\") {
 			FOLDER_SEPARATOR += "\\"
 		}
@@ -163,12 +162,12 @@ class WgrepConfig {
 	{
 		boolean checkResult = true
 		
-		mandatory.findAll{ paramName -> checkParamIsEmpty(paramName)}
+		def emptyMandatory = mandatory.findAll{ paramName -> checkParamIsEmpty(paramName)}
 			.each{ paramName ->
 					log.error("Mandatory param " + paramName + " is empty")
-					if (checkResult)
-						checkResult = false
 			}
+		
+		if (emptyMandatory.size() > 0) return false
 
 		optional.findAll{ paramName -> checkParamIsEmpty(paramName)}
 			.each{ paramName ->
@@ -535,10 +534,20 @@ class WgrepConfig {
 		def help = """\
 CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
 
-Usage: 
-java -cp wgrep.jar org.smlt.tools.wgrep.WGrep [CONFIG_FILE] [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
 Usage via supplied .bat or .sh file: 
-wgrep [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+wgrep [CONFIG_FILE] [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+
+CONFIG_FILE 		- path to config.xml for wgrep to use. If none is specified, it will be looked up in wgrep classpath
+option 				- single character represeting a configured in config.xml <opt> element
+filter_option 		- a word representing configured <opt> element, or one <config> id attribute, or one of @tag attributes from patterns in config.xml
+LOG_ENTRY_PATTERN 	- a string which will be used to \"split\" the input. Is optinal, as by default it will be looked up by filename in config.xml mapping
+FILTER_PATTERN 		- a string which will is needed to be found in the input.  Is optional, as it can be identified by --filter_option or by -option
+FROM_DATE/TO_DATE 	- string representing date constraints for current search. Default format is yyyy-mm-ddThh-MM-ss (could be reduced till yyyy). If FROM_DATE or TO_DATE is not known (or is indefinite) '+' can be passed as argument.
+						Date's could be constructed by an offset from NOW or from supplied date. I.e. --dtime -10 + will mean 'searching period is last 10 minutes'.
+						E.g. --dtime 2013-05-01T12:00 -20, --dtime 2013-05-01T12:00 +20
+						If TO_DATE is after FROM_DATE they will be swapped automatically.
+						Usage requires valid date pattern to be configured for such a file in config.xml
+FILENAME 			- filename for analysis. Could be multiple, or with wildcard *
 
 Examples:
 

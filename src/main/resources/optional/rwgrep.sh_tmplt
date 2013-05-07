@@ -3,7 +3,7 @@
 OUTPUT="../results/"
 OUTPUT_FILENAME="rwgrep"
 WORK_DIR="#NIX_DIR#"
-WGREP_PATH="java -Dwgrep.home=$WORK_DIR -cp $WORK_DIR/wgrep.jar:$WORK_DIR org.smlt.tools.wgrep.WGrep $WORK_DIR/config.xml"
+WGREP_PATH="$WORK_DIR/wgrep"
 MODE=""
 EXT=""
 ALL_PARAMS="$@"

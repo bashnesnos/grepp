@@ -4,27 +4,28 @@ import groovy.xml.XmlUtil
 import java.text.SimpleDateFormat
 
 apply plugin: 'groovy'
+apply plugin: 'application'
 
-//these properties are overwritten by subprojects dev, stable and release if they are defined there
-def targetDir = null //is initialized with the project
-    def makeExecsFileWriter = null //is initialized with the project
-def tmplt_suffix = ''
-def doZip = false
-def params = [:]
-def embedded = true //flag to embedd groovy-all into wgrep.jar
-def oldJdkCompatibility //e.g. =  1.5//; populate if app is going to be ran on JRE older than yours. Works on 1.5
-def oldJreLibPath //e.g. = "C:\\Program Files\\Java\\jre1.5.0_10\\lib"//; populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
-def printTestClasspath = false
+//these properties are overwritten by subprojects dev and release if they are defined there
+def targetDir = new File("default") //is initialized with the project
+def includeOptional = false //whether to include optional sh scripts
+def params = [:] //params for used templates
+
+//these properties are not overrided by subprojects and should be populated here. If should
+def oldJdkCompatibility//e.g. = 1.5//; populate if app is going to be ran on JRE older than yours. Works on 1.5
+def oldJreLibPath//e.g. = "C:\\Program Files\\Java\\jre1.5.0_10\\lib"//; populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
+def printTestClasspath = false //prints test classpath if true
 
 repositories {
     mavenCentral()
+    mavenRepo name: "spring-repo", url: "http://repo.springsource.org/release"
 }
 
 dependencies {
     compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.0.6'
 	compile group: 'org.slf4j', name:'slf4j-api', version: '1.7.5'
 	compile group: 'ch.qos.logback', name:'logback-classic', version: '1.0.11'
-    
+
     if (oldJdkCompatibility == 1.5) {
         compile group: 'org.livetribe', name:'livetribe-jsr223', version: '2.0.1', transitive: true //for 1.5 compatibility
     }
@@ -43,19 +44,31 @@ compileGroovy {
     }
 }
 
+startScripts {
+    mainClassName = 'org.smlt.tools.wgrep.WGrep'
+    classpath += files('/config')
 
+    doLast {
+        def windowsScriptFile = file getWindowsScript()
+        def unixScriptFile    = file getUnixScript()
+        windowsScriptFile.text = windowsScriptFile.text.replace('%APP_HOME%\\lib\\config', '%APP_HOME%\\config')
+        windowsScriptFile.text = windowsScriptFile.text.replace('set APP_HOME=%DIRNAME%..', 'set APP_HOME=%DIRNAME%..\nset WGREP_OPTS="-Dwgrep.home=%APP_HOME%"')
+        unixScriptFile.text    = unixScriptFile.text.replace('$APP_HOME/lib/config', '$APP_HOME/config')
+        unixScriptFile.text    = unixScriptFile.text.replace('APP_HOME="`pwd -P`"', 'APP_HOME="`pwd -P`"\nWGREP_OPTS="-Dwgrep.home=$APP_HOME"')
+    }
+
+}
 
 sourceSets {
-	sourceSets.main.groovy.srcDir 'src/main/java'
+	sourceSets.main.groovy.srcDir 'src/main/java' //compiling java with groovy since classes are coupled
 }
 
-jar {
-	//'Quick packaging'
-}
+jar.includes =['**/*.class'] //TODO: may be versioning or something is needed 
+jar.includeEmptyDirs = false
 
 test {
 	systemProperty 'wgrep.home', rootDir.getAbsolutePath()
-	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main')
+	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main/config')
 	setClasspath(newCP)
     if (printTestClasspath)
         newCP.getFiles().each {print it.getCanonicalPath() + ";"}
@@ -70,83 +83,54 @@ processTestResources {
                 .replace('#TEST_TIME_TOO_FAR#', dateFormat.format(new Date(curDate.getTime() + 3*60*60*1000)))
     }   
     doLast {
-        def cfgDoc = DOMBuilder.parse(new FileReader(rootDir.getAbsolutePath() + '/build/resources/main/config.xml'))
-        def customDoc = DOMBuilder.parse(new FileReader(rootDir.getAbsolutePath() + '/build/resources/test/config.custom'))
-        def root = cfgDoc.documentElement
-        use(DOMCategory) {
-            root.appendChild(cfgDoc.importNode(customDoc.documentElement.custom[0], true))
-        }
-        cfgDoc.normalizeDocument()
-        XmlUtil.serialize(root, new FileWriter(rootDir.getAbsolutePath() + '/build/resources/test/config.xml'))
+        mergeConfig (rootDir.getAbsolutePath() + '/build/resources/main/config/config.xml'
+                    , rootDir.getAbsolutePath() + '/build/resources/test/config.custom'
+                    , rootDir.getAbsolutePath() + '/build/resources/test/config.xml')
     }
 }
 
-task makeEmbeddedJar(dependsOn: build, type: Jar) {
-	//'Groovy embedded packaging'
-	from rootDir.getAbsolutePath() + '/build/classes/main'
-	from { 
-		configurations.compile.collect {it.isDirectory()? it : zipTree(it)} 
-	}
-}
 
-task cleanSubProject(type: Delete){
-
-}
-
-task copyBuild(type: Copy) {
-    from(rootDir.getAbsolutePath() + '/build/resources/main'){
-        exclude '**/*_tmplt'
-    }
-    from rootDir.getAbsolutePath() + '/build/libs'
-}
-
-task transformConfig(dependsOn: copyBuild){
-    doLast {
-        def cfgDoc = DOMBuilder.parse(new FileReader(targetDir.getAbsolutePath() + '/config.xml'))
-        def customDoc = DOMBuilder.parse(new FileReader(targetDir.getAbsolutePath() + '/config.custom'))
-        def root = cfgDoc.documentElement
-        use(DOMCategory) {
-            root.appendChild(cfgDoc.importNode(customDoc.documentElement.custom[0], true))
-        }
-        cfgDoc.normalizeDocument()
-        XmlUtil.serialize(root, new FileWriter(targetDir.getAbsolutePath() + '/config.xml'))
-    }
-}
-
-task transformTmplts(dependsOn: transformConfig, type: Copy) {
-    from(rootDir.getAbsolutePath() + '/build/resources/main/')  {
-        include '**/*_tmplt'
-    }
-
-    eachFile { FileCopyDetails elem ->
-        def file = elem.getFile()
+def makeExecsFileWriter = null //leave it as null, it needs to be instantiated within a task
+processResources {
+    if (includeOptional) { //optional files template fill up
+        eachFile { FileCopyDetails elem ->
+            def file = elem.getFile()
+            def fileName = file.getName()
+            if (fileName =~ /_tmplt/) {
+                def tFileName = fileName.replace('_tmplt','')
+                elem.setName(tFileName)
         
-        def onlyName = (file.getName() =~ /.*(?=\.)/)[0]
-        def tFileName = file.getName().replace(onlyName, onlyName + tmplt_suffix).replace('_tmplt','')
-        elem.setName(tFileName)
-
-        if (tFileName =~ /\.sh/) {
-            if (!makeExecsFileWriter) {
-                makeExecsFileWriter = new FileWriter(destinationDir.getAbsolutePath() + '/make_execs.sh', true) //appending to make_execs.sh    
+                if (tFileName =~ /\.sh/) {
+                    if (!makeExecsFileWriter) {
+                        makeExecsFileWriter = new FileWriter(destinationDir.getAbsolutePath() + '/optional/make_execs.sh', true) //appending to make_execs.sh    
+                    }
+                    makeExecsFileWriter.write('\nchmod +x ' + elem.getPath())   
+                }
+        
+                elem.filter { String line ->
+                    def newLine = line
+                    for (param in params.keySet()) {
+                        if (line =~ /$param/) newLine = newLine.replace(param, params[param])
+                    }
+                    newLine
+                }
             }
-            makeExecsFileWriter.write('\nchmod +x ' + elem.getPath())   
-        }
-
-        elem.filter { String line ->
-            def newLine = line
-            for (param in params.keySet()) {
-                if (line =~ /$param/) newLine = newLine.replace(param, params[param])
-            }
-            newLine
         }
     }
 
     doLast{
+        mergeConfig (destinationDir.getAbsolutePath() + '/config/config.xml'
+            , targetDir.getAbsolutePath() + '/config.custom'
+            , null)
         if (makeExecsFileWriter) {
             makeExecsFileWriter.flush()
             makeExecsFileWriter.close()
         }
     }
+}
+
+task cleanSubProject(type: Delete){
+
 }
 
 task prepareSublimeSettings(type: Copy) {
@@ -157,18 +141,14 @@ task prepareSublimeSettings(type: Copy) {
     into mkdir('.sublime')
 }
 
-task makeZip(type:Zip) {
-
-}
-
-tasks.addRule("Pattern: release<ID>") { String taskName ->
-	if (taskName.startsWith("release"))
+tasks.addRule("Pattern: install<ID>") { String taskName ->
+	if (taskName.startsWith("install"))
 	{
 		def subProject = null
         if (taskName =~ /Dev/) {
             subProject = project(':dev')
 		}
-        else if (taskName ==~ /release/) {
+        else if (taskName ==~ /install/) {
             subProject = project(':release')
 
         }
@@ -176,42 +156,46 @@ tasks.addRule("Pattern: release<ID>") { String taskName ->
         if (subProject)
         {
 
-            embedded = subProject.hasProperty('embedded') ? subProject.embedded : embedded
             targetDir = subProject.hasProperty('targetDir') ? subProject.targetDir : targetDir
-            tmplt_suffix = subProject.hasProperty('tmplt_suffix') ? subProject.tmplt_suffix : tmplt_suffix
-            doZip = subProject.hasProperty('doZip') ? subProject.doZip : doZip
+            includeOptional = subProject.hasProperty('includeOptional') ? subProject.includeOptional : includeOptional
+            oldJdkCompatibility = subProject.hasProperty('oldJdkCompatibility') ? subProject.oldJdkCompatibility : oldJdkCompatibility
+            oldJreLibPath = subProject.hasProperty('oldJreLibPath') ? subProject.oldJreLibPath : oldJreLibPath
             params = subProject.hasProperty('params') ? subProject.params : params
-
-            copyBuild.into targetDir
-            transformTmplts.into targetDir
-
-            cleanSubProject.delete fileTree(targetDir.getAbsolutePath()){
-                exclude '*gradle*'
-                exclude '*custom*'
-            }   
-            clean.dependsOn(':cleanSubProject')
-
-
-            if (embedded) copyBuild.dependsOn(':makeEmbeddedJar')
-            else copyBuild.dependsOn(':build')
-
-            if (doZip) {
-                makeZip.from(targetDir) {
-                    exclude '*gradle*'
-                    exclude '*custom*'
-                }
-                makeZip.dependsOn(':transformTmplts')
-                task(taskName, dependsOn: ':makeZip') << {
-
-                }
-            }
-            else
-            {
-                task(taskName, dependsOn: ':transformTmplts') << {
-
-                }   
-            }
         }
-
+        
+        def installDir = new File(targetDir.getAbsolutePath() + 'Install')
+        installApp.destinationDir = installDir
+        applicationDistribution.from(processResources) {
+            if (!includeOptional)
+                exclude "**/optional/**"
+            includeEmptyDirs = false
+        }
+        cleanSubProject.delete fileTree(installDir.getAbsolutePath())
+        clean.dependsOn(':cleanSubProject')
+        task(taskName, dependsOn: ':installApp') << {
+        }   
 	}
+}
+
+def mergeConfig(def origin, def toMerge, def target) {
+    File originFile = new File(origin) 
+    File mergeFile = new File(toMerge)
+    if (originFile.exists() && mergeFile.exists()) { //nothing to do if the file to include does not exist
+        def cfgDoc = DOMBuilder.parse(new FileReader(originFile))
+        def customDoc = DOMBuilder.parse(new FileReader(mergeFile))
+        def root = cfgDoc.documentElement
+        use(DOMCategory) {
+            root.appendChild(cfgDoc.importNode(customDoc.documentElement.custom[0], true))
+        }
+        cfgDoc.normalizeDocument()
+        if (target == null) { //merging into origin
+            XmlUtil.serialize(root, new FileWriter(originFile))    
+        }
+        else {
+            XmlUtil.serialize(root, new FileWriter(target))    
+        }
+    }
+    else {
+        println "Check $origin and $toMerge paths"
+    }
 }
