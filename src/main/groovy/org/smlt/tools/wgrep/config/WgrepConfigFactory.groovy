@@ -1,7 +1,7 @@
 package org.smlt.tools.wgrep.config
 
 import org.springframework.core.io.Resource
-import org.springframework.beans.factory.annotation.Autowired
+
 
 class WgrepConfigFactory {
 	private Resource configFile
@@ -24,6 +24,10 @@ class WgrepConfigFactory {
 	}
 
 	public WgrepConfig getInstance()  {
-		return new WgrepConfig(configFile.getFile().getCanonicalPath(), configXSD.getFile().getCanonicalPath())
+		if (configFile == null || configFile.getFile() == null) {
+			throw new IllegalArgumentException("Config file should present in classpath or specified explicitly")
+		}
+		def configXSDFile = configXSD.getFile()
+		return new WgrepConfig(configFile.getFile().getCanonicalPath(), configXSDFile != null ? configXSDFile.getCanonicalPath() : null)
 	}
 }

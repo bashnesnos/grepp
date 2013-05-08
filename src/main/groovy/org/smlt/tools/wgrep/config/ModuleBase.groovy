@@ -39,6 +39,11 @@ class ModuleBase {
 	}
 
 	// Getters
+
+	WgrepConfig getConfigInstance()
+	{
+		return configInstance
+	}
 	
 	/**
 	 * Getter for parsed <code>documentElement</code> of the parsed config.xml
@@ -74,6 +79,12 @@ class ModuleBase {
 	}
 
 	// Setters
+
+	void setConfigInstance(WgrepConfig config)
+	{
+		configInstance = config
+	}
+
 
 	/**
 	 * Sets value of any field which exists in <code>WgrepFacade</code> via reflection. Is used to propagate value directly from config.xml

@@ -23,21 +23,11 @@ class FileProcessor extends ModuleBase implements DataProcessor
     private ArrayList<File> fileList = []
     
     private boolean isMerging = null
+    private FilterChainFactory filterFactory
     private FilterBase filterChain = null
     private FilterBase filesFilterChain = null
 	private WgrepOutput output = null
  
-	/**
-	 * Simple factory method, which takes WgrepConfig instance and initializes appropriate filter chains.       
-	 *        
-	 * @param config WgrepConfig instance
-	 * @return new FileProcessor instance
-	 */
-    static FileProcessor getInstance(WgrepConfig config, WgrepOutput output) 
-    {
-        return new FileProcessor(config, output, FilterChainFactory.createFilterChainByConfig(config), FilterChainFactory.createFileFilterChainByConfig(config))
-    }
-
 	/**
 	 * Create new instance with supplied filter chains and {@link WgrepConfig} instance.
 	 * 
@@ -45,12 +35,13 @@ class FileProcessor extends ModuleBase implements DataProcessor
 	 * @param filterChain_ FilterBase chain which will be used to filter each file line
 	 * @param filesFilterChain_ FilterBase chain which will be used to filter filename List
 	 */
-    FileProcessor(WgrepConfig config, WgrepOutput output_, FilterBase filterChain_, FilterBase filesFilterChain_) 
+    FileProcessor(WgrepConfig config, WgrepOutput output_, FilterChainFactory filterFactory_) 
     {
         super(config)
 		output = output_
-		filterChain = filterChain_
-        filesFilterChain = filesFilterChain_
+        filterFactory = filterFactory_
+		filterChain = filterFactory.createFilterChain()
+        filesFilterChain = filterFactory.createFileFilterChain()
 		List<File> files_ = getParam('FILES')
         log.trace("Total files to analyze: " + files_.size())
         fileList = filesFilterChain.filter(files_)
@@ -84,7 +75,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
         try {
             if (refreshConfigByFile(file_.name))
             {            
-                filterChain = FilterChainFactory.createFilterChainByConfig(configInstance)
+                filterChain = filterFactory.createFilterChain()
             }
         }
         catch(IllegalArgumentException e) {

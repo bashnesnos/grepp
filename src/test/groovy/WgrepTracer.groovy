@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.config.varparsers.*
 import org.smlt.tools.wgrep.util.WgrepUtil
-import WGrepTest
 
 
 import javax.xml.XMLConstants
@@ -24,12 +23,7 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 
 //println WGREP_CONFIG
 //println WGREP_CONFIG_XSD
-
-			WGrep.main([
-				"Foo",
-				HOME+"\\processing_test.log",
-				HOME+"\\fpTest_test.log"
-			].toArray(new String[2]))
+WGrep.main((String[]) ["-t", "Foo", HOME+"\\processing_test.log", HOME+"\\fpTest_test.log"])
 
 //println actualResult.toString()
 //println expectedResult == actualResult.toString()

@@ -19,6 +19,7 @@ import org.springframework.core.io.ClassPathResource
 class WGrep 
 {
 
+
 	public static void main(String[] args)
 	{
 		Date startTime = new Date()
@@ -26,8 +27,8 @@ class WGrep
 		if (args == null || args.size() < 1) return
 
 		ClassPathResource springConfig = new ClassPathResource("wgrep-context.xml");
-		XmlBeanFactory factory = new XmlBeanFactory(springConfig);
-		
+		XmlBeanFactory beanFactory = new XmlBeanFactory(springConfig);
+
 		def argsToParse = args
 		def WGREP_CONFIG = argsToParse[0]
 
@@ -39,10 +40,10 @@ class WGrep
 				println "Nothing to do except config parsing"
 				return //only config.xml was passed
 			}
-			factory.getBean("configInstance").loadConfig(WGREP_CONFIG)
+			beanFactory.getBean("configInstance").loadConfig(WGREP_CONFIG)
 		}
 
-		def facade = factory.getBean("facade")
+		def facade = beanFactory.getBean("wgrepFacade")
 		facade.doProcessing(argsToParse)
 		log.info("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
 	}
