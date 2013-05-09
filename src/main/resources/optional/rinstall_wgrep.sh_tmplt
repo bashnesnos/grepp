@@ -8,12 +8,12 @@ BOXES=#BOXES#
 
 for box in ${BOXES[*]}
 do
-	if [ "$1" != "-u" ] && [ "$1" != "-rm" ]; then
-		ssh $box 'cd ~;mkdir wgrep;cd wgrep;mkdir results;mkdir remote;echo "done"'
+	if [ ! "$1" == "-u" ] && [ ! "$1" == "-rm" ]; then 
+		ssh $box 'mkdir '$GREP_HOME';echo "wgrep_home created"'
 	fi
 
 	if [ "$1" == "-rm" ]; then
-		ssh $box 'cd ~/wgrep;rm -r *;echo "cleaned"'
+		ssh $box 'cd '$GREP_HOME';rm -r *;echo "cleaned"'
 	fi
 
 	scp -p -r ./ $USER@$box:$GREP_HOME

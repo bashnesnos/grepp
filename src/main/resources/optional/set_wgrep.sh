@@ -1,1 +1,1 @@
-alias wgrep='../bin/wgrep'
+alias wgrep='./bin/wgrep'

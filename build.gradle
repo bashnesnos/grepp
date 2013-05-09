@@ -12,8 +12,8 @@ def includeOptional = false //whether to include optional sh scripts
 def params = [:] //params for used templates
 
 //these properties are not overrided by subprojects and should be populated here. If should
-def oldJdkCompatibility//e.g. = 1.5//; populate if app is going to be ran on JRE older than yours. Works on 1.5
-def oldJreLibPath//e.g. = "C:\\Program Files\\Java\\jre1.5.0_10\\lib"//; populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
+def oldJdkCompatibility = 1.5//; populate if app is going to be ran on JRE older than yours. Works on 1.5
+def oldJreLibPath = "C:\\Program Files\\Java\\jre1.5.0_10\\lib"//; populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
 def printTestClasspath = false //prints test classpath if true
 
 repositories {
@@ -97,31 +97,28 @@ processTestResources {
 
 def makeExecsFileWriter = null //leave it as null, it needs to be instantiated within a task
 processResources {
-    if (includeOptional) { //optional files template fill up
-        eachFile { FileCopyDetails elem ->
-            def file = elem.getFile()
-            def fileName = file.getName()
-            if (fileName =~ /_tmplt/) {
-                def tFileName = fileName.replace('_tmplt','')
-                elem.setName(tFileName)
-        
-                if (tFileName =~ /\.sh/) {
-                    if (!makeExecsFileWriter) {
+    eachFile { FileCopyDetails elem ->
+        def file = elem.getFile()
+        def fileName = file.getName()
+        if (fileName =~ /_tmplt/) {
+            def tFileName = fileName.replace('_tmplt','')
+            elem.setName(tFileName)
+                    if (tFileName =~ /\.sh/) {
+                if (!makeExecsFileWriter) {
                         makeExecsFileWriter = new FileWriter(destinationDir.getAbsolutePath() + '/optional/make_execs.sh', true) //appending to make_execs.sh    
-                    }
-                    makeExecsFileWriter.write('\nchmod +x ' + elem.getPath())   
                 }
-        
-                elem.filter { String line ->
-                    def newLine = line
-                    for (param in params.keySet()) {
-                        if (line =~ /$param/) newLine = newLine.replace(param, params[param])
-                    }
-                    newLine
+                makeExecsFileWriter.write('\nchmod +x ' + elem.getName())   
+            }
+                    elem.filter { String line ->
+                def newLine = line
+                for (param in params.keySet()) {
+                    if (line =~ /$param/) newLine = newLine.replace(param, params[param])
                 }
+                newLine
             }
         }
     }
+
 
     doLast{
         mergeConfig (destinationDir.getAbsolutePath() + '/config/config.xml'
@@ -136,6 +133,10 @@ processResources {
 
 task cleanSubProject(type: Delete){
 
+}
+
+task copyOptional(type: Copy) {
+    from rootDir.getAbsolutePath() + '/build/resources/main/optional'
 }
 
 task prepareSublimeSettings(type: Copy) {
@@ -171,10 +172,13 @@ tasks.addRule("Pattern: install<ID>") { String taskName ->
         def installDir = new File(targetDir.getAbsolutePath() + 'Install')
         installApp.destinationDir = installDir
         applicationDistribution.from(processResources) {
-            if (!includeOptional)
-                exclude "**/optional/**"
+            exclude "**/optional/**"
             includeEmptyDirs = false
         }
+
+        if (includeOptional)
+            applicationDistribution.from(copyOptional.source)
+
         cleanSubProject.delete fileTree(installDir.getAbsolutePath())
         clean.dependsOn(':cleanSubProject')
         task(taskName, dependsOn: ':installApp') << {

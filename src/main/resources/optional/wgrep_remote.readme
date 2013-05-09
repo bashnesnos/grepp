@@ -6,13 +6,14 @@ Example for terminal which has access to application boxes. Afterwards, the same
 3. Edit remote_install_wgrep.sh:
 	Change $USER variable to your username.
 	E.g.: USER='cooluser'
+	Populate $GREP_HOME param to the desired dir on the remote server
 4. Run: 
 	chmod +x make_execs.sh
 5. Execute 
 	./make_execs.sh
 	./rinstall_wgrep.sh
-6. To update run
-	./rinstall_wgrep.sh -u
+6. To clean-up target directory prior to upload run
+	./rinstall_wgrep.sh -rm
 
 Now wgrep is installed into your's user 'home' directory on each box.
 
@@ -24,21 +25,20 @@ If not, you'll be prompted 2*(number of servers) times.
 - Simple way to use the command is the following.
 [run each time you login] 1) Login to server which has the tool.
 
-[run each time you login] 2) Navigate to wgrep dir. Could be done like this:
+[run each time you login] 2) Navigate to wgrep dir. Could be done like this(or specify the path you've entered for $GREP_HOME):
 				cd ~/wgrep
 
 [run each time you login] 3) Init the tool by executing(all the dots are important):
 				. ./set_wgrep.sh
 
 		  	    4) Afterwards, you can use the tool anywhere on the server, just typing wgrep and your arguments. 
-			    5) Just try 'wgrep ?' first to get some examples.	
+			    5) Just try 'wgrep -?' first to get some examples.	
 
 - There is a way to use the tools remotely.
 	1) Login to terminal
-	2) Navigate to ~/myfiles/wgrep/remote
-	3) Edit the file 'remote_wgrep.sh' to populate the parameters you need to look for.
+	2) Navigate to ~/myfiles/wgrep
 	4) Execute:
-		./remote_wgrep.sh
+		./rwgrep.sh $INSERT_YOUR_WGREP_PARAMS 
 	5) Find your results in the 'results' folder:
 		~/myfiles/wgrep/results
 		e.g. 'rwgrep_box1.log'

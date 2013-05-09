@@ -1,13 +1,17 @@
 #!/bin/bash
 ##############PARAMS
-OUTPUT="../results/"
+OUTPUT="./results/"
 OUTPUT_FILENAME="rwgrep"
 WORK_DIR="#NIX_DIR#"
-WGREP_PATH="$WORK_DIR/wgrep"
+WGREP_PATH="$WORK_DIR/bin/wgrep"
 MODE=""
 EXT=""
 ALL_PARAMS="$@"
 BOXES=#BOXES#
+
+if [ ! -d $OUTPUT ]; then
+	mkdir $OUTPUT
+fi
 
 if [ ! "$EXT" == "" ]; then
 	OUTPUT_FILE_EXT=$EXT
