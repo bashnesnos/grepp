@@ -28,6 +28,6 @@ class WgrepConfigFactory {
 			throw new IllegalArgumentException("Config file should present in classpath or specified explicitly")
 		}
 		def configXSDFile = configXSD.getFile()
-		return new WgrepConfig(configFile.getFile().getCanonicalPath(), configXSDFile != null ? configXSDFile.getCanonicalPath() : null)
+		return new PatternAutomationConfig(configFile.getFile().getCanonicalPath(), configXSDFile != null ? configXSDFile.getCanonicalPath() : null)
 	}
 }

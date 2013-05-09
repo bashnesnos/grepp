@@ -21,26 +21,25 @@ import javax.xml.validation.SchemaFactory
 class WgrepConfig {
 
 	//internal
-	private def configValidator
-	private Document cfgDoc = null
-	private Element root = null
+	protected def configValidator
+	protected Document cfgDoc = null
+	protected Element root = null
 	//GLOBAL
-	private String FOLDER_SEPARATOR = null
-	private String CWD = null
-	private String HOME_DIR = null
-	private String RESULTS_DIR = 'results'
-	private String SPOOLING_EXT = 'log'
+	protected String FOLDER_SEPARATOR = null
+	protected String CWD = null
+	protected String HOME_DIR = null
+	protected String RESULTS_DIR = 'results'
+	protected String SPOOLING_EXT = 'log'
 
 
 	//GENERAL
-	private List<File> FILES = []
+	protected List<File> FILES = []
 
 	//OPTIONS
-	private PatternAutomationHelper paHelper = null
-	private FilterParser filterParser =  null
-	private FileNameParser fileNameParser =  null
-	private List<ParserBase> varParsers = [] //organized as LIFO
-	private Map params = [:] //all params as a Map
+	protected FilterParser filterParser =  null
+	protected FileNameParser fileNameParser =  null
+	protected List<ParserBase> varParsers = [] //organized as LIFO
+	protected Map params = [:] //all params as a Map
 
 	/**
 	 * Constructor <br>
@@ -68,7 +67,7 @@ class WgrepConfig {
 		}
 	}
 	
-	private void loadConfigInternal(String configFilePath, String configXSDpath) {
+	protected void loadConfigInternal(String configFilePath, String configXSDpath) {
 		if (configXSDpath == null || validateConfigFile(configFilePath, configXSDpath)) {
 			initConfig(configFilePath)
 		}
@@ -77,23 +76,23 @@ class WgrepConfig {
 		}
 	}
 
-	private boolean validateConfigFile(String configFilePath) {
+	protected boolean validateConfigFile(String configFilePath) {
 		log.trace("Validating the config")
 		configValidator.validate(new StreamSource(new FileReader(configFilePath)))
 		return true
 	}
 	
-	private boolean validateConfigFile(String configFilePath, String configXSDpath) {
+	protected boolean validateConfigFile(String configFilePath, String configXSDpath) {
 		log.trace("Loading validator")
 		def factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
 		def schema = factory.newSchema(new StreamSource(new FileReader(configXSDpath)))
-		configValidator = schema.newValidator()
+		this.configValidator = schema.newValidator()
 		return validateConfigFile(configFilePath)
 	}
 	
-	private void initConfig(String configFilePath) {
-		cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
-		root = cfgDoc.documentElement
+	protected void initConfig(String configFilePath) {
+		this.cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
+		this.root = cfgDoc.documentElement
 		loadDefaults()
 	}
 
@@ -101,17 +100,16 @@ class WgrepConfig {
 	 *  Method loads defaults and spooling extension as configured in config.xml's <code>global</code> section.
 	 *  Loads some values set via System properties as well.
 	 */
-	private void loadDefaults()
+	protected void loadDefaults()
 	{
-		FOLDER_SEPARATOR = System.getProperty("file.separator")
-		HOME_DIR = System.getProperty("wgrep.home") + FOLDER_SEPARATOR
+		this.FOLDER_SEPARATOR = System.getProperty("file.separator")
+		this.HOME_DIR = System.getProperty("wgrep.home") + FOLDER_SEPARATOR
 		if (FOLDER_SEPARATOR == "\\") {
-			FOLDER_SEPARATOR += "\\"
+			this.FOLDER_SEPARATOR += "\\"
 		}
-		paHelper = new PatternAutomationHelper(this) //creating it by default
 		use(DOMCategory)
 		{
-			SPOOLING_EXT = root.global.spooling[0].text()
+			this.SPOOLING_EXT = root.global.spooling[0].text()
 			def defaultOptions = root.global.default_options[0]
 			if (defaultOptions != null)
 			{
@@ -156,7 +154,7 @@ class WgrepConfig {
 	{
 		if (field == 'FILES')
 		{
-			FILES.add(val)
+			this.FILES.add(val)
 		}
 		else if (hasField(field))
 		{
@@ -219,17 +217,10 @@ class WgrepConfig {
 	*
 	*/
 
-	private boolean hasField(String field)
+	protected boolean hasField(String field)
 	{
-		try {
-			this.getClass().getDeclaredField(field)
-		}
-		catch (NoSuchFieldException e) {
-			return false
-		}
-		return true
+		WgrepUtil.hasField(this.getClass(), field)
 	}
-
 
 	// INITIALIZATION
 
@@ -282,7 +273,7 @@ class WgrepConfig {
 	 * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>0</code> otherwise.
 	 */
 
-	private int processOptions(String arg)
+	protected int processOptions(String arg)
 	{
 		if (arg =~/^-(?![-0-9])/) //option should be a char and not a number
 		{
@@ -305,7 +296,7 @@ class WgrepConfig {
 	 *
 	 * @param arg An argument to be parsed
 	 */
-	private void processSimpleArg(String arg)
+	protected void processSimpleArg(String arg)
 	{
 		(arg =~ /./).each{opt -> processOption(opt)}
 	}
@@ -317,7 +308,7 @@ class WgrepConfig {
 	 * @param arg An argument to be parsed
 	 */
 
-	private void processComlpexArg(String arg)
+	protected void processComlpexArg(String arg)
 	{
 		(arg =~ /.*/).each{opt -> if(opt) processOption(opt)}
 	}
@@ -332,7 +323,7 @@ class WgrepConfig {
 	 * @throws IllegalArgumentException If the supplied <code>arg</code> is not configured, i.e. cannot be found in the config.xml.
 	 */
 
-	private void processOption(String opt)
+	protected void processOption(String opt)
 	{
 		use(DOMCategory)
 		{
@@ -344,27 +335,8 @@ class WgrepConfig {
 				this."$handler"(optElem['@field'], optElem.text())
 			}
 			else {
-				 if (isAutomationEnabled() && paHelper.applySequenceByTag(opt)) { //trying to apply sequence first
-				 	log.info("Applied sequence for: $opt")
-					if (!checkParamIsEmpty('FILTER_PATTERN')) {
-						filterParser.unsubscribe()
-					}
-				 }				  
-				 if (paHelper.checkIfConfigExsits(opt)) { //checking if  there exists a config with such id and applying it if so
-					setPredefinedConfig("PREDEF_TAG", opt)
-				 }
-				 else if (checkParamIsEmpty('FILTER_PATTERN') && paHelper.checkIfFilterExsits(opt)) { //checking filter wasn't supplied explicitly and there exists a filter with such id and applying it if so
-					setPredefinedFilter("PREDEF_TAG", opt)
-				 }
-				 else if (paHelper.checkIfExecuteThreadExsits(opt)) { //checking if there exists a thread preserving patterns with such id and applying it if so
-					setThreadPreserving("PREDEF_TAG", opt)
-				 }
-				 else if (paHelper.checkIfPostProcessExsits(opt)) { //checking if there exists a post_processing config with such id and applying it if so
-				 	setPostProcessing("PREDEF_TAG", opt)
-				 }
-				 else {
-					 throw new IllegalArgumentException("Invalid option, doesn't match any config's/filters id too=" + opt)
-				 }
+
+				 throw new IllegalArgumentException("Invalid option, doesn't match any <opt>: " + opt)
 			}
 		}
 	}
@@ -377,7 +349,7 @@ class WgrepConfig {
 	 * @param arg An argument to be parsed
 	 */
 
-	private void parseVar(String arg)
+	protected void parseVar(String arg)
 	{
 		if (varParsers == null) {
 			return
@@ -399,7 +371,7 @@ class WgrepConfig {
 
 	void subscribeVarParsers(List<ParserBase> parsers)
 	{
-		varParsers.addAll(parsers)
+		this.varParsers.addAll(parsers)
 	}
 
 	/**
@@ -410,43 +382,33 @@ class WgrepConfig {
 
 	void unsubscribeVarParsers(List<ParserBase> parsers)
 	{
-		varParsers.removeAll(parsers)
+		this.varParsers.removeAll(parsers)
 	}
 
-	/**
-	*
-	* Checks is paHelper was instantiated and automation can operate.
-	* @return <code>true</code> if paHelper is not null.
-	*/
 
-	boolean isAutomationEnabled()
-	{
-		return paHelper.isAutomationEnabled()
-	}
+    /**
+    * Method for refreshing config params by a filename. Requires {@link PatternAutomationHelper} paHelper to be initialized. <br>
+    * Calls {@link PatternAutomationHelper.applySequenceByFileName}
+    * @param fileName String representing name of a file to be checked. Could be an absolute path as well.
+    */
 
-	/**
-	* Method for refreshing config params by a filename. Requires {@link PatternAutomationHelper} paHelper to be initialized. <br>
-	* Calls {@link PatternAutomationHelper.applySequenceByFileName}
-	* @param fileName String representing name of a file to be checked. Could be an absolute path as well.
-	*/
+    boolean refreshConfigByFile(File file)
+    {
+        return refreshConfigByFile(file.getName())
+    }
+    
+    boolean refreshConfigByFile(String fileName)
+    {
+        return false
+    }
 
-	boolean refreshConfigByFile(File file)
-	{
-		return refreshConfigByFile(file.getName())
-	}
-	
-	boolean refreshConfigByFile(String fileName)
-	{
-		return isAutomationEnabled() ? paHelper.applySequenceByFileName(fileName) : false
-	}
-
-	/**
+    /**
 	 * Enables post processing. Initializes {@link DateTimeParser}.
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>date_time_config</code> section is expected here.
 	 */
 
-	private void setDateTimeFilter(String field, def val)
+	protected void setDateTimeFilter(String field, def val)
 	{
 		setParam(field, val)
 		new DateTimeParser(this).subscribe()
@@ -458,83 +420,10 @@ class WgrepConfig {
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>date_time_config</code> section is expected here.
 	 */
 
-	private void setUserLEPattern(String field, def val)
+	protected void setUserLEPattern(String field, def val)
 	{
 		setParam(field, val)
 		new LogEntryParser(this).subscribe()
-		disableAutomation()
-	}
-
-	/**
-	 * Enables <code>LOG_ENTRY_PATTERN</code>, <code>FILTER_PATTERN</code>, <code>PRESERVE_THREAD</code> auto-identification based on supplied <code>level</code>. Initializes {@link PatternAutomationHelper}.
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-	 */
-
-	private void setAutomation(String field, def val)
-	{
-		setParam(field, val)
-		paHelper.enableSequence(val) //refreshing PatternAutomation instance
-	}
-	
-	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-	 */
-	private void setPredefinedConfig(String field, def val)
-	{
-		setParam(field, val)
-		isAutomationEnabled() ? paHelper.applySequenceByTag(val) : log.warn("Attempt to predefine config with disabled automation")
-		//disableAutomation() //not disabling, so it can be reconfigured if supplied files have heterogenous log entry patterns 
-	}
-
-	
-	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
-	 * Calls {@link PatternAutomation.parseFilterConfig}
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-	 */
-	private void setPredefinedFilter(String field, def val)
-	{
-		filterParser.unsubscribe()
-		setParam(field, val)
-		paHelper.parseFilterConfig(val)
-	}
-
-	
-	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
-	 * Calls {@link PatternAutomation.parseFilterConfig}
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-	 */
-	private void setThreadPreserving(String field, def val)
-	{
-		paHelper.parseExecuteThreadConfig(val)
-	}
-
-	
-	/**
-	 * Enables post processing.
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
-	 */
-
-	private void setPostProcessing(String field, def val)
-	{
-		paHelper.parsePostFilterConfig(val)
-	}
-	
-	/**
-	*
-	* Disables pattern automation.
-	*/
-
-	private void disableAutomation()
-	{
-		paHelper.disableSequence()
 	}
 
 
@@ -543,7 +432,7 @@ class WgrepConfig {
 	 * <p>
 	 * Actually it has the same date as in groovydoc.
 	 */
-	private void printHelp(String field, def arg)
+	protected void printHelp(String field, def arg)
 	{
 		unsubscribeVarParsers(varParsers); //unsubscribing all
 		def help = """\
@@ -599,7 +488,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 	* Method enforces TRACE level of logging by resetting logback config and redirects it to STDOUT.
 	*/
 
-	private void enforceTrace(String field, def val)
+	protected void enforceTrace(String field, def val)
 	{
 		log.debug("Enabling trace")
 		String traceConfig ="""\
@@ -626,7 +515,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 	* Method enforces INFO level of logging by resetting logback config and redirects it to STDOUT.
 	*/
 
-	private void enforceInfo(String field, def val)
+	protected void enforceInfo(String field, def val)
 	{
 		log.debug("Redirecting info to STDOUT")
 		String infoConfig ="""\

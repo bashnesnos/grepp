@@ -9,6 +9,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.util.StatusPrinter;
+import java.lang.reflect.Modifier;
 
 /**
  * 
@@ -45,6 +46,31 @@ public class WgrepUtil {
 		}
 		else {
 			return null;
+		}
+	}
+
+	public static boolean hasField(Class<?> clazz, String field) {
+		if (!hasField(clazz, field, false)) {
+			return hasField(clazz.getSuperclass(), field, true);
+		}
+		else {
+			return true;
+		}
+	}
+
+	public static boolean hasField(Class<?> clazz, String field, boolean isSuper) {
+		try {
+			if (!isSuper) {
+				clazz.getDeclaredField(field);	
+				return true;
+			}
+			else {
+				int modifiers = clazz.getDeclaredField(field).getModifiers();
+				return Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers);
+			}
+		}
+		catch (NoSuchFieldException e) {
+			return false;
 		}
 	}
 

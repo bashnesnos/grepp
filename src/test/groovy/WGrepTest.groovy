@@ -1,5 +1,6 @@
 import org.smlt.tools.wgrep.*
 import org.smlt.tools.wgrep.config.WgrepConfig
+import org.smlt.tools.wgrep.config.PatternAutomationConfig
 import org.smlt.tools.wgrep.util.WgrepUtil
 
 import groovy.util.GroovyTestCase
@@ -13,13 +14,8 @@ class WGrepTest extends GroovyTestCase {
 	def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
 	def defalutOut = System.out
 
-	static {
-		println WgrepUtil.getResourcePathOrNull("config.xml")
-	}
-
 	void setUp() {
-		config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
-		//facade = new WgrepFacade(config)
+		config = new PatternAutomationConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 	}
 
 	public static String getOutput(Closure operation) {

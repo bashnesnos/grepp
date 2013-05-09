@@ -8,5 +8,4 @@ Once pulled you can run "$wgrep_home/gradle makeEmbeddedJar" to build embedded j
 After that you'll be able to execute "gradle releaseDev" or "gradle release" which will allow to distribute jar and other resources into those folders.
 
 TODO:
-Refactor WgrepConfig-PatternAutomationHelper coupling. Actually PatternAutomationHelper should be turned into a WgrepConfig instance Decorator/descendant.
 Research if logging systems configuration(logback/commons/log4j) files could be parsed into regex patterns and to config's automatically 

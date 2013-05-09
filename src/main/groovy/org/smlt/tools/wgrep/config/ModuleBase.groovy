@@ -31,6 +31,7 @@ class ModuleBase {
 	 * @param config_ WgrepConfig instance
 	 */
 	ModuleBase(WgrepConfig config_) {
+		log.trace("Recieved config: $config_")
 		configInstance = config_
 		if (!isConfigValid())
 		{
