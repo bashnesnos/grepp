@@ -47,8 +47,7 @@ class FileDateFilter extends FilterBase<List<File>>
     * @throws IllegalArgumentException if supplied argument is not instanceof List<Files>
     */
     @Override
-    boolean check(def files) {
-        if (! files instanceof List<File> ) throw new IllegalArgumentException("FileDateFilter accepts file list only")
+    boolean check(List<File> files) {
         fileList = [] //invalidating fileList
         if (log.isTraceEnabled()) log.trace("total files:" + files.size())
         fileList = files.findAll { file -> checkFileTime(file) }
@@ -62,7 +61,7 @@ class FileDateFilter extends FilterBase<List<File>>
 	 * @return <code>super.passNext</code> result
 	 */
 	@Override
-    void beforePassing(def files) {
+    void beforePassing(List<File> files) {
         passingVal = fileList
     }
 

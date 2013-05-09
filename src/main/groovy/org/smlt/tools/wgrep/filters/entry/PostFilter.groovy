@@ -61,21 +61,17 @@ class PostFilter extends FilterBase<String> {
     * @return true if it has accumulated result to pass
     */
     @Override
-    boolean check(def blockData)
+    public boolean check(String blockData)
     {
-        if (blockData instanceof String) {
-            result = null //invalidating result first
-            Matcher postPPatternMatcher = postFilterPattern.matcher(blockData)
-            if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
-            {
-                result = new StringBuilder("")
-				int ptrnIndex = 1
-                POST_PROCESS_DICT.each { ptrn, handler -> aggregatePostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, handler, ptrnIndex++)} //TODO: new handlers model is needed
-            }
-
-            return result != null && result.size() > 0
-        }
-        else throw new IllegalArgumentException("PostFilter accepts String only")
+         result = null //invalidating result first
+         Matcher postPPatternMatcher = postFilterPattern.matcher(blockData)
+         if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
+         {
+             result = new StringBuilder("")
+    	int ptrnIndex = 1
+             POST_PROCESS_DICT.each { ptrn, handler -> aggregatePostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, handler, ptrnIndex++)} //TODO: new handlers model is needed
+         }
+         return result != null && result.size() > 0
     }
 
     /**
@@ -85,7 +81,7 @@ class PostFilter extends FilterBase<String> {
     */
 
     @Override
-    void beforePassing(def blockData)
+    public void beforePassing(String blockData)
     {
         if (!HEADER_PRINTED) 
         {   

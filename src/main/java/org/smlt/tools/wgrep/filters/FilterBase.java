@@ -75,7 +75,7 @@ public abstract class FilterBase<E> {
 	 * @throws ParseException
 	 */
 
-	public boolean check(Object blockData) throws FilteringIsInterruptedException {
+	public boolean check(E blockData) throws FilteringIsInterruptedException {
 		return true;
 	}
 
@@ -88,7 +88,7 @@ public abstract class FilterBase<E> {
 	 *            which is ok to be passed further
 	 */
 
-	public void beforePassing(Object blockData) {
+	public void beforePassing(E blockData) {
 
 	}
 

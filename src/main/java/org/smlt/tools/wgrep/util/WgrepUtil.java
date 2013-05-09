@@ -1,8 +1,14 @@
 package org.smlt.tools.wgrep.util;
 
+import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.net.URL;
 import org.w3c.dom.Element;
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
+import ch.qos.logback.core.util.StatusPrinter;
 
 /**
  * 
@@ -40,6 +46,22 @@ public class WgrepUtil {
 		else {
 			return null;
 		}
+	}
+
+	public static void resetLogging(String logbackConfig) {
+		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+
+		try {
+			JoranConfigurator configurator = new JoranConfigurator();
+			configurator.setContext(context);
+			// Call context.reset() to clear any previous configuration, e.g. default
+			// configuration. For multi-step configuration, omit calling context.reset().
+			context.reset();
+			configurator.doConfigure(new ByteArrayInputStream(logbackConfig.getBytes()));
+		} catch (JoranException je) {
+			// StatusPrinter will handle this
+		}
+		StatusPrinter.printInCaseOfErrorsOrWarnings(context);
 	}
 
 }

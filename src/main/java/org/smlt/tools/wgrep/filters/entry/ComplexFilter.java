@@ -65,23 +65,18 @@ public class ComplexFilter extends FilterBase<String> {
 	 */
 
 	@Override
-	public boolean check(Object blockData) {
-		if (blockData instanceof String)
+	public boolean check(String blockData) {
+		String filterPtrn = PATTERN.toString();
+		if(log.isTraceEnabled()) {
+			log.trace("Current pattern: " + filterPtrn);
+		}
+	
+		if (currentPattern == null || currentPattern.toString() != filterPtrn) 
 		{
-			String filterPtrn = PATTERN.toString();
-			if(log.isTraceEnabled()) {
-				log.trace("Current pattern: " + filterPtrn);
-			}
-			
-			if (currentPattern == null || currentPattern.toString() != filterPtrn) 
-			{
-				currentPattern = Pattern.compile(filterPtrn);
-			}
-
-			Matcher blockMtchr = currentPattern.matcher((String) blockData);
-			return blockMtchr.find();
-		} 
-		else throw new IllegalArgumentException("blockData should be String");
+			currentPattern = Pattern.compile(filterPtrn);
+		}
+		Matcher blockMtchr = currentPattern.matcher(blockData);
+		return blockMtchr.find();
 	}
 
 	/**
@@ -89,10 +84,10 @@ public class ComplexFilter extends FilterBase<String> {
 	 */
 	
 	@Override
-	public void beforePassing(Object blockData) {
+	public void beforePassing(String blockData) {
 		if (isThreadPreserveEnabled())
 		{
-			extractThreadPatterns((String) blockData);
+			extractThreadPatterns(blockData);
 		}
 	}
 

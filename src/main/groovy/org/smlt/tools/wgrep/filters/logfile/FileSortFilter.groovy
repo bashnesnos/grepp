@@ -22,7 +22,7 @@ class FileSortFilter extends FilterBase<List<File>> {
 	* Passes sorted collection to next filter.
 	*/
 	@Override
-	boolean check(def files) {
+	boolean check(List<File> files) {
 		if (! files instanceof List<File> ) throw new IllegalArgumentException("FileSortFilter accepts file list only")
 		fileList = [] //invalidating fileList
 		fileList = sortFiles(files)
@@ -30,7 +30,7 @@ class FileSortFilter extends FilterBase<List<File>> {
 	}
 
 	@Override
-	void beforePassing(def files) {
+	void beforePassing(List<File> files) {
 		passingVal = fileList
 	}
 

@@ -50,32 +50,28 @@ class LogEntryFilter extends FilterBase<String> {
 	 */
 
 	@Override
-    public boolean check(Object blockData)
+    public boolean check(String blockData)
     {
-    	if (blockData instanceof String)
-    	{
-    		if ( logEntryPtrn.matcher((String) blockData).find() ) //finding match of current blockData
-    		{
-    			if (!isBlockMatched)
-    			{
-    				isBlockMatched = true;
-    				if (log.isTraceEnabled()) log.trace("appending");
-    				appendCurBlock((String) blockData);
-    			}
-    			else if (isBlockMatched)
-    			{
-    				if (log.isTraceEnabled()) log.trace("returning block");
-    				return true;
-    			}
-    		}
-    		else if (isBlockMatched)
-    		{
-    			if (log.isTraceEnabled()) log.trace("appending");
-    			appendCurBlock((String) blockData);
-    		}
-    		return false;
-    	}
-    	else throw new IllegalArgumentException("LogEntryFilter works with String only");
+  		if ( logEntryPtrn.matcher(blockData).find() ) //finding match of current blockData
+  		{
+  			if (!isBlockMatched)
+  			{
+  				isBlockMatched = true;
+  				if (log.isTraceEnabled()) log.trace("appending");
+  				appendCurBlock(blockData);
+  			}
+  			else if (isBlockMatched)
+  			{
+  				if (log.isTraceEnabled()) log.trace("returning block");
+  				return true;
+  			}
+  		}
+  		else if (isBlockMatched)
+  		{
+  			if (log.isTraceEnabled()) log.trace("appending");
+  			appendCurBlock(blockData);
+  		}
+  		return false;
     }
 
 	/**
@@ -143,10 +139,10 @@ class LogEntryFilter extends FilterBase<String> {
 	 */
 
 	@Override
-    public void beforePassing(Object blockData)
+    public void beforePassing(String blockData)
     {
         passingVal = curBlock.toString();
-        startNewBlock((String) blockData);
+        startNewBlock(blockData);
     }
 
 	/**

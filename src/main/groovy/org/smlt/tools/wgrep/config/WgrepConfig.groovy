@@ -1,10 +1,5 @@
 package org.smlt.tools.wgrep.config
 
-import org.slf4j.LoggerFactory
-import ch.qos.logback.classic.LoggerContext
-import ch.qos.logback.classic.joran.JoranConfigurator
-import ch.qos.logback.core.joran.spi.JoranException
-import ch.qos.logback.core.util.StatusPrinter
 import groovy.util.logging.Slf4j
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
@@ -41,9 +36,9 @@ class WgrepConfig {
 	private List<File> FILES = []
 
 	//OPTIONS
+	private PatternAutomationHelper paHelper = null
 	private FilterParser filterParser =  null
 	private FileNameParser fileNameParser =  null
-	private PatternAutomationHelper paHelper = null
 	private List<ParserBase> varParsers = [] //organized as LIFO
 	private Map params = [:] //all params as a Map
 
@@ -607,7 +602,6 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 	private void enforceTrace(String field, def val)
 	{
 		log.debug("Enabling trace")
-		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
 		String traceConfig ="""\
 <configuration>
 
@@ -624,17 +618,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
   </root>
 </configuration>
 """
-		try {
-			JoranConfigurator configurator = new JoranConfigurator();
-			configurator.setContext(context);
-			// Call context.reset() to clear any previous configuration, e.g. default
-			// configuration. For multi-step configuration, omit calling context.reset().
-			context.reset();
-			configurator.doConfigure(new ByteArrayInputStream(traceConfig.getBytes()));
-		} catch (JoranException je) {
-			// StatusPrinter will handle this
-		}
-		StatusPrinter.printInCaseOfErrorsOrWarnings(context);
+		WgrepUtil.resetLogging(traceConfig)
 	}
 
 	/**
@@ -645,8 +629,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
 	private void enforceInfo(String field, def val)
 	{
 		log.debug("Redirecting info to STDOUT")
-		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-		String traceConfig ="""\
+		String infoConfig ="""\
 <configuration>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -662,17 +645,7 @@ wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3
   </root>
 </configuration>
 """
-		try {
-			JoranConfigurator configurator = new JoranConfigurator();
-			configurator.setContext(context);
-			// Call context.reset() to clear any previous configuration, e.g. default
-			// configuration. For multi-step configuration, omit calling context.reset().
-			context.reset();
-			configurator.doConfigure(new ByteArrayInputStream(traceConfig.getBytes()));
-		} catch (JoranException je) {
-			// StatusPrinter will handle this
-		}
-		StatusPrinter.printInCaseOfErrorsOrWarnings(context);
+		WgrepUtil.resetLogging(infoConfig)
 	}
 
 
