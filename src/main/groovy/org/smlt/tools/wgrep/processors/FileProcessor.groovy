@@ -43,7 +43,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
 		filterChain = filterFactory.createFilterChain()
         filesFilterChain = filterFactory.createFileFilterChain()
 		List<File> files_ = getParam('FILES')
-        log.trace("Total files to analyze: " + files_.size())
+        log.trace("Total files to analyze: {}", files_.size())
         fileList = filesFilterChain.filter(files_)
         isMerging = getParam('FILE_MERGING') != null
 
@@ -71,7 +71,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
 	 */
     private File initFile(File file_)
     {
-        log.info("Initializating " + file_.name)
+        log.info("Initializating {}", file_.name)
         try {
             if (refreshConfigByFile(file_.name))
             {            
@@ -98,10 +98,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
         FilterBase chain = filterChain //reassigning to get rid of GetEffectivePogo in the loop
         try {
             data.eachLine { String line ->
-                if (log.isTraceEnabled())
-                {
-                    log.trace("curLine: $curLine")
-                }
+                log.trace("curLine: {}", curLine)
                 curLine += 1
                 output.printToOutput(chain.filter(line))
             }
@@ -112,7 +109,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
         }
 		
 		if (!isMerging) output.printToOutput(chain.processEvent(Event.FILE_ENDED))
-        log.info("File ended. Lines processed: " + curLine)
+        log.info("File ended. Lines processed: {}", curLine)
     }
 
 	/**

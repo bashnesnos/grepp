@@ -20,22 +20,18 @@ def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd
 
 def HOME = BASE_HOME + "\\build\\resources\\test"
 
-def config = new PatternAutomationConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
+//def config = new PatternAutomationConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 
-config.enforceTrace(null, null)
+//config.enforceTrace(null, null)
 
 //println WGREP_CONFIG
 //println WGREP_CONFIG_XSD
 
-		config.processInVars([
-			"-L",
-			"test",
-			"test",
-			"--dtime",
-			"2013-01-25T12:00:00",
-			"+",
-			HOME+"\\test*"
-		])
+			WGrep.main((String[]) [ "-t",
+				"Foo",
+				HOME+"\\processing_test.log",
+				HOME+"\\fpTest_test.log"
+			])
 
 //println actualResult.toString()
 //println expectedResult == actualResult.toString()

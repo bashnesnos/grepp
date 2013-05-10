@@ -76,10 +76,8 @@ class EntryDateFilter extends FilterBase<String> {
 				String timeString = null;
 
 				if (log.isTraceEnabled())
-					log.trace("Checking log entry " + blockData
-							+ " for log date pattern |" + logDatePtrn.toString()
-							+ "| and formatting to |"
-							+ DATE_FORMAT.toPattern() + "|");
+					log.trace("Checking log entry {} for log date pattern |{}| and formatting to |{}|"
+						, blockData, logDatePtrn, DATE_FORMAT.toPattern());
 
 				Matcher entryDateMatcher = logDatePtrn.matcher(blockData);
 				if (entryDateMatcher.find()) {
@@ -101,8 +99,7 @@ class EntryDateFilter extends FilterBase<String> {
 			} 
 			else {
 				if (log.isTraceEnabled())
-					log.trace("Date check was skipped, dateFromPassed="
-							+ isDateFromPassed + ", TO_DATE=" + TO_DATE);
+					log.trace("Date check was skipped, dateFromPassed={}, TO_DATE={}", isDateFromPassed, TO_DATE);
 				return isDateFromPassed;
 			}
 
@@ -131,8 +128,7 @@ class EntryDateFilter extends FilterBase<String> {
 			}
 		}
 		if (log.isTraceEnabled())
-			log.trace("Date check was totally skipped, filterPtrn="
-					+ logDatePtrn);
+			log.trace("Date check was totally skipped, filterPtrn={}", logDatePtrn);
 		return true;
 	}
 

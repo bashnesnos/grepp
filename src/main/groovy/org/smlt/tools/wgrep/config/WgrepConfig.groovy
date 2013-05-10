@@ -177,14 +177,14 @@ class WgrepConfig {
 		
 		def emptyMandatory = mandatory.findAll{ paramName -> checkParamIsEmpty(paramName)}
 			.each{ paramName ->
-					log.error("Mandatory param " + paramName + " is empty")
+					log.error("Mandatory param {} is empty", paramName)
 			}
 		
 		if (emptyMandatory.size() > 0) return false
 
 		optional.findAll{ paramName -> checkParamIsEmpty(paramName)}
 			.each{ paramName ->
-				log.warn("Optional param " + paramName + " is empty")
+				log.warn("Optional param {} is empty", paramName)
 			}
 
 		return checkResult
@@ -252,7 +252,7 @@ class WgrepConfig {
 		for (arg in args)
 		{
 
-			log.debug("next arg: ${arg}");
+			log.debug("next arg: {}", arg);
 
 			switch (processOptions(arg))
 			{

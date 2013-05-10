@@ -49,7 +49,7 @@ class FileDateFilter extends FilterBase<List<File>>
     @Override
     boolean check(List<File> files) {
         fileList = [] //invalidating fileList
-        if (log.isTraceEnabled()) log.trace("total files:" + files.size())
+        log.trace("total files: {}", files.size())
         fileList = files.findAll { file -> checkFileTime(file) }
         return fileList != null && fileList.size() > 0
     }
@@ -75,34 +75,35 @@ class FileDateFilter extends FilterBase<List<File>>
     {
         if (file == null) return
         Date fileTime = new Date(file.lastModified())
-        if (log.isTraceEnabled()) log.trace("fileTime:" + FILE_DATE_FORMAT.format(fileTime))
-        if (log.isTraceEnabled()) log.trace("Checking if file suits FROM " + FROM_DATE == null ? null : FILE_DATE_FORMAT.format(FROM_DATE))
+        if (log.isTraceEnabled()) {
+            log.trace("fileTime: {}\nChecking if file suits FROM {}", FILE_DATE_FORMAT.format(fileTime), FROM_DATE == null ? null : FILE_DATE_FORMAT.format(FROM_DATE))
+        }
         if (FROM_DATE == null || FROM_DATE.compareTo(fileTime) <= 0)
         {
             if (TO_DATE != null)
             {
-                if (log.isTraceEnabled()) log.trace(" Checking if file suits TO " +  FILE_DATE_FORMAT.format(TO_DATE))
+                if (log.isTraceEnabled()) log.trace(" Checking if file suits TO {}", FILE_DATE_FORMAT.format(TO_DATE))
                 if (TO_DATE.compareTo(fileTime) >= 0)
                 {
                     return true
                 }
                 if (TO_DATE.compareTo(fileTime) < 0)
                 {
-                    if (log.isTraceEnabled()) log.trace("Passed TO_DATE")
+                    log.trace("Passed TO_DATE")
                     if (fileTime.before(new Date(TO_DATE.getTime() + LOG_FILE_THRESHOLD*LOG_FILE_THRESHOLD_MLTPLR))) return file
                     else
                     {
-                        if (log.isTraceEnabled()) log.trace("File is too far")
+                        log.trace("File is too far")
                         return false
                     }
                 }
             }
-            if (log.isTraceEnabled()) log.trace("Passed FROM_DATE only")
+            log.trace("Passed FROM_DATE only")
             return true
         }
         else
         {
-            if (log.isTraceEnabled()) log.trace("Not passed")
+            log.trace("Not passed")
             return false
         }
     }

@@ -48,10 +48,7 @@ public class ComplexFilter extends FilterBase<String> {
 			THRD_END_PTTRNS = (List<String>) WgrepUtil.getNotNull(preserveParams, "THRD_END_PTTRNS", new ArrayList<String>()); //if empty, than it is probably an wrong configuration, since first thread will consume all output
 			if (THRD_END_PTTRNS.isEmpty()) log.warn("No thread end patterns were specified! Output could be unrepresentative");
 			if (log.isTraceEnabled()) {
-				log.trace(THRD_START_EXTRCTRS.toString());
-				log.trace(THRD_START_PTTRNS.toString());
-				log.trace(THRD_SKIP_END_PTTRNS.toString());
-				log.trace(THRD_END_PTTRNS.toString());
+				log.trace("{}\n{}\n{}\n{}", THRD_START_EXTRCTRS, THRD_START_PTTRNS, THRD_SKIP_END_PTTRNS, THRD_END_PTTRNS);
 			}
 		}
 		processExtendedPattern(filterPattern);
@@ -68,7 +65,7 @@ public class ComplexFilter extends FilterBase<String> {
 	public boolean check(String blockData) {
 		String filterPtrn = PATTERN.toString();
 		if(log.isTraceEnabled()) {
-			log.trace("Current pattern: " + filterPtrn);
+			log.trace("Current pattern: {}", filterPtrn);
 		}
 	
 		if (currentPattern == null || currentPattern.toString() != filterPtrn) 
@@ -142,7 +139,7 @@ public class ComplexFilter extends FilterBase<String> {
 			{
 				String start = extractorMatcher.group();
 				if (log.isTraceEnabled())
-					log.trace("extracted; " + start);
+					log.trace("extracted; {}", start);
 				extractedStarts.put(start, Qualifier.or.toString()); //adding extractor as or, since any could be a thread start
 			}
 		}
@@ -164,7 +161,7 @@ public class ComplexFilter extends FilterBase<String> {
 			Iterator<String> endIter = THRD_END_PTTRNS.iterator();
 			while (!decision && endIter.hasNext()) {
 				String thrend = endIter.next();
-				log.trace("thrend ptrn: " + thrend);
+				log.trace("thrend ptrn: {}", thrend);
 				decision = Pattern.compile(thrend).matcher(data).find();
 			}
 			return decision;
@@ -185,7 +182,7 @@ public class ComplexFilter extends FilterBase<String> {
 		Iterator<String> skipEndIter = THRD_SKIP_END_PTTRNS.iterator();
 		while (!decision && skipEndIter.hasNext()) {
 			String thrend = skipEndIter.next();
-			log.trace("thrend ptrn: " + thrend);
+			log.trace("thrend ptrn: {}", thrend);
 			decision = Pattern.compile(thrend).matcher(data).find();
 		}
 		return decision;
@@ -199,7 +196,7 @@ public class ComplexFilter extends FilterBase<String> {
 	 */
 	private void addThreadStart(String start, String qlfr)
 	{
-		log.trace("adding thread start: " + start);
+		log.trace("adding thread start: {}", start);
 		if (!THRD_START_PTTRNS.contains(start))
 		{
 			THRD_START_PTTRNS.add(start);
@@ -216,7 +213,7 @@ public class ComplexFilter extends FilterBase<String> {
 	 */
 	private void removeThreadStart(String start, String qlfr)
 	{
-		log.trace("removing thread start: " + start);
+		log.trace("removing thread start: {}", start);
 		THRD_START_PTTRNS.remove(start);
 		removeExtendedFilterPattern(start);
 	}
@@ -230,7 +227,7 @@ public class ComplexFilter extends FilterBase<String> {
 
 	private void addExtendedFilterPattern(String val, String qualifier)
 	{
-		if (log.isTraceEnabled()) log.trace("adding complex pattern: val=" + val + " qual=" + qualifier);
+		if (log.isTraceEnabled()) log.trace("adding complex pattern: val={} qual={}", val, qualifier);
 
 		if (qualifier != null) PATTERN = PATTERN.append(Qualifier.valueOf(qualifier).getPattern());
 		PATTERN = PATTERN.append(val);
@@ -254,7 +251,7 @@ public class ComplexFilter extends FilterBase<String> {
 		Qualifier qlfr = EXTNDD_PTTRN_DICT.get(val);
 		String ptrn = (qlfr != null ? qlfr.getPattern() : "") + val;
 		int ptrnIndex = PATTERN.indexOf(ptrn);
-		if (log.isTraceEnabled()) log.trace("to delete:/" + ptrn +"/ index:" + ptrnIndex);
+		if (log.isTraceEnabled()) log.trace("to delete:/{}/ index:{}", ptrn, ptrnIndex);
 		if (ptrnIndex != -1)
 		{
 			PATTERN = PATTERN.delete(ptrnIndex, ptrnIndex + ptrn.length());
@@ -275,7 +272,7 @@ public class ComplexFilter extends FilterBase<String> {
 			qRegex += qRegex.length() > 0 ? "|%" + it + "%" : "%" + it + "%";
 		}
 
-		if (log.isTraceEnabled()) log.trace("Trying to match supplied pattern /" + val + "/ if it contains /" + qRegex + "/");
+		if (log.isTraceEnabled()) log.trace("Trying to match supplied pattern /{}/ if it contains /{}/", val, qRegex);
 		Matcher qualifierMatcher = Pattern.compile(qRegex).matcher(val); //matching any qualifiers with % signs
 		if (qualifierMatcher.find())
 		{
@@ -287,7 +284,7 @@ public class ComplexFilter extends FilterBase<String> {
 				qRegex = qRegex.replaceAll("%", ""); //matching only qualifier names
 				for (String grp : tokens)
 				{
-					if (log.isTraceEnabled()) log.trace("Next group in match: " + grp);
+					if (log.isTraceEnabled()) log.trace("Next group in match: {}", grp);
 					qualifierMatcher = Pattern.compile(qRegex).matcher(grp);
 					if (qualifierMatcher.matches())
 					{

@@ -29,7 +29,7 @@ class FileNameParser extends ParserBase {
 	 */
 	@Override
 	void parseVar(def arg) {
-		log.trace("Parsing var: " + arg)
+		log.trace("Parsing var: {}", arg)
 		analyzeFileName(arg)
 		//not unsubsrcibing since there could be more than one file
 	}

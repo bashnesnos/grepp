@@ -61,7 +61,7 @@ class PatternAutomationConfig extends WgrepConfig
             else 
             {
                  if (isAutomationEnabled() && applySequenceByTag(opt)) { //trying to apply sequence first
-                    log.info("Applied sequence for: $opt")
+                    log.info("Applied sequence for: {}", opt)
                     if (!checkParamIsEmpty('FILTER_PATTERN')) {
                         filterParser.unsubscribe()
                     }
@@ -169,7 +169,7 @@ class PatternAutomationConfig extends WgrepConfig
 
     private void enableSequence(String level_tag) {
         lv_tag = level_tag
-		log.trace("Enabling level /$lv_tag/ sequence")
+		log.trace("Enabling level /{}/ sequence", lv_tag)
         use(DOMCategory)
         {
             def levels = root.automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
@@ -188,13 +188,13 @@ class PatternAutomationConfig extends WgrepConfig
     }
 
     void applyAutomationSequence(String tag) {
-		log.trace("Current sequence: " + ATMTN_SEQ)
+		log.trace("Current sequence: {}", ATMTN_SEQ)
 		ATMTN_SEQ.each { handler ->
             applyMethod(tag, handler)
         }
-        log.trace("Fired methods: " + FIRE_ONCE_METHODS)
+        log.trace("Fired methods: {}", FIRE_ONCE_METHODS)
         ATMTN_SEQ.removeAll(FIRE_ONCE_METHODS)
-        log.trace("Config ${isAmmended ? "was": "wasn't"} ammended")
+        log.trace("Config {} ammended", isAmmended ? "was": "wasn't")
     }
 
 
@@ -244,7 +244,7 @@ class PatternAutomationConfig extends WgrepConfig
 	
     void applyMethod(String tag, String method)
     {
-        log.trace('Applying method=' + method + ' for tag=' + tag)
+        log.trace("Applying method={} for tag={}", method, tag)
 		if (method == null)
 		{
 			throw new IllegalArgumentException("Method shouldn't be null")
@@ -270,7 +270,7 @@ class PatternAutomationConfig extends WgrepConfig
             def customCfg = root.custom.config.find { it.'@id' ==~ tag }
             if (customCfg != null)
             {
-                log.trace('Parsing entry config for ' + tag)
+                log.trace("Parsing entry config for {}", tag)
                 
                 String starter = getCDATA(customCfg.starter[0])
                 String date = getCDATA(customCfg.date[0])
@@ -280,7 +280,7 @@ class PatternAutomationConfig extends WgrepConfig
                 }
                 else
                 {
-                    log.warn("Either <starter> or <date> should be filled for config: " + tag)
+                    log.warn("Either <starter> or <date> should be filled for config: {}", tag)
                 }
                 setParam('LOG_DATE_PATTERN', customCfg.date.text())
                 setParam('LOG_DATE_FORMAT', customCfg.date_format.text())
@@ -314,7 +314,7 @@ class PatternAutomationConfig extends WgrepConfig
     {
         use(DOMCategory)
         {
-            log.trace('Parsing filter config for ' + tag)
+            log.trace("Parsing filter config for {}", tag)
             def customFilter = root.custom.filters.filter.find { it.'@tags' =~ tag}
             if (customFilter != null)
             {
@@ -372,9 +372,9 @@ class PatternAutomationConfig extends WgrepConfig
         def POST_PROCESS_HEADER = null
         def PATTERN = new StringBuilder()
         use(DOMCategory) {
-            if (log.isTraceEnabled()) log.trace("Looking for splitters of type=" + pp_tag)
+            log.trace("Looking for splitters of type={}", pp_tag)
             def pttrns = root.custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
-            if (log.isTraceEnabled()) log.trace("Patterns found=" + pttrns)
+            log.trace("Patterns found={}", pttrns)
             if (pttrns != null) {
                 pttrns.sort { it.'@order' }
                 pttrns.each { ptrn_node ->
@@ -387,7 +387,7 @@ class PatternAutomationConfig extends WgrepConfig
                         if (sep_tag == '') {
                             sep_tag = root.pp_config.'@default_sep'[0]
                         }
-                        if (log.isTraceEnabled()) log.trace("Looking for separator=" + sep_tag)
+                        log.trace("Looking for separator={}", sep_tag)
 
                         def sep = root.pp_config.pp_separators.separator.find { it.'@id' ==~ sep_tag}
                         if (sep != null) {
@@ -486,7 +486,7 @@ class PatternAutomationConfig extends WgrepConfig
             def configs = root.custom.config.findAll { it.pattern[0] }
             def config = configs.find { config ->
                 currentConfigPtrn = getCDATA(config.pattern[0])
-                log.trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")
+                log.trace("ptrn=/{}/ data='{}'", currentConfigPtrn, data)
                 data =~ currentConfigPtrn
             }
             if (config != null) id = config.'@id'

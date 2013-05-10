@@ -23,7 +23,6 @@ class FileSortFilter extends FilterBase<List<File>> {
 	*/
 	@Override
 	boolean check(List<File> files) {
-		if (! files instanceof List<File> ) throw new IllegalArgumentException("FileSortFilter accepts file list only")
 		fileList = [] //invalidating fileList
 		fileList = sortFiles(files)
 		return fileList != null && fileList.size() > 0
@@ -43,7 +42,7 @@ class FileSortFilter extends FilterBase<List<File>> {
 		if (files.size() < 2) return files
 		def fileList = files.clone()
 		fileList.sort { it.lastModified() }
-		if (log.isTraceEnabled()) log.trace("FileList has been sorted. ")
+		log.trace("FileList has been sorted.")
 		return fileList
 	}
 }

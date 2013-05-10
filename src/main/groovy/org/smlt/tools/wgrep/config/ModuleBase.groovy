@@ -31,7 +31,7 @@ class ModuleBase {
 	 * @param config_ WgrepConfig instance
 	 */
 	ModuleBase(WgrepConfig config_) {
-		log.trace("Recieved config: $config_")
+		log.trace("Recieved config: {}",config_)
 		configInstance = config_
 		if (!isConfigValid())
 		{
@@ -75,7 +75,7 @@ class ModuleBase {
 
 	def getParam(String field)
 	{
-		log.trace("Accessing param: " + field)
+		log.trace("Accessing param: {}", field)
 		return configInstance.getParam(field)
 	}
 
@@ -95,7 +95,7 @@ class ModuleBase {
 
 	void setParam(String field, def val)
 	{
-		log.trace("Setting param: " + field + " val: " + val)
+		log.trace("Setting param: {} val: {}", field, val)
 		configInstance.setParam(field, val)
 	}
 

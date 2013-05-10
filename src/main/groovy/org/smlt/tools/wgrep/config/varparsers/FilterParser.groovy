@@ -26,7 +26,7 @@ class FilterParser extends ParserBase
 	@Override
     void parseVar(def arg)
     {
-        log.trace("Parsing var: " + arg)
+        log.trace("Parsing var: {}", arg)
         setFilterPattern(arg)
         unsubscribe()
     }

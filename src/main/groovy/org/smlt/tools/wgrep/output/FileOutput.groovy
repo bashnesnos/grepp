@@ -19,7 +19,7 @@ public class FileOutput implements WgrepOutput{
 		def outputDir = new File(outputDirPath) //configInstance.getParam('HOME_DIR') + configInstance.getParam('FOLDER_SEPARATOR') + configInstance.getParam('RESULTS_DIR')
 		if (!outputDir.exists()) outputDir.mkdir()
 		def out_file = new File(outputDir, fileName) //configInstance.getParam('FOLDER_SEPARATOR') + configInstance.getParam('FILTER_PATTERN').replaceAll("[^\\p{L}\\p{N}]", {""}) + getParam('SPOOLING_EXT'))
-		log.trace("Creating new file: " + out_file.getCanonicalPath())
+		log.trace("Creating new file: {}", out_file.getCanonicalPath())
 		out_file.createNewFile()
 		printer = new PrintWriter(new FileWriter(out_file), true) //autoflushing PrintWriter
 	}

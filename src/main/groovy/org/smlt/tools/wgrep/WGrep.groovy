@@ -23,7 +23,7 @@ class WGrep
 	public static void main(String[] args)
 	{
 		Date startTime = new Date()
-		log.info(args.toString())
+		log.info("{}", args)
 		if (args == null || args.size() < 1) return
 
 		ClassPathResource springConfig = new ClassPathResource("wgrep-context.xml");
@@ -45,7 +45,7 @@ class WGrep
 
 		def facade = beanFactory.getBean("wgrepFacade")
 		facade.doProcessing(argsToParse)
-		log.info("Processing time = " + ((new Date().getTime() - startTime.getTime())/1000)) + " sec"
+		log.info("Processing time = {} sec", ((new Date().getTime() - startTime.getTime())/1000))
 	}
 
 

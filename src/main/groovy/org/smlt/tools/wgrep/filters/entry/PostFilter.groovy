@@ -67,9 +67,9 @@ class PostFilter extends FilterBase<String> {
          Matcher postPPatternMatcher = postFilterPattern.matcher(blockData)
          if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
          {
-             result = new StringBuilder("")
-    	int ptrnIndex = 1
-             POST_PROCESS_DICT.each { ptrn, handler -> aggregatePostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, handler, ptrnIndex++)} //TODO: new handlers model is needed
+            result = new StringBuilder("")
+            int ptrnIndex = 1
+            POST_PROCESS_DICT.each { ptrn, handler -> aggregatePostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, handler, ptrnIndex++)} //TODO: new handlers model is needed
          }
          return result != null && result.size() > 0
     }
@@ -109,11 +109,7 @@ class PostFilter extends FilterBase<String> {
 
     StringBuilder aggregatePostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
     {
-        if (log.isTraceEnabled()) 
-		{
-			log.trace(new StringBuilder('smart post processing, agg=') + ' agg=' + agg + ' method=' + method + ' groupIdx=' + groupIdx)
-			log.trace("mtch found")
-		}
+		log.trace("Aggregating post processing, agg={} method={} groupIdx={} \nmtch found", agg, method, groupIdx)
         def mtchResult = this."$method"(mtchr, groupIdx)
         if (agg != null && mtchResult != null) //omitting printing since one of the results was null. Might be a grouping
         {
@@ -212,7 +208,7 @@ class PostFilter extends FilterBase<String> {
             newIntVal = Integer.valueOf(mtchResults.group(groupIdx))            
         }
         catch(NumberFormatException e) {
-            if (log.isTraceEnabled()) log.trace("attempting to count current group")
+            log.trace("attempting to count current group")
             newIntVal = processPostCounter(mtchResults, groupIdx)
         }
 
@@ -225,7 +221,7 @@ class PostFilter extends FilterBase<String> {
         {
             currentGroup["averageAgg"] = [newIntVal]
         }
-        if (log.isTraceEnabled()) log.trace ("added new val: " + newIntVal)
+        log.trace ("added new val: {}", newIntVal)
         return null
     }
 
@@ -238,7 +234,7 @@ class PostFilter extends FilterBase<String> {
 	 */
     def processPostAverage(Map group)
     {
-        if (log.isTraceEnabled()) log.trace ("average group: " + group)
+        log.trace ("average group: {}", group)
         List<Integer> averageAgg = group["averageAgg"]
         if (averageAgg == null || averageAgg.size() == 0) return 0
         Integer sum = 0
