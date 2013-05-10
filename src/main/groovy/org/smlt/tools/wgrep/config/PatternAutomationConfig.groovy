@@ -172,7 +172,7 @@ class PatternAutomationConfig extends WgrepConfig
 		log.trace("Enabling level /{}/ sequence", lv_tag)
         use(DOMCategory)
         {
-            def levels = root.automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
+            def levels = root.automation.level.findAll { checkInTags(it.'@tags', lv_tag)}.sort {it.'@order'}
             ATMTN_SEQ.addAll(levels.collect { it.'@handler' })
             FIRE_ONCE_METHODS.addAll(levels.findAll { it.'@fireonce' == "true" }.collect{ it.'@handler'})
         }
@@ -315,7 +315,7 @@ class PatternAutomationConfig extends WgrepConfig
         use(DOMCategory)
         {
             log.trace("Parsing filter config for {}", tag)
-            def customFilter = root.custom.filters.filter.find { it.'@tags' =~ tag}
+            def customFilter = root.custom.filters.filter.find { checkInTags(it.'@tags', tag)}
             if (customFilter != null)
             {
                 setParam('FILTER_PATTERN', getCDATA(customFilter))
@@ -331,7 +331,7 @@ class PatternAutomationConfig extends WgrepConfig
 	boolean checkIfFilterExsits(String tag) {
 		use(DOMCategory)
 		{
-			def customFilter = root.custom.filters.filter.find { it.'@tags' =~ tag}
+			def customFilter = root.custom.filters.filter.find { checkInTags(it.'@tags', tag)}
 			return customFilter != null
 		}
 	}
@@ -352,8 +352,8 @@ class PatternAutomationConfig extends WgrepConfig
     boolean checkIfPostProcessExsits(String tag) {
         use(DOMCategory)
         {
-            def postPatterns = root.custom.pp_splitters.splitter.findAll { it.'@tags' =~ tag}
-            return postPatterns != null && !postPatterns.isEmpty()
+            def postPatterns = root.custom.pp_splitters.splitter.find{ checkInTags(it.'@tags', tag) }
+            return postPatterns != null
         }
     }
     /**
@@ -373,7 +373,7 @@ class PatternAutomationConfig extends WgrepConfig
         def PATTERN = new StringBuilder()
         use(DOMCategory) {
             log.trace("Looking for splitters of type={}", pp_tag)
-            def pttrns = root.custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
+            def pttrns = root.custom.pp_splitters.splitter.findAll { checkInTags(it.'@tags', pp_tag) }
             log.trace("Patterns found={}", pttrns)
             if (pttrns != null) {
                 pttrns.sort { it.'@order' }
@@ -434,8 +434,8 @@ class PatternAutomationConfig extends WgrepConfig
 	boolean checkIfExecuteThreadExsits(String tag) {
 		use(DOMCategory)
 		{
-			def startExtractors = root.custom.thread_configs.extractors.pattern.findAll { it.'@tags' =~ tag}
-			return startExtractors != null && !startExtractors.isEmpty()
+			def startExtractors = root.custom.thread_configs.extractors.pattern.find{ checkInTags(it.'@tags', tag)}
+			return startExtractors != null
 		}
 	}
 
@@ -453,9 +453,9 @@ class PatternAutomationConfig extends WgrepConfig
         def cfParams = [:]
         use(DOMCategory) {
             if (pt_tag != null) {
-                cfParams['THRD_START_EXTRCTRS'] = root.custom.thread_configs.extractors.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
-                cfParams['THRD_SKIP_END_PTTRNS'] = root.custom.thread_configs.skipends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
-                cfParams['THRD_END_PTTRNS'] = root.custom.thread_configs.ends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
+                cfParams['THRD_START_EXTRCTRS'] = root.custom.thread_configs.extractors.pattern.findAll { checkInTags(it.'@tags', pt_tag) }.collect{it.text()}
+                cfParams['THRD_SKIP_END_PTTRNS'] = root.custom.thread_configs.skipends.pattern.findAll { checkInTags(it.'@tags', pt_tag) }.collect{it.text()}
+                cfParams['THRD_END_PTTRNS'] = root.custom.thread_configs.ends.pattern.findAll { checkInTags(it.'@tags', pt_tag) }.collect{it.text()}
                 isAmmended = true
             }
 			else {
@@ -494,6 +494,9 @@ class PatternAutomationConfig extends WgrepConfig
         return id
     }
 
-
+    private boolean checkInTags(String tagsToCheckIn, String tagToLookFor) {
+        log.trace("Looking in /{}/ for tag /{}/",tagsToCheckIn, tagToLookFor)
+        return tagsToCheckIn != null && tagsToCheckIn =~ /(?<!\w)$tagToLookFor/
+    }
 
 }

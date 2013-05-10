@@ -47,6 +47,7 @@ class PostFilter extends FilterBase<String> {
 		POST_PROCESS_HEADER = postFilterParams["POST_PROCESS_HEADER"]
 		POST_GROUPS_METHODS = postFilterParams["POST_GROUPS_METHODS"]
         postFilterPattern = Pattern.compile(postFilterParams["PATTERN"])
+        log.trace("postFilterPattern: {}", postFilterPattern)
     }
 
 

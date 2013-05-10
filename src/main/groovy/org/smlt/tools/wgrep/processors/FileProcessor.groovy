@@ -96,6 +96,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
         if (data == null) return
         def curLine = 0
         FilterBase chain = filterChain //reassigning to get rid of GetEffectivePogo in the loop
+        WgrepOutput output = output //shadowing to get rid of GetEffectivePogo in the loop
         try {
             data.eachLine { String line ->
                 log.trace("curLine: {}", curLine)
