@@ -101,7 +101,7 @@ class FileProcessor extends ModuleBase implements DataProcessor
             data.eachLine { String line ->
                 log.trace("curLine: {}", curLine)
                 curLine += 1
-                output.printToOutput(chain.filter(line))
+                output.printToOutput(chain.filter(line)) //why new Instace() of class org.codehaus.groovy.runtime.callsite.PogoMetaMethodSite here?
             }
         }
         catch(FilteringIsInterruptedException e) {

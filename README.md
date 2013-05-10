@@ -11,4 +11,5 @@ For deeper configuration fill in *_tmplt files and remove "_tmplt" suffix in $wg
 Each of those will be applied for packaging via "gradle installDev" or "gradle install" correspondingly.
 
 TODO:
-Research if logging systems configuration(logback/commons/log4j) files could be parsed into regex patterns and to config's automatically 
+Try to find out if it is possible to reduce groovy reflection PogoMetaMethodSite effect on performance
+It seems that automatic logging pattern conversion will require mapping of layouts to regexes, may be it is convinient to make a separate tool for that.
