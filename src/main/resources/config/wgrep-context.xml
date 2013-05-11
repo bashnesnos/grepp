@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<beans>
+
+	<bean id="configFactory" class="org.smlt.tools.wgrep.config.WgrepConfigFactory">
+		<property name="configFile" value="classpath:config.xml"/>
+  		<property name="configXSD" value="classpath:config.xsd"/>
+	</bean>
+
+	<bean id="configInstance" class="org.smlt.tools.wgrep.config.WgrepConfig" factory-bean="configFactory" factory-method="getInstance">
+	</bean> 
+
+	<bean id="filterFactory" class="org.smlt.tools.wgrep.filters.FilterChainFactory">
+		<property name="configInstance"><ref bean="configInstance"/></property>
+	</bean>
+
+
+	<bean id="outputFactory" class="org.smlt.tools.wgrep.output.OutputFactory">
+		<property name="configInstance"><ref bean="configInstance"/></property>
+		<property name="filterFactory"><ref bean="filterFactory"/></property>
+	</bean>
+
+  	<bean id="dataProcessorFactory" class="org.smlt.tools.wgrep.processors.DataProcessorFactory">
+  		<property name="configInstance"><ref bean="configInstance"/></property>
+  		<property name="outputFactory"><ref bean="outputFactory"/></property>
+  	</bean>
+
+	<bean id="wgrepFacade" class="org.smlt.tools.wgrep.WgrepFacade">
+		<property name="configInstance"><ref bean="configInstance"/></property>
+		<property name="dataProcessorFactory"><ref bean="dataProcessorFactory"/></property>
+	</bean>
+
+</beans>

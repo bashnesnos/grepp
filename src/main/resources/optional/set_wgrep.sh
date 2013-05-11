@@ -1,0 +1,1 @@
+alias wgrep='./bin/wgrep'

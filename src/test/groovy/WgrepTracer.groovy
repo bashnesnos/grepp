@@ -1,11 +1,10 @@
 import groovy.xml.dom.DOMCategory
 import org.smlt.tools.wgrep.*
-import org.smlt.tools.wgrep.config.WgrepConfig
+import org.smlt.tools.wgrep.config.PatternAutomationConfig
 import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.config.varparsers.*
 import org.smlt.tools.wgrep.util.WgrepUtil
-import WGrepTest
 
 
 import javax.xml.XMLConstants
@@ -14,25 +13,25 @@ import javax.xml.validation.SchemaFactory
 
 
 def BASE_HOME = System.getProperty("wgrep.home")
-//def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
-//def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config.xsd"
-def WGREP_CONFIG = WgrepUtil.getResourcePathOrNull("config.xml")
-def WGREP_CONFIG_XSD = WgrepUtil.getResourcePathOrNull("config.xsd")
+def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
+def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
+//def WGREP_CONFIG = WgrepUtil.getResourcePathOrNull("config.xml")
+//def WGREP_CONFIG_XSD = WgrepUtil.getResourcePathOrNull("config.xsd")
 
-//def WGREP_CONFIG = BASE_HOME + "\\dev\\config.xml"
 def HOME = BASE_HOME + "\\build\\resources\\test"
+
+//def config = new PatternAutomationConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
+
+//config.enforceTrace(null, null)
 
 //println WGREP_CONFIG
 //println WGREP_CONFIG_XSD
+			WGrep.main((String[]) ["-ft",
+				"--avg_timings",
+				HOME+"\\processing_report_test.log"])
 
-def config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
-def facade = new WgrepFacade(config)
-
-			WGrep.main([
-				"Foo",
-				HOME+"\\processing_tgest.log",
-				HOME+"\\fpTest_test.log"
-			].toArray(new String[2]))
-
+			//WGrep.main((String[]) ["-ft",
+			//	"--avg_timings",
+			//	HOME+"\\processing_report_test.log"])
 //println actualResult.toString()
 //println expectedResult == actualResult.toString()

@@ -22,15 +22,14 @@ class FileSortFilter extends FilterBase<List<File>> {
 	* Passes sorted collection to next filter.
 	*/
 	@Override
-	boolean check(def files) {
-		if (! files instanceof List<File> ) throw new IllegalArgumentException("FileSortFilter accepts file list only")
+	boolean check(List<File> files) {
 		fileList = [] //invalidating fileList
 		fileList = sortFiles(files)
 		return fileList != null && fileList.size() > 0
 	}
 
 	@Override
-	void beforePassing(def files) {
+	void beforePassing(List<File> files) {
 		passingVal = fileList
 	}
 
@@ -43,7 +42,7 @@ class FileSortFilter extends FilterBase<List<File>> {
 		if (files.size() < 2) return files
 		def fileList = files.clone()
 		fileList.sort { it.lastModified() }
-		if (log.isTraceEnabled()) log.trace("FileList has been sorted. ")
+		log.trace("FileList has been sorted.")
 		return fileList
 	}
 }

@@ -57,7 +57,7 @@ class DateTimeParser extends ParserBase
 	@Override
     void parseVar(def arg)
     {
-        log.trace("Additional var: " + arg)
+        log.trace("Parsing var: {}", arg)
         if (!isFromParsed) setDateFrom(arg)
         else if (!isToParsed) 
         {
@@ -72,14 +72,14 @@ class DateTimeParser extends ParserBase
     * Checking if dates are ok.
     */
     def checkDates() {
-        log.trace('checking if dates are valid')
+        log.trace("checking if dates are valid")
         Date from = getParam('FROM_DATE')
         Date to = getParam('TO_DATE')
         def swapDate = null
         if (from != null && to != null)
         {
             if (from.after(to)) { //swapping dates
-                log.trace('FROM is AFTER to, swapping them')
+                log.trace("FROM is AFTER to, swapping them")
                 setParam('FROM_DATE', to)
                 setParam('TO_DATE', from)
             }
@@ -104,7 +104,7 @@ class DateTimeParser extends ParserBase
     {
         def date = null
         INPUT_DATE_PTTRNS.find { ptrn -> 
-            log.trace("trying date pattern="+ ptrn); 
+            log.trace("trying date pattern={}", ptrn); 
             try {
                 date = (new SimpleDateFormat(setFileDateFormat(ptrn))).parse(dateStr) 
                 log.trace("Pattern found")
@@ -130,12 +130,12 @@ class DateTimeParser extends ParserBase
     def parseOffset(def paramName, def offsetStr)
     {
         def date = null
-        log.trace("Applying format#1 by default: " + defaultDateFormat.toPattern())
+        log.trace("Applying format#1 by default: {}", defaultDateFormat.toPattern())
         setFileDateFormat(defaultDateFormat.toPattern())
         def minutesMatcher = offsetStr =~ /.(\d*)/
         if (offsetStr.size() > 1 && minutesMatcher.find())
         {
-            log.trace("Total minutes: ${minutesMatcher.group(1)}")
+            log.trace("Total minutes: {}", minutesMatcher.group(1))
             def minutes = Integer.valueOf(minutesMatcher.group(1))*60*1000
             def curDate = getParam(paramName) != null ? getParam(paramName) : new Date()
             date = curDate
@@ -198,7 +198,7 @@ class DateTimeParser extends ParserBase
 	 */
     def setFileDateFormat(def format)
     {
-        log.trace("FILE_DATE_FORMAT set to " + format)
+        log.trace("FILE_DATE_FORMAT set to {}", format)
         setParam('FILE_DATE_FORMAT', format)
         return format
     }

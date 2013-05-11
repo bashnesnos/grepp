@@ -26,16 +26,14 @@ public abstract class FilterBase<E> {
 	 *            next filter to pass results to
 	 */
 
-	public FilterBase(FilterBase<E> nextFilter_,
-			@SuppressWarnings("rawtypes") Class subclazz) {
+	public FilterBase(FilterBase<E> nextFilter_, Class<?> subclazz) {
 		nextFilter = nextFilter_;
 		log = LoggerFactory.getLogger(subclazz);
-		if (log.isTraceEnabled()) {
-			if (nextFilter_ != null)
-			{
-				log.trace("Added on top of " + nextFilter.getClass().getCanonicalName());	
-			}
+		if (nextFilter_ != null)
+		{
+			log.trace("Added on top of {}", nextFilter.getClass().getCanonicalName());	
 		}
+
 	}
 
 	/**
@@ -75,7 +73,7 @@ public abstract class FilterBase<E> {
 	 * @throws ParseException
 	 */
 
-	public boolean check(Object blockData) throws FilteringIsInterruptedException {
+	public boolean check(E blockData) throws FilteringIsInterruptedException {
 		return true;
 	}
 
@@ -88,7 +86,7 @@ public abstract class FilterBase<E> {
 	 *            which is ok to be passed further
 	 */
 
-	public void beforePassing(Object blockData) {
+	public void beforePassing(E blockData) {
 
 	}
 
@@ -106,16 +104,13 @@ public abstract class FilterBase<E> {
 	 */
 
 	public E passNext(E blockData) throws FilteringIsInterruptedException {
-		if (log.isTraceEnabled())
-			log.trace("attempting to pass to next filter");
+		log.trace("attempting to pass to next filter");
 		if (nextFilter != null) {
-			if (log.isTraceEnabled())
-				log.trace("nextFilter " + nextFilter.getClass());
+			log.trace("nextFilter {}", nextFilter.getClass());
 			return nextFilter.filter(passingVal != null ? passingVal
 					: blockData);
 		} else {
-			if (log.isTraceEnabled())
-				log.trace("is last in chain");
+			log.trace("is last in chain");
 			return passingVal != null ? passingVal : blockData;
 		}
 	}
@@ -143,7 +138,7 @@ public abstract class FilterBase<E> {
 
 	public Object processEvent(Event event) {
 		if (log.isTraceEnabled())
-			log.trace("Passing and gathering printable state for event: " + event);
+			log.trace("Passing and gathering printable state for event: {}", event);
 		StringBuilder result = gatherPrintableState(event, new StringBuilder(""));
 		return result.length() > 0 ? result : null;
 	}

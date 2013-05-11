@@ -2,6 +2,8 @@ package org.smlt.tools.wgrep.config
 
 import groovy.util.logging.Slf4j;
 import org.w3c.dom.Element
+import org.springframework.beans.factory.annotation.Autowired
+
 /**
  * Base class for wgrep modules. Provides alias methods for used params, shortcut to WgrepConfig to ease initialization and parameter access. <br>
  * Also delegates some basic WgrepConfig methods like param getting and setting. 
@@ -12,6 +14,7 @@ import org.w3c.dom.Element
 @Slf4j
 class ModuleBase {
 
+	@Autowired
 	protected WgrepConfig configInstance
 	
 	/**
@@ -28,6 +31,7 @@ class ModuleBase {
 	 * @param config_ WgrepConfig instance
 	 */
 	ModuleBase(WgrepConfig config_) {
+		log.trace("Recieved config: {}",config_)
 		configInstance = config_
 		if (!isConfigValid())
 		{
@@ -36,6 +40,11 @@ class ModuleBase {
 	}
 
 	// Getters
+
+	WgrepConfig getConfigInstance()
+	{
+		return configInstance
+	}
 	
 	/**
 	 * Getter for parsed <code>documentElement</code> of the parsed config.xml
@@ -66,11 +75,17 @@ class ModuleBase {
 
 	def getParam(String field)
 	{
-		log.trace("Accessing param: " + field)
+		log.trace("Accessing param: {}", field)
 		return configInstance.getParam(field)
 	}
 
 	// Setters
+
+	void setConfigInstance(WgrepConfig config)
+	{
+		configInstance = config
+	}
+
 
 	/**
 	 * Sets value of any field which exists in <code>WgrepFacade</code> via reflection. Is used to propagate value directly from config.xml
@@ -80,7 +95,7 @@ class ModuleBase {
 
 	void setParam(String field, def val)
 	{
-		log.trace("Setting param: " + field + " val: " + val)
+		log.trace("Setting param: {} val: {}", field, val)
 		configInstance.setParam(field, val)
 	}
 
@@ -169,8 +184,8 @@ class ModuleBase {
 	}
 
 	/**
-	 * Method delegates check if param is filled to config instance
-	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 * Method delegates check if param is empty.
+	 * @return <code>true</code> if it is empty. <code>false</code> otherwise.
 	 */
 
 	boolean checkParamIsEmpty(String paramName) {

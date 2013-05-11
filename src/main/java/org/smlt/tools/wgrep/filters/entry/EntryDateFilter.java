@@ -67,49 +67,39 @@ class EntryDateFilter extends FilterBase<String> {
 	 */
 
 	@Override
-	public boolean check(Object blockData) throws TimeToIsOverduedException {
+	public boolean check(String blockData) throws TimeToIsOverduedException {
 		if (blockData != null && logDatePtrn != null && DATE_FORMAT != null) {
 
 			Date entryDate = null;
 
 			if (!isDateFromPassed || TO_DATE != null) {
 				String timeString = null;
-				if (blockData instanceof String) {
+
+				if (log.isTraceEnabled())
+					log.trace("Checking log entry {} for log date pattern |{}| and formatting to |{}|"
+						, blockData, logDatePtrn, DATE_FORMAT.toPattern());
+
+				Matcher entryDateMatcher = logDatePtrn.matcher(blockData);
+				if (entryDateMatcher.find()) {
+					timeString = entryDateMatcher.group(1);
+				} 
+				else {
 					if (log.isTraceEnabled())
-						log.trace("Checking log entry " + blockData
-								+ " for log date pattern |" + logDatePtrn.toString()
-								+ "| and formatting to |"
-								+ DATE_FORMAT.toPattern() + "|");
-					Matcher entryDateMatcher = logDatePtrn.matcher((String) blockData);
-					if (entryDateMatcher.find()) {
-						timeString = entryDateMatcher.group(1);
-					} else {
-						if (log.isTraceEnabled())
-							log.trace("No signs of time in here");
-						return false;
-					}
-				} else if (blockData instanceof Matcher) {
-					if (log.isTraceEnabled())
-						log.trace("Checking matcher "
-								+ ((Matcher) blockData).group()
-								+ " and formatting to |"
-								+ DATE_FORMAT.toPattern() + "|");
-					timeString = ((Matcher) blockData).group(1);
-				} else {
-					throw new IllegalArgumentException(
-							"blockData should be either Matcher or String");
+						log.trace("No signs of time in here");
+					return false;
 				}
-				
+
 				try {
 					entryDate = DATE_FORMAT.parse(timeString);
-				} catch (ParseException e) {
+				} 
+				catch (ParseException e) {
 					throw new RuntimeException(e); //re-throwing as unchecked exception, as it will mean that date time config is invalid 
 				}
 				
-			} else {
+			} 
+			else {
 				if (log.isTraceEnabled())
-					log.trace("Date check was skipped, dateFromPassed="
-							+ isDateFromPassed + ", TO_DATE=" + TO_DATE);
+					log.trace("Date check was skipped, dateFromPassed={}, TO_DATE={}", isDateFromPassed, TO_DATE);
 				return isDateFromPassed;
 			}
 
@@ -138,8 +128,7 @@ class EntryDateFilter extends FilterBase<String> {
 			}
 		}
 		if (log.isTraceEnabled())
-			log.trace("Date check was totally skipped, filterPtrn="
-					+ logDatePtrn);
+			log.trace("Date check was totally skipped, filterPtrn={}", logDatePtrn);
 		return true;
 	}
 

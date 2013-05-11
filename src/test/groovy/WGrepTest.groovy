@@ -1,27 +1,24 @@
 import org.smlt.tools.wgrep.*
 import org.smlt.tools.wgrep.config.WgrepConfig
+import org.smlt.tools.wgrep.config.PatternAutomationConfig
+import org.smlt.tools.wgrep.util.WgrepUtil
 
 import groovy.util.GroovyTestCase
 import java.text.SimpleDateFormat
 class WGrepTest extends GroovyTestCase {
-	WgrepFacade facade = null
-	WgrepConfig config = null
+	//WgrepFacade facade = WGrep.factory.getBean("facade")
+	WgrepConfig config
 	def BASE_HOME = System.getProperty("wgrep.home")
 	def HOME = BASE_HOME + "\\build\\resources\\test"
 	def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
-	def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config.xsd"
+	def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
 	def defalutOut = System.out
 
 	void setUp() {
-		config = new WgrepConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
-		facade = new WgrepFacade(config)
+		config = new PatternAutomationConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
 	}
 
-	void tearDown() {
-		System.setOut(defalutOut)
-	}
-
-	public <V> String getOutput(Closure<V> operation) {
+	public static String getOutput(Closure operation) {
 		def oldStdout = System.out
 		def pipeOut = new PipedOutputStream()
 		def pipeIn = new PipedInputStream(pipeOut)
@@ -53,7 +50,7 @@ class WGrepTest extends GroovyTestCase {
 		return actualResult.toString()
 	}
 
-	public <V> void assertWgrepOutput(String expectedResult, Closure<V> operation) {
+	public static void assertWgrepOutput(String expectedResult, Closure operation) {
 		assertTrue(expectedResult == getOutput(operation))
 	}
 
@@ -70,7 +67,6 @@ class WGrepTest extends GroovyTestCase {
 			new File(HOME+"\\fpTest_test.log")]
 		)
 		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
-		assertTrue( config.getParam('HOME_DIR') != null )
 	}
 	
 	void testConfigsProcessing() {
@@ -85,7 +81,6 @@ class WGrepTest extends GroovyTestCase {
 			new File(HOME+"\\fpTest_test.log")]
 		)
 		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
-		assertTrue( config.getParam('HOME_DIR') != null )
 	}
 
 	void testExtendedPatternProcessing() {
@@ -137,7 +132,6 @@ class WGrepTest extends GroovyTestCase {
 		assertTrue( config.getParam('FILTER_PATTERN') == "queryTime" )
 		assertTrue( config.getParam('FILES') == [new File("cmd_only_1.log")])
 		assertTrue( config.getParam('FOLDER_SEPARATOR') == "\\\\" )
-		assertTrue( config.getParam('HOME_DIR') != null )
 	}
 
 	void testComplexFiltering() {
@@ -160,7 +154,7 @@ Voo
 #complex"""
 		
 		assertWgrepOutput(expectedResult) {
-			facade.doProcessing([
+			WGrep.main((String[]) [
 				"-e",
 				"Foo",
 				HOME+"\\processing_test.log"
@@ -175,7 +169,7 @@ Voo
 Foo Man Chu
 #basic"""
 		assertWgrepOutput(expectedResult) {
-			facade.doProcessing([
+			WGrep.main((String[]) [
 				"Foo%and%Man Chu%or%#basic",
 				HOME+"\\processing_test.log"
 			])
@@ -193,7 +187,7 @@ Foo Man Chu
 #basic"""
 		
 		assertWgrepOutput(expectedResult) {
-			facade.doProcessing([
+			WGrep.main((String[]) [
 				"Foo",
 				HOME+"\\processing_test.log"
 			])
@@ -212,7 +206,7 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertWgrepOutput(expectedResult) {
-			facade.doProcessing([
+			WGrep.main((String[]) [
 				"Foo",
 				"--dtime",
 				testTimeStringFrom,
@@ -237,7 +231,7 @@ ${logDateFormat.format(new Date(fileTime.getTime() + 3*60*60*1000))}:05:56,951 [
 Foo Man Chu
 #basic"""
 		assertWgrepOutput(expectedResult) {
-			facade.doProcessing([
+			WGrep.main((String[]) [
 				"Foo",
 				"--dtime",
 				testTimeStringFrom,
@@ -259,7 +253,7 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertWgrepOutput(expectedResult) {
-			facade.doProcessing([
+			WGrep.main((String[]) [
 				"--foo",
 				"--dtime",
 				"+",
@@ -277,7 +271,7 @@ Foo,3
 Koo,1"""
 
 		assertWgrepOutput(expectedResult) {
-			facade.doProcessing([
+			WGrep.main((String[]) [
 				"--f",
 				"--some_timings",
 				HOME+"\\processing_report_test.log"
@@ -293,11 +287,9 @@ Foo,150
 Koo,200
 """
 		assertWgrepOutput(expectedResult) {
-			facade.doProcessing([
-				"-f",
+			WGrep.main((String[]) ["-f",
 				"--avg_timings",
-				HOME+"\\processing_report_test.log"
-			])
+				HOME+"\\processing_report_test.log"])
 		}
 	}
 
@@ -312,11 +304,11 @@ Foo Man Chu
 #basic"""
 		
 		assertWgrepOutput(expectedResult) {
-			WGrep.main([
+			WGrep.main((String[]) [
 				"Foo",
 				HOME+"\\processing_test.log",
 				HOME+"\\fpTest_test.log"
-			].toArray(new String[2]))
+			])
 		}
 	}
 

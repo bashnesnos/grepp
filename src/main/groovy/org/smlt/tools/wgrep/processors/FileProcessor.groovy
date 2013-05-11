@@ -4,12 +4,10 @@ import groovy.util.logging.Slf4j;
 
 import java.util.regex.Matcher
 import java.lang.StringBuilder
-import org.smlt.tools.wgrep.filters.*
+import org.smlt.tools.wgrep.filters.FilterBase
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.output.WgrepOutput
 import org.smlt.tools.wgrep.exceptions.*
-import org.smlt.tools.wgrep.config.ModuleBase;
-import org.smlt.tools.wgrep.config.WgrepConfig
 
 /**
  * Class which triggers and controls file processing.
@@ -18,26 +16,13 @@ import org.smlt.tools.wgrep.config.WgrepConfig
  *
  */
 @Slf4j
-class FileProcessor extends ModuleBase implements DataProcessor
+class FileProcessor implements DataProcessor<List<File>>
 {
-    private ArrayList<File> fileList = []
-    
-    private boolean isMerging = null
-    private FilterBase filterChain = null
-    private FilterBase filesFilterChain = null
-	private WgrepOutput output = null
+   
+    private boolean isMerging;
+	private WgrepOutput output;
+	private FilterBase<List<File>> fileFilter;
  
-	/**
-	 * Simple factory method, which takes WgrepConfig instance and initializes appropriate filter chains.       
-	 *        
-	 * @param config WgrepConfig instance
-	 * @return new FileProcessor instance
-	 */
-    static FileProcessor getInstance(WgrepConfig config, WgrepOutput output) 
-    {
-        return new FileProcessor(config, output, FilterChainFactory.createFilterChainByConfig(config), FilterChainFactory.createFileFilterChainByConfig(config))
-    }
-
 	/**
 	 * Create new instance with supplied filter chains and {@link WgrepConfig} instance.
 	 * 
@@ -45,32 +30,13 @@ class FileProcessor extends ModuleBase implements DataProcessor
 	 * @param filterChain_ FilterBase chain which will be used to filter each file line
 	 * @param filesFilterChain_ FilterBase chain which will be used to filter filename List
 	 */
-    FileProcessor(WgrepConfig config, WgrepOutput output_, FilterBase filterChain_, FilterBase filesFilterChain_) 
+    FileProcessor(WgrepOutput output_, FilterBase<List<File>> fileFilter_, boolean isMerging_) 
     {
-        super(config)
 		output = output_
-		filterChain = filterChain_
-        filesFilterChain = filesFilterChain_
-		List<File> files_ = getParam('FILES')
-        log.trace("Total files to analyze: " + files_.size())
-        fileList = filesFilterChain.filter(files_)
-        isMerging = getParam('FILE_MERGING') != null
-
+        isMerging = isMerging_
+		fileFilter = fileFilter_
     }
 
-	/**
-	 * Overriden method which check specific to FileProcessot params
-	 */
-	@Override
-    boolean isConfigValid() {
-        boolean checkResult = super.isConfigValid()
-        if (getParam('FILES') == null)
-        {
-            log.warn('FILES are not specified')
-            checkResult = false
-        }
-        return checkResult
-    }
 
 	/**
 	 * Hook method which is called prior to file processing. Needed for check and configInstance refreshing if it is on. 
@@ -80,17 +46,8 @@ class FileProcessor extends ModuleBase implements DataProcessor
 	 */
     private File initFile(File file_)
     {
-        log.info("Initializating " + file_.name)
-        try {
-            if (refreshConfigByFile(file_.name))
-            {            
-                filterChain = FilterChainFactory.createFilterChainByConfig(configInstance)
-            }
-        }
-        catch(IllegalArgumentException e) {
-            e.printStackTrace()
-            return null
-        }   
+        log.info("Initializating {}", file_.name)
+		output.refreshFilters(file_.name)
         return file_
     }
 
@@ -100,46 +57,35 @@ class FileProcessor extends ModuleBase implements DataProcessor
 	 * 
 	 * @param data Supposed to be a File, or anything that supports eachLine method which returns String
 	 */
-    void processData(def data)
+    void processData(File data)
     {
         if (data == null) return
         def curLine = 0
-        FilterBase chain = filterChain //reassigning to get rid of GetEffectivePogo in the loop
+        WgrepOutput output = output //shadowing to get rid of GetEffectivePogo in the loop
         try {
             data.eachLine { String line ->
-                if (log.isTraceEnabled())
-                {
-                    log.trace("curLine: $curLine")
-                }
+                log.trace("curLine: {}", curLine)
                 curLine += 1
-                output.printToOutput(chain.filter(line))
+                output.printToOutput(line) //why new Instace() of class org.codehaus.groovy.runtime.callsite.PogoMetaMethodSite here?
             }
         }
         catch(FilteringIsInterruptedException e) {
             log.trace("No point to read file further as identified by filter chain")
-            chain.processEvent(Event.FLUSH)
+            output.printToOutput(Event.FLUSH)
         }
 		
-		if (!isMerging) output.printToOutput(chain.processEvent(Event.FILE_ENDED))
-        log.info("File ended. Lines processed: " + curLine)
+		if (!isMerging) output.printToOutput(Event.FILE_ENDED)
+        log.info("File ended. Lines processed: {}", curLine)
     }
 
-	/**
-	 * Getter for files list to process.
-	 * 
-	 * @return current instance files list
-	 */
-    List<File> getFiles()
-    {
-        return fileList
-    }
-
-	@Override
-	public void process() {
-        fileList.each {
-            processData(initFile(it))
-        }
-        output.printToOutput(filterChain.processEvent(Event.ALL_FILES_PROCESSED))
-		output.closeOutput()
+	public void process(List<File> data) {
+        List<File> filteredData = fileFilter.filter(data)
+		if (filteredData != null) {
+			filteredData.each {
+				processData(initFile(it))
+			}
+			output.printToOutput(Event.ALL_FILES_PROCESSED)
+			output.closeOutput()
+		}
 	}
 }

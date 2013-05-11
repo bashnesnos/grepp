@@ -24,7 +24,7 @@ class LogEntryParser extends ParserBase
 	@Override
 	void parseVar(def arg)
     {
-        log.trace("Parsing var: " + arg)
+        log.trace("Parsing var: {}", arg)
         setLogEntryPattern(arg)
         unsubscribe()
     }

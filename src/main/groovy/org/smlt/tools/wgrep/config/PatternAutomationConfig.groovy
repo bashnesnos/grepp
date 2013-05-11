@@ -11,13 +11,13 @@ import org.smlt.tools.wgrep.filters.enums.Qualifier;
  */
 
 @Slf4j
-class PatternAutomationHelper extends ModuleBase
+class PatternAutomationConfig extends WgrepConfig
 {
 
-    List ATMTN_SEQ = []
-    List FIRE_ONCE_METHODS = []
-    String currentConfigPtrn = null
-    String currentConfigId = null
+    List ATMTN_SEQ
+    List FIRE_ONCE_METHODS
+    String currentConfigPtrn
+    String currentConfigId
     boolean isAmmended = false
 	String lv_tag
 
@@ -26,17 +26,153 @@ class PatternAutomationHelper extends ModuleBase
     * Parses automation method sequence from the config.xml depending on level tag as specified in <automation> section of the config.xml.
     */
 
-    PatternAutomationHelper(WgrepConfig config)
+    PatternAutomationConfig(String configFilePath)
     {
-		super(config)
-    }        
+        super(configFilePath, null)  
+    }
+    
+    
+    PatternAutomationConfig(String configFilePath, String configXSDpath)
+    {
+        super(configFilePath, configXSDpath)
+    }      
 	
-    void enableSequence(String level_tag) {
-        lv_tag = level_tag
-		log.trace("Enabling level /$lv_tag/ sequence")
+
+    @Override
+    protected void loadDefaults()
+    {
+        ATMTN_SEQ = []
+        FIRE_ONCE_METHODS = []
+        super.loadDefaults()
+    }
+
+    @Override
+    protected void processOption(String opt)
+    {
         use(DOMCategory)
         {
-            def levels = getRoot().automation.level.findAll { it.'@tags' =~ lv_tag}.sort {it.'@order'}
+            def optElem = root.options.opt.find {it.text() == opt}
+            if (optElem == null) optElem = root.custom.options.opt.find {it.text() == opt}
+            if (optElem != null)
+            {
+                def handler = optElem['@handler']
+                this."$handler"(optElem['@field'], optElem.text())
+            }
+            else 
+            {
+                 if (isAutomationEnabled() && applySequenceByTag(opt)) { //trying to apply sequence first
+                    log.info("Applied sequence for: {}", opt)
+                    if (!checkParamIsEmpty('FILTER_PATTERN')) {
+                        filterParser.unsubscribe()
+                    }
+                 }                
+                 if (checkIfConfigExsits(opt)) { //checking if  there exists a config with such id and applying it if so
+                    setPredefinedConfig("PREDEF_TAG", opt)
+                 }
+                 else if (checkParamIsEmpty('FILTER_PATTERN') && checkIfFilterExsits(opt)) { //checking filter wasn't supplied explicitly and there exists a filter with such id and applying it if so
+                    setPredefinedFilter("PREDEF_TAG", opt)
+                 }
+                 else if (checkIfExecuteThreadExsits(opt)) { //checking if there exists a thread preserving patterns with such id and applying it if so
+                    setThreadPreserving("PREDEF_TAG", opt)
+                 }
+                 else if (checkIfPostProcessExsits(opt)) { //checking if there exists a post_processing config with such id and applying it if so
+                    setPostProcessing("PREDEF_TAG", opt)
+                 }
+                 else {
+                     throw new IllegalArgumentException("Invalid option, doesn't match any config's/filters id: " + opt)
+                 }
+            }
+        }
+    }
+
+    /**
+    * Method for refreshing config params by a filename. Requires {@link PatternAutomationHelper} paHelper to be initialized. <br>
+    * Calls {@link PatternAutomationHelper.applySequenceByFileName}
+    * @param fileName String representing name of a file to be checked. Could be an absolute path as well.
+    */
+
+    @Override
+    boolean refreshConfigByFile(String fileName)
+    {
+        return isAutomationEnabled() ? applySequenceByFileName(fileName) : false
+    }
+
+    @Override
+    protected void setUserLEPattern(String field, def val)
+    {
+        super.setUserLEPattern(field, val)
+        disableSequence()
+    }
+
+    /**
+     * Enables <code>LOG_ENTRY_PATTERN</code>, <code>FILTER_PATTERN</code>, <code>PRESERVE_THREAD</code> auto-identification based on supplied <code>level</code>. Initializes {@link PatternAutomationHelper}.
+     * @param field Field to be set
+     * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+     */
+
+    protected void setAutomation(String field, def val)
+    {
+        setParam(field, val)
+        enableSequence(val) //refreshing PatternAutomation instance
+    }
+
+        /**
+     * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
+     * @param field Field to be set
+     * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+     */
+    protected void setPredefinedConfig(String field, def val)
+    {
+        setParam(field, val)
+        isAutomationEnabled() ? applySequenceByTag(val) : log.warn("Attempt to predefine config with disabled automation")
+        //disableSequence() //not disabling, so it can be reconfigured if supplied files have heterogenous log entry patterns 
+    }
+
+    
+    /**
+     * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
+     * Calls {@link PatternAutomation.parseFilterConfig}
+     * @param field Field to be set
+     * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+     */
+    protected void setPredefinedFilter(String field, def val)
+    {
+        filterParser.unsubscribe()
+        setParam(field, val)
+        parseFilterConfig(val)
+    }
+
+    
+    /**
+     * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
+     * Calls {@link PatternAutomation.parseFilterConfig}
+     * @param field Field to be set
+     * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
+     */
+    protected void setThreadPreserving(String field, def val)
+    {
+        parseExecuteThreadConfig(val)
+    }
+
+    
+    /**
+     * Enables post processing.
+     * @param field Field to be set
+     * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
+     */
+
+    protected void setPostProcessing(String field, def val)
+    {
+        parsePostFilterConfig(val)
+    }
+    
+
+    private void enableSequence(String level_tag) {
+        lv_tag = level_tag
+		log.trace("Enabling level /{}/ sequence", lv_tag)
+        use(DOMCategory)
+        {
+            def levels = root.automation.level.findAll { checkInTags(it.'@tags', lv_tag)}.sort {it.'@order'}
             ATMTN_SEQ.addAll(levels.collect { it.'@handler' })
             FIRE_ONCE_METHODS.addAll(levels.findAll { it.'@fireonce' == "true" }.collect{ it.'@handler'})
         }
@@ -52,13 +188,13 @@ class PatternAutomationHelper extends ModuleBase
     }
 
     void applyAutomationSequence(String tag) {
-		log.trace("Current sequence: " + ATMTN_SEQ)
+		log.trace("Current sequence: {}", ATMTN_SEQ)
 		ATMTN_SEQ.each { handler ->
             applyMethod(tag, handler)
         }
-        log.trace("Fired methods: " + FIRE_ONCE_METHODS)
+        log.trace("Fired methods: {}", FIRE_ONCE_METHODS)
         ATMTN_SEQ.removeAll(FIRE_ONCE_METHODS)
-        log.trace("Config ${isAmmended ? "was": "wasn't"} ammended")
+        log.trace("Config {} ammended", isAmmended ? "was": "wasn't")
     }
 
 
@@ -108,7 +244,7 @@ class PatternAutomationHelper extends ModuleBase
 	
     void applyMethod(String tag, String method)
     {
-        log.trace('Applying method=' + method + ' for tag=' + tag)
+        log.trace("Applying method={} for tag={}", method, tag)
 		if (method == null)
 		{
 			throw new IllegalArgumentException("Method shouldn't be null")
@@ -131,20 +267,20 @@ class PatternAutomationHelper extends ModuleBase
     {
         use(DOMCategory)
         {
-            def customCfg = getRoot().custom.config.find { it.'@id' ==~ tag }
+            def customCfg = root.custom.config.find { it.'@id' ==~ tag }
             if (customCfg != null)
             {
-                log.trace('Parsing entry config for ' + tag)
+                log.trace("Parsing entry config for {}", tag)
                 
                 String starter = getCDATA(customCfg.starter[0])
                 String date = getCDATA(customCfg.date[0])
                 if (starter != null || date != null)
                 {
-                    setLogEntryPattern( ((starter != null) ? starter : "") + ((date != null) ? date : "" ) )   
+                    setParam('LOG_ENTRY_PATTERN', ((starter != null) ? starter : "") + ((date != null) ? date : "" ) )   
                 }
                 else
                 {
-                    log.warn("Either <starter> or <date> should be filled for config: " + tag)
+                    log.warn("Either <starter> or <date> should be filled for config: {}", tag)
                 }
                 setParam('LOG_DATE_PATTERN', customCfg.date.text())
                 setParam('LOG_DATE_FORMAT', customCfg.date_format.text())
@@ -162,7 +298,7 @@ class PatternAutomationHelper extends ModuleBase
 	boolean checkIfConfigExsits(String tag) {
 		use(DOMCategory)
 		{
-			def customCfg = getRoot().custom.config.find { it.'@id' ==~ tag }
+			def customCfg = root.custom.config.find { it.'@id' ==~ tag }
 			return customCfg != null
 		}
 	}
@@ -178,11 +314,11 @@ class PatternAutomationHelper extends ModuleBase
     {
         use(DOMCategory)
         {
-            log.trace('Parsing filter config for ' + tag)
-            def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
+            log.trace("Parsing filter config for {}", tag)
+            def customFilter = root.custom.filters.filter.find { checkInTags(it.'@tags', tag)}
             if (customFilter != null)
             {
-                setFilterPattern(getCDATA(customFilter))
+                setParam('FILTER_PATTERN', getCDATA(customFilter))
                 isAmmended = true
             }
             else
@@ -195,7 +331,7 @@ class PatternAutomationHelper extends ModuleBase
 	boolean checkIfFilterExsits(String tag) {
 		use(DOMCategory)
 		{
-			def customFilter = getRoot().custom.filters.filter.find { it.'@tags' =~ tag}
+			def customFilter = root.custom.filters.filter.find { checkInTags(it.'@tags', tag)}
 			return customFilter != null
 		}
 	}
@@ -216,8 +352,8 @@ class PatternAutomationHelper extends ModuleBase
     boolean checkIfPostProcessExsits(String tag) {
         use(DOMCategory)
         {
-            def postPatterns = getRoot().custom.pp_splitters.splitter.findAll { it.'@tags' =~ tag}
-            return postPatterns != null && !postPatterns.isEmpty()
+            def postPatterns = root.custom.pp_splitters.splitter.find{ checkInTags(it.'@tags', tag) }
+            return postPatterns != null
         }
     }
     /**
@@ -229,16 +365,16 @@ class PatternAutomationHelper extends ModuleBase
      */
     
     Map parsePostFilterParams(String pp_tag){
-        def root = getRoot()
+        def root = root
         def POST_PROCESS_SEP = null
         def POST_PROCESS_DICT = new LinkedHashMap()
         def POST_GROUPS_METHODS = []
         def POST_PROCESS_HEADER = null
         def PATTERN = new StringBuilder()
         use(DOMCategory) {
-            if (log.isTraceEnabled()) log.trace("Looking for splitters of type=" + pp_tag)
-            def pttrns = root.custom.pp_splitters.splitter.findAll { it.'@tags' =~ pp_tag}
-            if (log.isTraceEnabled()) log.trace("Patterns found=" + pttrns)
+            log.trace("Looking for splitters of type={}", pp_tag)
+            def pttrns = root.custom.pp_splitters.splitter.findAll { checkInTags(it.'@tags', pp_tag) }
+            log.trace("Patterns found={}", pttrns)
             if (pttrns != null) {
                 pttrns.sort { it.'@order' }
                 pttrns.each { ptrn_node ->
@@ -251,7 +387,7 @@ class PatternAutomationHelper extends ModuleBase
                         if (sep_tag == '') {
                             sep_tag = root.pp_config.'@default_sep'[0]
                         }
-                        if (log.isTraceEnabled()) log.trace("Looking for separator=" + sep_tag)
+                        log.trace("Looking for separator={}", sep_tag)
 
                         def sep = root.pp_config.pp_separators.separator.find { it.'@id' ==~ sep_tag}
                         if (sep != null) {
@@ -298,8 +434,8 @@ class PatternAutomationHelper extends ModuleBase
 	boolean checkIfExecuteThreadExsits(String tag) {
 		use(DOMCategory)
 		{
-			def startExtractors = getRoot().custom.thread_configs.extractors.pattern.findAll { it.'@tags' =~ tag}
-			return startExtractors != null && !startExtractors.isEmpty()
+			def startExtractors = root.custom.thread_configs.extractors.pattern.find{ checkInTags(it.'@tags', tag)}
+			return startExtractors != null
 		}
 	}
 
@@ -312,14 +448,14 @@ class PatternAutomationHelper extends ModuleBase
      * @return Mapping of ComplexFilter params
      */
     Map parseComplexFilterParams(String preserveTag) {
-        def root = getRoot()
+        def root = root
         def pt_tag = preserveTag
         def cfParams = [:]
         use(DOMCategory) {
             if (pt_tag != null) {
-                cfParams['THRD_START_EXTRCTRS'] = root.custom.thread_configs.extractors.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
-                cfParams['THRD_SKIP_END_PTTRNS'] = root.custom.thread_configs.skipends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
-                cfParams['THRD_END_PTTRNS'] = root.custom.thread_configs.ends.pattern.findAll { it.'@tags' =~ pt_tag }.collect{it.text()}
+                cfParams['THRD_START_EXTRCTRS'] = root.custom.thread_configs.extractors.pattern.findAll { checkInTags(it.'@tags', pt_tag) }.collect{it.text()}
+                cfParams['THRD_SKIP_END_PTTRNS'] = root.custom.thread_configs.skipends.pattern.findAll { checkInTags(it.'@tags', pt_tag) }.collect{it.text()}
+                cfParams['THRD_END_PTTRNS'] = root.custom.thread_configs.ends.pattern.findAll { checkInTags(it.'@tags', pt_tag) }.collect{it.text()}
                 isAmmended = true
             }
 			else {
@@ -347,10 +483,10 @@ class PatternAutomationHelper extends ModuleBase
         String id = null
         use(DOMCategory)
         {
-            def configs = getRoot().custom.config.findAll { it.pattern[0] }
+            def configs = root.custom.config.findAll { it.pattern[0] }
             def config = configs.find { config ->
                 currentConfigPtrn = getCDATA(config.pattern[0])
-                log.trace("ptrn=/" + currentConfigPtrn + "/ data='" + data + "'")
+                log.trace("ptrn=/{}/ data='{}'", currentConfigPtrn, data)
                 data =~ currentConfigPtrn
             }
             if (config != null) id = config.'@id'
@@ -358,6 +494,9 @@ class PatternAutomationHelper extends ModuleBase
         return id
     }
 
-
+    private boolean checkInTags(String tagsToCheckIn, String tagToLookFor) {
+        log.trace("Looking in /{}/ for tag /{}/",tagsToCheckIn, tagToLookFor)
+        return tagsToCheckIn != null && tagsToCheckIn =~ /(?<!\w)$tagToLookFor/
+    }
 
 }
