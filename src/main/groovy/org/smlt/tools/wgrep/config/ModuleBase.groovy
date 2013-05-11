@@ -184,8 +184,8 @@ class ModuleBase {
 	}
 
 	/**
-	 * Method delegates check if param is filled to config instance
-	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 * Method delegates check if param is empty.
+	 * @return <code>true</code> if it is empty. <code>false</code> otherwise.
 	 */
 
 	boolean checkParamIsEmpty(String paramName) {

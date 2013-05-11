@@ -18,8 +18,6 @@ import org.springframework.core.io.ClassPathResource
 @Slf4j
 class WGrep 
 {
-
-
 	public static void main(String[] args)
 	{
 		Date startTime = new Date()

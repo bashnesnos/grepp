@@ -50,7 +50,7 @@ class WgrepFacade extends ModuleBase {
 			if (!check(['FILES'], null)) {
 				return
 			}
-			dataProcessorFactory.getProcessorInstance().process()
+			dataProcessorFactory.getProcessorInstance().process(getParam('FILES'))
 		}
 		catch(Exception e)
 		{

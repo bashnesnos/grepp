@@ -11,18 +11,19 @@
 	<bean id="configInstance" class="org.smlt.tools.wgrep.config.WgrepConfig" factory-bean="configFactory" factory-method="getInstance">
 	</bean> 
 
-	<bean id="outputFactory" class="org.smlt.tools.wgrep.output.OutputFactory">
+	<bean id="filterFactory" class="org.smlt.tools.wgrep.filters.FilterChainFactory">
 		<property name="configInstance"><ref bean="configInstance"/></property>
 	</bean>
 
-	<bean id="filterFactory" class="org.smlt.tools.wgrep.filters.FilterChainFactory">
+
+	<bean id="outputFactory" class="org.smlt.tools.wgrep.output.OutputFactory">
 		<property name="configInstance"><ref bean="configInstance"/></property>
+		<property name="filterFactory"><ref bean="filterFactory"/></property>
 	</bean>
 
   	<bean id="dataProcessorFactory" class="org.smlt.tools.wgrep.processors.DataProcessorFactory">
   		<property name="configInstance"><ref bean="configInstance"/></property>
   		<property name="outputFactory"><ref bean="outputFactory"/></property>
-  		<property name="filterFactory"><ref bean="filterFactory"/></property>
   	</bean>
 
 	<bean id="wgrepFacade" class="org.smlt.tools.wgrep.WgrepFacade">

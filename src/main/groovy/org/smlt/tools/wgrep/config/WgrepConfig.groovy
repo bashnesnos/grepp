@@ -191,8 +191,8 @@ class WgrepConfig {
 	}
 
 	/**
-	 * Method checks if param is filled.
-	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
+	 * Method checks if param is empty.
+	 * @return <code>true</code> if it is empty. <code>false</code> otherwise.
 	 */
 
 	boolean checkParamIsEmpty(String paramName) {

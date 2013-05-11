@@ -10,19 +10,6 @@ class DataProcessorFactory extends ModuleBase {
 	@Autowired
 	private OutputFactory outputFactory
 
-	@Autowired
-	private FilterChainFactory filterFactory
-
-	FilterChainFactory getFilterFactory()
-	{
-		return filterFactory
-	}
-
-	void setFilterFactory(FilterChainFactory filterFactory_)
-	{
-		filterFactory = filterFactory_
-	}
-
 	OutputFactory getOutputFactory()
 	{
 		return outputFactory
@@ -41,6 +28,6 @@ class DataProcessorFactory extends ModuleBase {
 	 */
     DataProcessor getProcessorInstance() 
     {
-        return new FileProcessor(configInstance, outputFactory.getOutputInstance(), filterFactory)
+        return new FileProcessor(outputFactory.getOutputInstance(), outputFactory.getFilterFactory().createFileFilterChain(), !checkParamIsEmpty('FILE_MERGING'))
     }
 }
