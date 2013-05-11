@@ -58,7 +58,7 @@ public class SimpleOutput implements WgrepOutput {
 	}
 	
 	@Override
-	public void printEventToOutput(Event event) {
+	public void printToOutput(Event event) {
 		printNotFiltered(filterChain.processEvent(event))
 	}
 

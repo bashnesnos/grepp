@@ -57,7 +57,7 @@ class FileProcessor implements DataProcessor<List<File>>
 	 * 
 	 * @param data Supposed to be a File, or anything that supports eachLine method which returns String
 	 */
-    void processData(def data)
+    void processData(File data)
     {
         if (data == null) return
         def curLine = 0
@@ -71,10 +71,10 @@ class FileProcessor implements DataProcessor<List<File>>
         }
         catch(FilteringIsInterruptedException e) {
             log.trace("No point to read file further as identified by filter chain")
-            output.printEventToOutput(Event.FLUSH)
+            output.printToOutput(Event.FLUSH)
         }
 		
-		if (!isMerging) output.printEventToOutput(Event.FILE_ENDED)
+		if (!isMerging) output.printToOutput(Event.FILE_ENDED)
         log.info("File ended. Lines processed: {}", curLine)
     }
 
@@ -84,7 +84,7 @@ class FileProcessor implements DataProcessor<List<File>>
 			filteredData.each {
 				processData(initFile(it))
 			}
-			output.printEventToOutput(Event.ALL_FILES_PROCESSED)
+			output.printToOutput(Event.ALL_FILES_PROCESSED)
 			output.closeOutput()
 		}
 	}
