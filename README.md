@@ -11,5 +11,4 @@ For deeper configuration fill in *_tmplt files and remove "_tmplt" suffix in $wg
 Each of those will be applied for packaging via "gradle installDev" or "gradle install" correspondingly.
 
 TODO:
-Try to find out if it is possible to reduce groovy reflection PogoMetaMethodSite effect on performance. UPD: it goes away if printing out is put inside filtering. May be output should decorate filter chain for example.
 It seems that automatic logging pattern conversion will require mapping of layouts to regexes, may be it is convinient to make a separate tool for that.
