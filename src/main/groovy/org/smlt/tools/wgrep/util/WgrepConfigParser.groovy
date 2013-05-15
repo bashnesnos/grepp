@@ -79,44 +79,64 @@ class WgrepConfigParserImpl {
 		[DATE_DATE_OPTION]:[DATE_DATE_REGEX, DATE_DATE_SIMPLE]
 	]
 
-	public static CustomConfigXmlBuilder applyDateConversionOption(CustomConfigXmlBuilder builder, String conversionOption) {
+
+	private CustomConfigXmlBuilder builder
+
+	public String applyDateConversionOption(String regex, String conversionOption) {
 		def predefinedConversion = DateConversionOptionToRegex.keySet().find { it.contains(conversionOption)}
+		String datePtrn = null
 		if (predefinedConversion != null) {
 			log.info("Predefined date format conversion")
-			builder.setDate(predefinedConversion[0]).setDateFormat(predefinedConversion[1])
+			datePtrn = predefinedConversion[0]
+			builder.setDateFormat(predefinedConversion[1])
+			
 		}
 		else {
 			log.info("SimpleDateFormat conversion")
-			builder.setDate(conversionOption.replaceAll(SIMPLE_DATE_TIME_DIGITS, SIMPLE_DATE_TIME_DIGIT_REGEX)
-											.replaceAll(SIMPLE_DATE_TIME_CHARS, SIMPLE_DATE_TIME_CHAR_REGEX))
-					.setDateFormat(conversionOption)
+			datePtrn = conversionOption.replaceAll(SIMPLE_DATE_TIME_DIGITS, SIMPLE_DATE_TIME_DIGIT_REGEX)
+										.replaceAll(SIMPLE_DATE_TIME_CHARS, SIMPLE_DATE_TIME_CHAR_REGEX)
+			builder.setDateFormat(conversionOption)
 		}
-		return builder
+		builder.setDate(datePtrn)
+		return datePtrn
 
 	}
 
-	public static String applyDefaultConversionOption(String regex, String conversionOption) {
+	public String applyDefaultConversionOption(String regex, String conversionOption) {
 		log.info("By default conversion option is not used")
+		return regex
 	}
 
-	public static String applyFormatModifier(String regex, String formatModifier) {
+	public String applyFormatModifier(String regex, String formatModifier) {
 		def parts = formatModifier.split("\\.")
-		log.info("Format modifier parts: {};{}", parts[0], parts[1])
-		println parts[0] + " " + parts[1]
+		String leftPart = parts[0]
+		String rightPart = parts[1]
+		log.info("Format modifier parts: {};{}", leftPart, rightPart)
+		if (leftPart.contains("-")) {
+			return PADDING_REGEX + regex
+		}
+		else if (rightPart.contains("-")) {
+			return regex + PADDING_REGEX
+		}
+		else {
+			return regex
+		}
 	}
 
-	public static CustomConfigXmlBuilder parseLogEntryPtrn(CustomConfigXmlBuilder builder, String conversionPattern) {
+	public String parseLogEntryPtrn(String conversionPattern) {
 		Matcher conversionGroups = CONVERSION_GROUPS_PTRN.matcher(conversionPattern)
 		if (conversionGroups.matches()) {
 			String formatModifier = conversionGroups.group(1)
 			String conversionWord = conversionGroups.group(2)
-			String conversionOption = conversionGroups.group(3)
+			String conversionOption = conversionGroups.group(3).replaceAll("[{}]", "")
 			log.info("Matched! {} = {}; {}; {};", conversionGroups.group(0), formatModifier , conversionWord,  conversionOption)
 			Set<String> conversionFamily = ConversionLayoutToRegex.keySet().find { it.contains(conversionWord)}
 			log.info("Conversion belongs to: {}", conversionFamily)
 			if (conversionFamily != null) {
 				String initialRegex = ConversionLayoutToRegex[conversionFamily]
-				return builder
+				String conversionOptionMethod = ConversionOptionSpecialConverters[conversionFamily]
+				if (conversionOptionMethod == null) conversionOptionMethod = "applyDefaultConversionOption"
+				return this."$conversionOptionMethod"(applyFormatModifier(initialRegex, formatModifier), conversionOption)
 			}
 			else {
 				log.info("Unknown conversion word: {}", conversionWord)
@@ -129,15 +149,16 @@ class WgrepConfigParserImpl {
 		}
 	}
 
-	public static CustomConfigXmlBuilder parseConfigLayout(CustomConfigXmlBuilder builder, String layoutString) {
+	public static String parseConfigLayout(String layoutString) {
 		layoutString.split(" ").each {
 
 		}
-		return builder
+		return null
 	}
 
-
-	private WgrepConfigParserImpl() { throw new AssertionError() } //don't instantiate it, really
+	public WgrepConfigParserImpl(){
+		builder = new CustomConfigXmlBuilder()
+	}
 
 	public static void main(String[] args) {
 
@@ -210,7 +231,9 @@ class WgrepConfigParserImpl {
 	}
 }
 
-println WgrepConfigParserImpl.parseLogEntryPtrn(null, "%.30logger{30}")
-println WgrepConfigParserImpl.applyFormatModifier(null, ".-30")
+WgrepConfigParserImpl parser = new WgrepConfigParserImpl()
+
+println parser.parseLogEntryPtrn("%.30d{ABSOLUTE}")
+
 //println WgrepConfigParserImpl.dateOptionConverter("dd MMM yyyy HH:mm:ss,SSS")
 
