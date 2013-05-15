@@ -66,7 +66,7 @@ class FileProcessor implements DataProcessor<List<File>>
             data.eachLine { String line ->
                 log.trace("curLine: {}", curLine)
                 curLine += 1
-                output.printToOutput(line) //why new Instace() of class org.codehaus.groovy.runtime.callsite.PogoMetaMethodSite here?
+                output.printToOutput(line)
             }
         }
         catch(FilteringIsInterruptedException e) {

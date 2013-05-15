@@ -19,6 +19,8 @@ import java.lang.reflect.Modifier;
  *
  */
 public class WgrepUtil {
+
+	private WgrepUtil() { throw new AssertionError(); } //please don't instantiate the class
 	
 	public static String getCDATA(Element node)
 	{
