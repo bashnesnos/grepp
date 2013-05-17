@@ -22,7 +22,7 @@ public interface WgrepOutput {
 	 * 
 	 * @param event Event to be printed
 	 */
-	void printToOutput(Event event);
+	void processEvent(Event event);
 	
 	/**
 	 * Ensures that data is printed to output. Nothing more or less.

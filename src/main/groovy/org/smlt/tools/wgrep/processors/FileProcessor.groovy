@@ -71,10 +71,10 @@ class FileProcessor implements DataProcessor<List<File>>
         }
         catch(FilteringIsInterruptedException e) {
             log.trace("No point to read file further as identified by filter chain")
-            output.printToOutput(Event.FLUSH)
+            output.processEvent(Event.FLUSH)
         }
 		
-		if (!isMerging) output.printToOutput(Event.FILE_ENDED)
+		if (!isMerging) output.processEvent(Event.FILE_ENDED)
         log.info("File ended. Lines processed: {}", curLine)
     }
 
@@ -84,7 +84,7 @@ class FileProcessor implements DataProcessor<List<File>>
 			filteredData.each {
 				processData(initFile(it))
 			}
-			output.printToOutput(Event.ALL_FILES_PROCESSED)
+			output.processEvent(Event.ALL_FILES_PROCESSED)
 			output.closeOutput()
 		}
 	}

@@ -276,7 +276,7 @@ class PatternAutomationConfig extends WgrepConfig
                 String date = getCDATA(customCfg.date[0])
                 if (starter != null || date != null)
                 {
-                    setParam('LOG_ENTRY_PATTERN', ((starter != null) ? starter : "") + ((date != null) ? date : "" ) )   
+                    setParam('LOG_ENTRY_PATTERN', ((starter != null) ? starter : "") + ((date != null) ? date : "" ))   
                 }
                 else
                 {

@@ -1,6 +1,5 @@
 package org.smlt.tools.wgrep.output;
 
-import org.smlt.tools.wgrep.config.ModuleBase
 import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.FilterChainFactory
@@ -58,7 +57,7 @@ public class SimpleOutput implements WgrepOutput {
 	}
 	
 	@Override
-	public void printToOutput(Event event) {
+	public void processEvent(Event event) {
 		printNotFiltered(filterChain.processEvent(event))
 	}
 
