@@ -4,6 +4,10 @@ import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.FilterChainFactory
 import org.smlt.tools.wgrep.filters.FilterBase
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
+import org.w3c.dom.Element
 
 
 /**
@@ -15,23 +19,27 @@ import org.smlt.tools.wgrep.filters.FilterBase
  */
 
 @Slf4j
-class ConfigOutput implements WgrepOutput {
+final class ConfigOutput implements WgrepOutput<Element, Object>, BeanFactoryAware  {
 	
-	protected FilterChainFactory filterFactory;
-	protected FilterBase filterChain;
+	private BeanFactory beanFactory;
+	private File configFile;
+	private def cfgDoc
+	private def root;
 	
-	ConfigOutput(FilterChainFactory filterFactory_) {
-		filterFactory = filterFactory_
-		filterChain = filterFactory.createFilterChain()
-	}
-
+	public void setBeanFactory(BeanFactory beanFactory) throws BeansException 
+	{
+    	this.beanFactory = beanFactory;
+    	configFile = beanFactory.getBean("configFactory").getConfigFile().getFile()
+    	cfgDoc = DOMBuilder.parse(new FileReader(configFile))
+        root = cfgDoc.documentElement
+   	}
 	/**
 	 * Refreshes filters/filtering params by some criteria.
 	 * 
 	 * @param criteria Something that can be used for config refreshing. Filename for example
 	 */
 	void refreshFilters(Object criteria) {
-
+		throw new UnsupportedOperationException()
 	}
 	
 	/**
@@ -40,7 +48,7 @@ class ConfigOutput implements WgrepOutput {
 	 * @param event Event to be printed
 	 */
 	void processEvent(Event event) {
-	
+		throw new UnsupportedOperationException()
 	}
 	
 	/**
@@ -48,8 +56,12 @@ class ConfigOutput implements WgrepOutput {
 	 * 
 	 * @param data Data to be printed
 	 */
-	void printToOutput(Object data) {
-
+	void printToOutput(Element data) {
+	        use(DOMCategory) {
+	        	root.custom.appendChild(data)
+        	}
+			cfgDoc.normalizeDocument()
+			XmlUtil.serialize(data, new FileWriter(configFile))			
 	}
 	
 	/**

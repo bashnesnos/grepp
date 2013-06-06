@@ -8,14 +8,14 @@ import org.smlt.tools.wgrep.filters.enums.Event;
  * @author Alexander Semelit
  *
  */
-public interface WgrepOutput {
+public interface WgrepOutput<E, V> {
 
 	/**
 	 * Refreshes filters/filtering params by some criteria.
 	 * 
 	 * @param criteria Something that can be used for config refreshing. Filename for example
 	 */
-	void refreshFilters(Object criteria);
+	void refreshFilters(V criteria);
 	
 	/**
 	 * Ensures that event is correctly printed to output. Nothing more or less.
@@ -29,7 +29,7 @@ public interface WgrepOutput {
 	 * 
 	 * @param data Data to be printed
 	 */
-	void printToOutput(Object data);
+	void printToOutput(E data);
 	
 	/**
 	 * 

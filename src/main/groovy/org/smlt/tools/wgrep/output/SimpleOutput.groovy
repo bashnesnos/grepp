@@ -15,7 +15,7 @@ import org.smlt.tools.wgrep.filters.FilterBase
  */
 
 @Slf4j
-public class SimpleOutput implements WgrepOutput {
+public class SimpleOutput implements WgrepOutput<Object, String> {
 	
 	protected PrintWriter printer;
 	protected FilterChainFactory filterFactory;
@@ -42,10 +42,9 @@ public class SimpleOutput implements WgrepOutput {
 	}
 
 	@Override
-	public void refreshFilters(Object criteria) {
-		if (criteria instanceof String) {
+	public void refreshFilters(String criteria) {
 			try {
-				if (filterFactory.refreshConfigByFile((String) criteria))
+				if (filterFactory.refreshConfigByFile(criteria))
 				{
 					filterChain = filterFactory.createFilterChain()
 				}
@@ -53,7 +52,6 @@ public class SimpleOutput implements WgrepOutput {
 			catch(IllegalArgumentException e) {
 				e.printStackTrace(printer)
 			}
-		}
 	}
 	
 	@Override
@@ -62,7 +60,7 @@ public class SimpleOutput implements WgrepOutput {
 	}
 
 	protected void printNotFiltered(Object data) {
-		if ( data != null)
+		if (data != null)
 		{
 			printer.println(data)
 		}
