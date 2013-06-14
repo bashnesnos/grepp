@@ -12,6 +12,7 @@
 		<opt field="SPOOLING" handler="setParam">s</opt>
 		<opt field="FILE_MERGING" handler="setParam">m</opt>
 		<opt field="USER_ENTRY_PATTERN" handler="setUserLEPattern">L</opt>
+		<opt field="PARSE_PROPERTIES" handler="setParseProperties">p</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">c</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">a</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">f</opt>

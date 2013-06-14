@@ -1,9 +1,10 @@
-import groovy.xml.MarkupBuilder
-import groovy.util.logging.Slf4j
-import java.util.regex.*
+package org.smlt.tools.wgrep.filters.entry
 
-@Slf4j
-class WgrepConfigParserImpl {
+import groovy.xml.MarkupBuilder
+import java.util.regex.*
+import org.smlt.tools.wgrep.filters.FilterBase
+
+class PropertiesFilter extends FilterBase<String> {
 	//CW stands for Conversion Word
 	private static String CW_STARTER = "%"
 	private static String CW_OPTION_START = "\\{"
@@ -88,8 +89,9 @@ class WgrepConfigParserImpl {
 
 	private CustomConfigXmlBuilder builder
 	private List<String> configs = []
+	private def result = null
 
-	public static String[] groupSplit(String input, Pattern splitter) {
+	public String[] groupSplit(String input, Pattern splitter) {
 		List<String> result = []
 		Matcher mtchr = splitter.matcher(input)
 		int regionStart = 0
@@ -104,7 +106,7 @@ class WgrepConfigParserImpl {
 		return result.toArray(new String[0])
 	}
 
-	public static String escapeCharForRegex(String input) {
+	public String escapeCharForRegex(String input) {
 		Matcher charReplacer = REGEX_CHAR_PTRN.matcher(input)
 		StringBuffer sb = new StringBuffer()
 		while (charReplacer.find()) {
@@ -268,12 +270,22 @@ class WgrepConfigParserImpl {
 		}
 	}
 
-	public WgrepConfigParserImpl(){
-		builder = new CustomConfigXmlBuilder()
-	}
+	@Override
+    public boolean check(String blockData)
+    {
+    	result = null //invalidating result first
+    	result = parseConfig(blockData)
+    	return result != null
+    }
 
-	public static void main(String[] args) {
+	@Override
+    public void beforePassing(String blockData)
+    {
+    	passingVal = result
+    }
 
+	public PropertiesFilter(FilterBase<String> nextFilter_){
+        super(nextFilter_, PropertiesFilter.class)
 	}
 
 	class CustomConfigXmlBuilder {
@@ -322,42 +334,23 @@ class WgrepConfigParserImpl {
 			if (idVal == null || idVal == "") //pointless to create if config doesn't have an identifier
 				return null
 
-			xml.config("id":idVal) {
-					if (dateFormatVal != null)
-						date_format(dateFormatVal)
-					if (dateVal != null)
-						date("(" + dateVal + ")")
-					if (starterVal != null)
-						starter(starterVal + ".*")
-					if (logThresholdVal != null)
-						log_threshold(logThresholdVal)
-					if (patternVal != null)
-						pattern(patternVal)
+			xml.config("id":idVal, 'xmlns':"http://www.smltools.org/config") {
+				if (dateFormatVal != null)
+					date_format(dateFormatVal)
+				if (dateVal != null)
+					date("(" + dateVal + ")")
+				if (starterVal != null)
+					starter(starterVal + ".*")
+				if (logThresholdVal != null)
+					log_threshold(logThresholdVal)
+				if (patternVal != null)
+					pattern(patternVal)
 			}
 			return writer.toString()
 
 		}
 	}
 }
-
-def configString = """\
-log4j.logger.com.netcracker.solutions.tnz.cwms=DEBUG, CWMSGlobal
-log4j.appender.CWMSGlobal=org.apache.log4j.RollingFileAppender
-log4j.appender.CWMSGlobal.File=logs/cwms_debug_\${weblogic.Name}.log
-log4j.appender.CWMSGlobal.MaxFileSize=50MB
-log4j.appender.CWMSGlobal.MaxBackupIndex=20
-log4j.appender.CWMSGlobal.layout=org.apache.log4j.PatternLayout
-log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601} %t %c - %n%m%n
-"""
-
-WgrepConfigParserImpl parser = new WgrepConfigParserImpl()
-
-
-
-//println parser.parseLogEntryPtrn("%.30d{ABSOLUTE}")
-//println parser.parseFileConfig("common_integration_component_debug.log")
-println parser.parseConfig(configString)
-//println WgrepConfigParserImpl.dateOptionConverter("dd MMM yyyy HH:mm:ss,SSS")
 
 
 

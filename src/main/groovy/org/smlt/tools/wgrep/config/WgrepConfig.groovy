@@ -22,6 +22,7 @@ class WgrepConfig {
 
 	//internal
 	protected def configValidator
+	protected String configFilePath
 	protected Document cfgDoc = null
 	protected Element root = null
 	//GLOBAL
@@ -79,6 +80,7 @@ class WgrepConfig {
 	}
 	
 	protected void initConfig(String configFilePath) {
+		this.configFilePath = configFilePath
 		this.cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
 		this.root = cfgDoc.documentElement
 		loadDefaults()
@@ -415,6 +417,12 @@ class WgrepConfig {
 	}
 
 	protected void setPropertiesParsing(String field, def val) 
+	{
+		filterParser.unsubscribe()
+		setParam(field, val)
+	}
+
+	protected void setParseProperties(String field, def val)
 	{
 		filterParser.unsubscribe()
 		setParam(field, val)

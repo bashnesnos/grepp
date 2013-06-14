@@ -4,6 +4,9 @@ import org.smlt.tools.wgrep.config.*
 import org.smlt.tools.wgrep.filters.FilterChainFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import groovy.util.logging.Slf4j;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 
 @Slf4j
 class OutputFactory extends ModuleBase {
@@ -20,16 +23,19 @@ class OutputFactory extends ModuleBase {
 		filterFactory = filterFactory_
 	}
 		
-	public WgrepOutput getOutputInstance() {
+	public WgrepOutput<?,?> getOutputInstance() {
 		PrintWriter printer = null;
+		if (getParam('PARSE_PROPERTIES') != null) {
+			return new ConfigOutput(filterFactory, getParam("configFilePath"))
+		}
 		if (getParam('SPOOLING') != null) {
 			printer = getFilePrinter()
-			return new SimpleOutput(filterFactory, printer, false)
+			return new SimpleOutput(filterFactory, printer)
 		}
 		else
 		{
 			printer = getConsolePrinter()
-			return new SimpleOutput(filterFactory, printer, true)
+			return new SimpleOutput(filterFactory, printer)
 		}
 	}
 	

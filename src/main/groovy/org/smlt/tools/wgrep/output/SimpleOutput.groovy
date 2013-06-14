@@ -19,14 +19,12 @@ public class SimpleOutput implements WgrepOutput<Object, String> {
 	
 	protected PrintWriter printer;
 	protected FilterChainFactory filterFactory;
-	protected ingoreClose = false;
 	protected FilterBase filterChain;
 	
-	SimpleOutput(FilterChainFactory filterFactory_, PrintWriter printer_, boolean ignoreClose) {
+	SimpleOutput(FilterChainFactory filterFactory_, PrintWriter printer_) {
 		filterFactory = filterFactory_
 		printer = printer_
 		filterChain = filterFactory.createFilterChain()
-
 	}
 	
 	@Override
@@ -36,7 +34,7 @@ public class SimpleOutput implements WgrepOutput<Object, String> {
 
 	@Override
 	public void closeOutput() {
-		if (!ingoreClose) {
+		if (printer != null) {
 			printer.close();
 		}
 	}
@@ -50,7 +48,7 @@ public class SimpleOutput implements WgrepOutput<Object, String> {
 				}
 			}
 			catch(IllegalArgumentException e) {
-				e.printStackTrace(printer)
+				log.debug(e)
 			}
 	}
 	

@@ -3,12 +3,8 @@ package org.smlt.tools.wgrep.filters
 import groovy.util.logging.Slf4j;
 
 import org.smlt.tools.wgrep.config.ModuleBase;
-import org.smlt.tools.wgrep.filters.entry.ComplexFilter;
-import org.smlt.tools.wgrep.filters.entry.EntryDateFilter;
-import org.smlt.tools.wgrep.filters.entry.LogEntryFilter;
-import org.smlt.tools.wgrep.filters.entry.PostFilter;
-import org.smlt.tools.wgrep.filters.logfile.FileDateFilter;
-import org.smlt.tools.wgrep.filters.logfile.FileSortFilter;
+import org.smlt.tools.wgrep.filters.entry.*;
+import org.smlt.tools.wgrep.filters.logfile.*;
 
 /**
  * Class which provide factory methods for filter chain creating. <br>
@@ -37,16 +33,21 @@ class FilterChainFactory extends ModuleBase {
 	FilterBase createFilterChain() {
 		FilterBase filterChain_ = null
 
-		if (check(['POST_PROCESSING'], ['POST_PROCESS_PARAMS'])) {
-			filterChain_ = new PostFilter(filterChain_, getParam('POST_PROCESS_PARAMS'))
+		if (checkParamIsEmpty('PARSE_PROPERTIES')) {
+			if (check(['POST_PROCESSING'], ['POST_PROCESS_PARAMS'])) {
+				filterChain_ = new PostFilter(filterChain_, getParam('POST_PROCESS_PARAMS'))
+			}
+	
+			if (check(['DATE_TIME_FILTER', 'LOG_DATE_PATTERN', 'LOG_DATE_FORMAT'], ['FROM_DATE', 'TO_DATE'])) {
+					filterChain_ = new EntryDateFilter(filterChain_, getParam('LOG_DATE_PATTERN'), getParam('LOG_DATE_FORMAT'), getParam('FROM_DATE'), getParam('TO_DATE'))
+			}
+	
+			if (check(['FILTER_PATTERN'], ['PRESERVE_THREAD', 'PRESERVE_THREAD_PARAMS'])) {
+				filterChain_ = new ComplexFilter(filterChain_, getParam('FILTER_PATTERN'), getParam('PRESERVE_THREAD_PARAMS'))
+			}
 		}
-
-		if (check(['DATE_TIME_FILTER', 'LOG_DATE_PATTERN', 'LOG_DATE_FORMAT'], ['FROM_DATE', 'TO_DATE'])) {
-				filterChain_ = new EntryDateFilter(filterChain_, getParam('LOG_DATE_PATTERN'), getParam('LOG_DATE_FORMAT'), getParam('FROM_DATE'), getParam('TO_DATE'))
-		}
-
-		if (check(['FILTER_PATTERN'], ['PRESERVE_THREAD', 'PRESERVE_THREAD_PARAMS'])) {
-			filterChain_ = new ComplexFilter(filterChain_, getParam('FILTER_PATTERN'), getParam('PRESERVE_THREAD_PARAMS'))
+		else {
+			filterChain_ = new PropertiesFilter(filterChain_)
 		}
 
 		if (!checkParamIsEmpty('LOG_ENTRY_PATTERN')) {

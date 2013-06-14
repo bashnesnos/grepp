@@ -4,11 +4,10 @@ import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.FilterChainFactory
 import org.smlt.tools.wgrep.filters.FilterBase
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
 import org.w3c.dom.Element
-
+import groovy.xml.DOMBuilder
+import groovy.xml.dom.DOMCategory
+import groovy.xml.XmlUtil
 
 /**
  * 
@@ -19,58 +18,51 @@ import org.w3c.dom.Element
  */
 
 @Slf4j
-final class ConfigOutput implements WgrepOutput<Element, Object>, BeanFactoryAware  {
+final class ConfigOutput extends SimpleOutput {
 	
-	private BeanFactory beanFactory;
-	private File configFile;
+	private String configFilePath;
 	private def cfgDoc
-	private def root;
+	private def root
+	private DOMBuilder domBuilder
 	
-	public void setBeanFactory(BeanFactory beanFactory) throws BeansException 
+	public ConfigOutput(FilterChainFactory filterFactory_, String configFile_) 
 	{
-    	this.beanFactory = beanFactory;
-    	configFile = beanFactory.getBean("configFactory").getConfigFile().getFile()
-    	cfgDoc = DOMBuilder.parse(new FileReader(configFile))
-        root = cfgDoc.documentElement
-   	}
-	/**
-	 * Refreshes filters/filtering params by some criteria.
-	 * 
-	 * @param criteria Something that can be used for config refreshing. Filename for example
-	 */
-	void refreshFilters(Object criteria) {
-		throw new UnsupportedOperationException()
-	}
-	
-	/**
-	 * Ensures that event is correctly printed to output. Nothing more or less.
-	 * 
-	 * @param event Event to be printed
-	 */
-	void processEvent(Event event) {
-		throw new UnsupportedOperationException()
-	}
-	
-	/**
-	 * Ensures that data is printed to output. Nothing more or less.
-	 * 
-	 * @param data Data to be printed
-	 */
-	void printToOutput(Element data) {
-	        use(DOMCategory) {
-	        	root.custom.appendChild(data)
-        	}
-			cfgDoc.normalizeDocument()
-			XmlUtil.serialize(data, new FileWriter(configFile))			
-	}
-	
-	/**
-	 * 
-	 * Releases output resources
-	 * 
-	 */
-	void closeOutput() {
+    	super(filterFactory_, null)
+    	domBuilder = DOMBuilder.newInstance(false, true) 
+    	configFilePath = configFile_
+    	if (configFilePath != null) {
+    		cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
+        	root = cfgDoc.documentElement
+    	}
+    	else throw new IllegalArgumentException("Config file is null")
 
+   	}
+
+
+	@Override
+	protected void printNotFiltered(Object data) {
+		if (data instanceof StringBuilder || data instanceof String)
+		{
+			def customConfig = domBuilder.parseText(data.toString()).documentElement
+			def configId = ""
+	        use(DOMCategory) {
+	        	configId = customConfig.'@id'
+	        	def existing = root.custom.config.find { it.'@id' == configId }
+	        	if (existing == null) {
+	        		def importedNode = cfgDoc.importNode(customConfig, true)
+					root.custom[0].insertBefore(importedNode, root.custom.config[0])
+					cfgDoc.normalizeDocument()
+					XmlUtil.serialize(root, new FileWriter(configFilePath))
+	        	}
+	        	else {
+	        		log.debug("Config exists")
+	        	}
+	       	}
+			log.debug("Config {} parsed", configId)			
+		}
+		else {
+			log.debug("No custom config found")
+		}
 	}
-	
+
 }

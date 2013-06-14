@@ -5,8 +5,8 @@ import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 import org.smlt.tools.wgrep.config.varparsers.*
 import org.smlt.tools.wgrep.util.WgrepUtil
-
-
+import org.smlt.tools.wgrep.filters.entry.PropertiesFilter
+import groovy.xml.DOMBuilder
 import javax.xml.XMLConstants
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
@@ -26,12 +26,61 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 
 //println WGREP_CONFIG
 //println WGREP_CONFIG_XSD
-			WGrep.main((String[]) ["-ft",
-				"--avg_timings",
-				HOME+"\\processing_report_test.log"])
+//			WGrep.main((String[]) ["-ft",
+				//"--avg_timings",
+				//HOME+"\\processing_report_test.log"])
 
-			//WGrep.main((String[]) ["-ft",
-			//	"--avg_timings",
-			//	HOME+"\\processing_report_test.log"])
+//WGrep.main("-t -L log4j.logger -p $HOME\\test.properties".split(" "))
+
+		def configString = """\
+log4j.logger.com.netcracker.solutions.tnz.cwms=DEBUG, CWMSGlobal
+log4j.appender.CWMSGlobal=org.apache.log4j.RollingFileAppender
+log4j.appender.CWMSGlobal.File=logs/cwms_debug_\${weblogic.Name}.log
+log4j.appender.CWMSGlobal.MaxFileSize=50MB
+log4j.appender.CWMSGlobal.MaxBackupIndex=20
+log4j.appender.CWMSGlobal.layout=org.apache.log4j.PatternLayout
+log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601} %t %c - %n%m%n
+"""
+		def expectedResult = """\
+<config id='cwms_debug_'>
+  <date_format>yyyy-MM-dd HH:mm:ss,SSS</date_format>
+  <date>(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})</date>
+  <starter>\\#\\#\\#\\#\\[[TRACEDBUGINFOWLSV]* *\\].*</starter>
+  <log_threshold>0</log_threshold>
+  <pattern>cwms_debug_.*\\.log</pattern>
+</config>"""	
+		def propFilter = new PropertiesFilter(null)
+		println propFilter.filter(configString)
+
+//		def data = """\
+//<config id='cwms_debug_'>
+//  <date_format>yyyy-MM-dd HH:mm:ss,SSS</date_format>
+//  <date>(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})</date>
+//  <starter>\\#\\#\\#\\#\\[[TRACEDBUGINFOWLSV]* *\\].*</starter>
+//  <log_threshold>0</log_threshold>
+//  <pattern>cwms_debug_.*\\.log</pattern>
+//</config>"""
+//
+//		def customConfig = DOMBuilder.newInstance(false, false).parseText(data.toString()).documentElement
+//		println customConfig
+//		def cfgDoc = DOMBuilder.parse(new FileReader(WGREP_CONFIG))
+//		def root = cfgDoc.documentElement
+//		use(DOMCategory) {
+//			def configId = customConfig.'@id'
+//			println configId
+//			println customConfig.config[0]
+////			def config = root.custom.config.find { it.'@id' == configId }
+////			println config
+////			println config.hasAttribute("xmlns")
+//			println customConfig.hasAttribute("xmlns")
+//			def importedNode = cfgDoc.importNode(customConfig, true)
+//	        println importedNode
+//	        println importedNode.hasAttribute("xmlns")
+//	        importedNode.removeAttribute("xmlns") //it is appearing by default
+//	        println importedNode.hasAttribute("xmlns")
+//					//root.custom[0].insertBefore(importedNode, root.custom.config[0])	
+//		}
+
+
 //println actualResult.toString()
 //println expectedResult == actualResult.toString()
