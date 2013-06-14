@@ -50,6 +50,11 @@ final class ConfigOutput extends SimpleOutput {
 	        	def existing = root.custom.config.find { it.'@id' == configId }
 	        	if (existing == null) {
 	        		def importedNode = cfgDoc.importNode(customConfig, true)
+	        		if (root.custom[0] == null) { //creating custom element
+	        			def custom = root.createElement("custom")
+	        			custom.setAttribute("id", configId)
+	        			root.appendChild(custom)
+	        		}
 					root.custom[0].insertBefore(importedNode, root.custom.config[0])
 					cfgDoc.normalizeDocument()
 					XmlUtil.serialize(root, new FileWriter(configFilePath))
