@@ -58,12 +58,7 @@ class WGrepTest extends GroovyTestCase {
 	}
 
 	void testMainVarsProcessing() {
-		config.processInVars([
-			"-L",
-			"test",
-			"test",
-			HOME+"\\fpTest*"
-		])
+		config.processInVars("-L test test $HOME\\fpTest*".split(" "))
 		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "test" )
 		assertTrue( config.getParam('FILTER_PATTERN') == "test" )
 		assertTrue( config.getParam('FILES') == [
@@ -73,11 +68,7 @@ class WGrepTest extends GroovyTestCase {
 	}
 	
 	void testConfigsProcessing() {
-		config.processInVars([
-			"--to_test",
-			"--predef",
-			HOME+"\\fpTest*"
-		])
+		config.processInVars("--to_test --predef $HOME\\fpTest*".split(" "))
 		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "####\\[\\D{1,}\\].*(\\d{4}-\\d{1,2}-\\d{1,2} \\d{2}:\\d{2}:\\d{2})" )
 		assertTrue( config.getParam('FILTER_PATTERN') == "Something::" )
 		assertTrue( config.getParam('FILES') == [
@@ -88,35 +79,18 @@ class WGrepTest extends GroovyTestCase {
 
 	void testExtendedPatternProcessing() {
 
-		config.processInVars([
-			"-L",
-			"test",
-			"test%and%tets",
-			HOME+"\\test*"
-		])
+		config.processInVars("-L test test%and%tets $HOME\\test*".split(" "))
 		assertTrue( config.getParam('FILTER_PATTERN') == "test%and%tets" )
 	}
 
 	void testComplexVarsProcessing() {
 
-		config.processInVars([
-			"-L",
-			"test",
-			"test",
-			"--dtime",
-			"2013-01-25T12:00:00",
-			"+",
-			HOME+"\\test*"
-		])
+		config.processInVars("-L test test --dtime 2013-01-25T12:00:00 + $HOME\\test*".split(" "))
 		assertTrue( config.getParam('DATE_TIME_FILTER') == "dtime" )
 	}
 
 	void testAutomationProcessing() {
-		config.processInVars([
-			"-e",
-			"test",
-			HOME+"\\fpTest_*"
-		])
+		config.processInVars("-e test $HOME\\fpTest_*".split(" "))
 		config.refreshConfigByFile(config.getParam('FILES')[0])
 		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
 		assertTrue( config.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
@@ -124,13 +98,7 @@ class WGrepTest extends GroovyTestCase {
 
 	void testMoreComplexVarsProcessing() {
 
-		config.processInVars([
-			"-sL",
-			"stCommand",
-			"queryTime",
-			"--some_timings",
-			"cmd_only_1.log"
-		])
+		config.processInVars("-sL stCommand queryTime --some_timings cmd_only_1.log".split(" "))
 		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
 		assertTrue( config.getParam('FILTER_PATTERN') == "queryTime" )
 		assertTrue( config.getParam('FILES') == [new File("cmd_only_1.log")])
@@ -157,11 +125,7 @@ Voo
 #complex"""
 		
 		assertWgrepOutput(expectedResult) {
-			WGrep.main((String[]) [
-				"-e",
-				"Foo",
-				HOME+"\\processing_test.log"
-			])
+			WGrep.main("-e Foo $HOME\\processing_test.log".split(" "))
 		}
 	}
 
@@ -172,10 +136,8 @@ Voo
 Foo Man Chu
 #basic"""
 		assertWgrepOutput(expectedResult) {
-			WGrep.main((String[]) [
-				"Foo%and%Man Chu%or%#basic",
-				HOME+"\\processing_test.log"
-			])
+			WGrep.main((String[]) ["Foo%and%Man Chu%or%#basic" //don't need to split here
+				, "$HOME\\processing_test.log"])
 		}
 	}
 
@@ -190,10 +152,7 @@ Foo Man Chu
 #basic"""
 		
 		assertWgrepOutput(expectedResult) {
-			WGrep.main((String[]) [
-				"Foo",
-				HOME+"\\processing_test.log"
-			])
+			WGrep.main("Foo $HOME\\processing_test.log".split(" "))
 		}
 	}
 
@@ -209,13 +168,7 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertWgrepOutput(expectedResult) {
-			WGrep.main((String[]) [
-				"Foo",
-				"--dtime",
-				testTimeStringFrom,
-				"+60",
-				HOME+"\\processing_time_test.log"
-			])
+			WGrep.main("Foo --dtime $testTimeStringFrom +60 $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -234,13 +187,7 @@ ${logDateFormat.format(new Date(fileTime.getTime() + 3*60*60*1000))}:05:56,951 [
 Foo Man Chu
 #basic"""
 		assertWgrepOutput(expectedResult) {
-			WGrep.main((String[]) [
-				"Foo",
-				"--dtime",
-				testTimeStringFrom,
-				"+",
-				HOME+"\\processing_time_test.log"
-			])
+			WGrep.main("Foo --dtime $testTimeStringFrom + $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -256,13 +203,7 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertWgrepOutput(expectedResult) {
-			WGrep.main((String[]) [
-				"--foo",
-				"--dtime",
-				"+",
-				testTimeStringTo,
-				HOME+"\\processing_time_test.log"
-			])
+			WGrep.main("--foo --dtime + $testTimeStringTo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -274,11 +215,7 @@ Foo,3
 Koo,1"""
 
 		assertWgrepOutput(expectedResult) {
-			WGrep.main((String[]) [
-				"--f",
-				"--some_timings",
-				HOME+"\\processing_report_test.log"
-			])
+			WGrep.main("--f --some_timings $HOME\\processing_report_test.log".split(" "))
 		}
 	}
 
@@ -290,9 +227,7 @@ Foo,150
 Koo,200
 """
 		assertWgrepOutput(expectedResult) {
-			WGrep.main((String[]) ["-f",
-				"--avg_timings",
-				HOME+"\\processing_report_test.log"])
+			WGrep.main("-f --avg_timings $HOME\\processing_report_test.log".split(" "))
 		}
 	}
 
@@ -307,11 +242,7 @@ Foo Man Chu
 #basic"""
 		
 		assertWgrepOutput(expectedResult) {
-			WGrep.main((String[]) [
-				"Foo",
-				HOME+"\\processing_test.log",
-				HOME+"\\fpTest_test.log"
-			])
+			WGrep.main("Foo $HOME\\processing_test.log $HOME\\fpTest_test.log".split(" "))
 		}
 	}
 

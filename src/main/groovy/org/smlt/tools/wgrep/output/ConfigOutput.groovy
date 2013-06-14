@@ -51,8 +51,7 @@ final class ConfigOutput extends SimpleOutput {
 	        	if (existing == null) {
 	        		def importedNode = cfgDoc.importNode(customConfig, true)
 	        		if (root.custom[0] == null) { //creating custom element
-	        			def custom = root.createElement("custom")
-	        			custom.setAttribute("id", configId)
+	        			def custom = cfgDoc.createElement("custom")
 	        			root.appendChild(custom)
 	        		}
 					root.custom[0].insertBefore(importedNode, root.custom.config[0])
