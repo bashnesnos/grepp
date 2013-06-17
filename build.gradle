@@ -194,7 +194,16 @@ def mergeConfig(def origin, def toMerge, def target) {
         def customDoc = DOMBuilder.parse(new FileReader(mergeFile))
         def root = cfgDoc.documentElement
         use(DOMCategory) {
-            root.appendChild(cfgDoc.importNode(customDoc.documentElement.custom[0], true))
+            def origCustomNode = root.custom[0]
+            def mergingCustomNode = customDoc.documentElement.custom[0]
+            if (origCustomNode == null) {
+                root.appendChild(cfgDoc.importNode(mergingCustomNode, true))
+            }
+            else {
+                mergingCustomNode.children().each {
+                    origCustomNode.appendChild(cfgDoc.importNode(it, true))
+                }
+            }
         }
         cfgDoc.normalizeDocument()
         if (target == null) { //merging into origin

@@ -26,7 +26,7 @@ class FileDateFilter extends FilterBase<List<File>>
     protected List INPUT_DATE_PTTRNS = []
     protected Date FROM_DATE = null
     protected Date TO_DATE = null
-    protected int LOG_FILE_THRESHOLD = 24
+    protected int LOG_FILE_THRESHOLD = -1 //means no threshold at all
     protected int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
 
     FileDateFilter(FilterBase<List<File>> nextFilter_, String fileDateFormat, Date fromDate, Date toDate, Integer logFileThreshold )
@@ -90,7 +90,7 @@ class FileDateFilter extends FilterBase<List<File>>
                 if (TO_DATE.compareTo(fileTime) < 0)
                 {
                     log.trace("Passed TO_DATE")
-                    if (fileTime.before(new Date(TO_DATE.getTime() + LOG_FILE_THRESHOLD*LOG_FILE_THRESHOLD_MLTPLR))) return file
+                    if ((LOG_FILE_THRESHOLD == -1) || fileTime.before(new Date(TO_DATE.getTime() + LOG_FILE_THRESHOLD*LOG_FILE_THRESHOLD_MLTPLR))) return file
                     else
                     {
                         log.trace("File is too far")

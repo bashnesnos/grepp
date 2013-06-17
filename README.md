@@ -12,5 +12,4 @@ Each of those will be applied for packaging via "gradle installDev" or "gradle i
 
 TODO:
 Check for redundant Pattern.compile() calls in ComplexFilter
-WgrepConfigParser desires test suite
 Total clean-up and encapsulation checks

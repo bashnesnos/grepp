@@ -12,7 +12,7 @@
 		<opt field="SPOOLING" handler="setParam">s</opt>
 		<opt field="FILE_MERGING" handler="setParam">m</opt>
 		<opt field="USER_ENTRY_PATTERN" handler="setUserLEPattern">L</opt>
-		<opt field="PARSE_PROPERTIES" handler="setParseProperties">p</opt>
+		<opt field="PARSE_PROPERTIES" handler="setParseProperties">parse</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">c</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">a</opt>
 		<opt field="ATMTN_LEVEL" handler="setAutomation">f</opt>
@@ -44,4 +44,10 @@
 			<pattern id="INPUT_DATE_TIME_FORMAT_m" order="5" tags="dtime">yyyy-MM</pattern>
 			<pattern id="INPUT_DATE_TIME_FORMAT_Y" order="6" tags="dtime">yyyy</pattern>
 	</date_time_config>
+	<custom>
+	    <config id="properties">
+  			<starter>log4j.logger</starter>
+  			<pattern>.*\.properties</pattern>
+		</config>
+	</custom>
 </root>

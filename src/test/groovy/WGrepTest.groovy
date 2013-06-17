@@ -261,7 +261,6 @@ log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601
   <date_format>yyyy-MM-dd HH:mm:ss,SSS</date_format>
   <date>(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})</date>
   <starter>\\#\\#\\#\\#\\[[TRACEDBUGINFOWLSV]* *\\].*</starter>
-  <log_threshold>0</log_threshold>
   <pattern>cwms_debug_.*\\.log</pattern>
 </config>"""	
 		def propFilter = new PropertiesFilter(null)
@@ -270,7 +269,7 @@ log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601
 
 	void testPropertiesProcessing() {
 
-		WGrep.main("-L log4j.logger -p $HOME\\test.properties".split(" "))
+		WGrep.main("--parse $HOME\\test.properties".split(" "))
 		def cfgDoc = DOMBuilder.parse(new FileReader(WGREP_CONFIG))
 		def root = cfgDoc.documentElement
 		use(DOMCategory) {
@@ -279,7 +278,6 @@ log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601
 			assertTrue(config.date_format.text() == "yyyy-MM-dd HH:mm:ss,SSS")
 			assertTrue(config.date.text() == "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})")
 			assertTrue(config.starter.text() == "\\#\\#\\#\\#\\[[TRACEDBUGINFOWLSV]* *\\].*")
-			assertTrue(config.log_threshold.text() == "0")
 			assertTrue(config.pattern.text() == "cwms_debug_.*\\.log")
 		}
 
