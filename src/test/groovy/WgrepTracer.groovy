@@ -32,25 +32,8 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 
 //WGrep.main("-t -L log4j.logger -p $HOME\\test.properties".split(" "))
 
-		def configString = """\
-log4j.logger.com.netcracker.solutions.tnz.cwms=DEBUG, CWMSGlobal
-log4j.appender.CWMSGlobal=org.apache.log4j.RollingFileAppender
-log4j.appender.CWMSGlobal.File=logs/cwms_debug_\${weblogic.Name}.log
-log4j.appender.CWMSGlobal.MaxFileSize=50MB
-log4j.appender.CWMSGlobal.MaxBackupIndex=20
-log4j.appender.CWMSGlobal.layout=org.apache.log4j.PatternLayout
-log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601} %t %c - %n%m%n
-"""
-		def expectedResult = """\
-<config id='cwms_debug_'>
-  <date_format>yyyy-MM-dd HH:mm:ss,SSS</date_format>
-  <date>(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})</date>
-  <starter>\\#\\#\\#\\#\\[[TRACEDBUGINFOWLSV]* *\\].*</starter>
-  <log_threshold>0</log_threshold>
-  <pattern>cwms_debug_.*\\.log</pattern>
-</config>"""	
-		def propFilter = new PropertiesFilter(null)
-		println propFilter.filter(configString)
+WGrep.main("-t Foo $HOME\\processing_test.log $HOME\\fpTest_test.log".split(" "))
+
 
 //		def data = """\
 //<config id='cwms_debug_'>

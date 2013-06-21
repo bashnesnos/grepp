@@ -52,16 +52,16 @@ class PropertiesFilter extends FilterBase<String> {
 	}										 		
 
 	private static Map<Set<String>, List<String>> ConversionLayoutToRegex = [
-		(WgrepConfigParserImpl.LOG_LEVEL_CW):LOG_LEVEL_REGEX,
-		(WgrepConfigParserImpl.CLASSNAME_CW):CLASSNAME_REGEX,
-		(WgrepConfigParserImpl.FILENAME_CW):FILENAME_REGEX,
-		(WgrepConfigParserImpl.DATE_CW):NOT_VALUABLE_REGEX,
-		(WgrepConfigParserImpl.NUMBER_CW):NUMBER_REGEX,
-		(WgrepConfigParserImpl.NOT_VALUABLE_CW):NOT_VALUABLE_REGEX
+		(PropertiesFilter.LOG_LEVEL_CW):LOG_LEVEL_REGEX,
+		(PropertiesFilter.CLASSNAME_CW):CLASSNAME_REGEX,
+		(PropertiesFilter.FILENAME_CW):FILENAME_REGEX,
+		(PropertiesFilter.DATE_CW):NOT_VALUABLE_REGEX,
+		(PropertiesFilter.NUMBER_CW):NUMBER_REGEX,
+		(PropertiesFilter.NOT_VALUABLE_CW):NOT_VALUABLE_REGEX
 	]
 
 	private static Map<Set<String>, List<String>> ConversionOptionSpecialConverters = [
-		(WgrepConfigParserImpl.DATE_CW):"applyDateConversionOption"
+		(PropertiesFilter.DATE_CW):"applyDateConversionOption"
 	]
 
 	private static String ABSOLUTE_DATE_OPTION = "ABSOLUTE"

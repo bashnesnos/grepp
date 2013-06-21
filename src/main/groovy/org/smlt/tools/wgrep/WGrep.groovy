@@ -28,7 +28,7 @@ class WGrep
 		XmlBeanFactory beanFactory = new XmlBeanFactory(springConfig);
 
 		def facade = beanFactory.getBean("wgrepFacade")
-		facade.doProcessing(args)
+		facade.doCLProcessing(args)
 		log.info("Processing time = {} sec", ((new Date().getTime() - startTime.getTime())/1000))
 	}
 

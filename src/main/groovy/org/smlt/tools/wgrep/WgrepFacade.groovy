@@ -17,8 +17,8 @@ class WgrepFacade extends ModuleBase {
 	private DataProcessorFactory dataProcessorFactory
 
 	/**
-	 * Returns <code>FileProcessor</code> instance associated with this facade.
-	 * @return <code>FileProcessor</code>
+	 * Returns <code>DataProcessorFactory</code> instance associated with this facade.
+	 * @return <code>DataProcessorFactory</code>
 	 */
 
 	DataProcessorFactory getDataProcessorFactory()
@@ -34,16 +34,15 @@ class WgrepFacade extends ModuleBase {
 	//General
 
 	/**
-	 * Method to trigger processing of supplied files.
+	 * Method for processing in CLI-style
 	 * Sequence is the following:
 	 * <li>1. Passes supplied arguments to the <code>configInstance</code></li>
-	 * <li>2. Calls <code>moduleInit</code></li>
-	 * <li>3. Performs validation via <code>check</code> method</li>
-	 * <li>4. Calls processing method of initialized FileProcessor</li>
+	 * <li>2. Performs validation via <code>check</code> method</li>
+	 * <li>3. Calls processing method of initialized FileProcessor</li>
 	 * @param args Command-line style arguments
 	 */
 
-	void doProcessing(def args)
+	void doCLProcessing(def args)
 	{
 		try {
 			configInstance.processInVars(args)

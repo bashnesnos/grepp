@@ -40,7 +40,8 @@ class FileSortFilter extends FilterBase<List<File>> {
 	List<File> sortFiles(List<File> files) {
 		if (files == null) return files
 		if (files.size() < 2) return files
-		def fileList = files.clone()
+		List<File> fileList = new ArrayList<File>() 
+		fileList.addAll(files)
 		fileList.sort { it.lastModified() }
 		log.trace("FileList has been sorted.")
 		return fileList

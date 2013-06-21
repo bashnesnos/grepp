@@ -131,7 +131,12 @@ class WgrepConfig {
 	def getParam(String field)
 	{
 		if (field == null) return
-		return hasField(field) ? this."$field" : this.params[field]
+		if (field == 'FILES') {
+			return Collections.unmodifiableList(this."$field")
+		}
+		else {
+			return hasField(field) ? this."$field" : this.params[field]
+		}
 	}
 
 	/**
