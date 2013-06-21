@@ -26,8 +26,14 @@ class DataProcessorFactory extends ModuleBase {
 	 * @param config WgrepConfig instance
 	 * @return new FileProcessor instance
 	 */
-    DataProcessor getProcessorInstance() 
+    DataProcessor<?> getProcessorInstance() 
     {
-        return new FileProcessor(outputFactory.getOutputInstance(), outputFactory.getFilterFactory().createFileFilterChain(), !checkParamIsEmpty('FILE_MERGING'))
+		if (check(['FILES'], null)) {
+			return new FileProcessor(outputFactory.getOutputInstance(), outputFactory.getFilterFactory().createFileFilterChain(), !checkParamIsEmpty('FILE_MERGING'))
+		}
+		else {
+			return new InputStreamProcessor(outputFactory.getOutputInstance())
+		}
+		
     }
 }

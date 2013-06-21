@@ -78,6 +78,7 @@ class FileProcessor implements DataProcessor<List<File>>
         log.info("File ended. Lines processed: {}", curLine)
     }
 
+	@Override
 	public void process(List<File> data) {
         List<File> filteredData = fileFilter.filter(data)
 		if (filteredData != null) {

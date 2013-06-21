@@ -42,14 +42,22 @@ class WgrepFacade extends ModuleBase {
 	 * @param args Command-line style arguments
 	 */
 
-	void doCLProcessing(def args)
+	void doCLProcessing(def args, InputStream input)
 	{
 		try {
 			configInstance.processInVars(args)
-			if (!check(['FILES'], null)) {
+			def data = null
+			if (check(['FILES'], null)) {
+				log.trace("Files were specified")
+				data = getParam('FILES')
+			}
+			else if (input.available() > 0) {
+				data = input
+			}
+			if (data == null) {
 				return
 			}
-			dataProcessorFactory.getProcessorInstance().process(getParam('FILES'))
+			dataProcessorFactory.getProcessorInstance().process(data)
 		}
 		catch(Exception e)
 		{

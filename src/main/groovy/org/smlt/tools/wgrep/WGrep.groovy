@@ -26,9 +26,9 @@ class WGrep
 
 		ClassPathResource springConfig = new ClassPathResource("wgrep-context.xml");
 		XmlBeanFactory beanFactory = new XmlBeanFactory(springConfig);
-
+		
 		def facade = beanFactory.getBean("wgrepFacade")
-		facade.doCLProcessing(args)
+		facade.doCLProcessing(args, System.in)
 		log.info("Processing time = {} sec", ((new Date().getTime() - startTime.getTime())/1000))
 	}
 
