@@ -52,10 +52,9 @@ class FileProcessor implements DataProcessor<List<File>>
     }
 
 	/**
-	 * Method which does processing of one portion of data, which contains lines. <br>
-	 * It is considered to be a File, but could be anything which supports eachLine returning a String.
+	 * Method which does processing of one File, which contains lines. <br>
 	 * 
-	 * @param data Supposed to be a File, or anything that supports eachLine method which returns String
+	 * @param data a File which needs to be processed
 	 */
     void processData(File data)
     {
@@ -66,25 +65,26 @@ class FileProcessor implements DataProcessor<List<File>>
             data.eachLine { String line ->
                 log.trace("curLine: {}", curLine)
                 curLine += 1
-                output.printToOutput(line) //why new Instace() of class org.codehaus.groovy.runtime.callsite.PogoMetaMethodSite here?
+                output.printToOutput(line)
             }
         }
         catch(FilteringIsInterruptedException e) {
             log.trace("No point to read file further as identified by filter chain")
-            output.printToOutput(Event.FLUSH)
+            output.processEvent(Event.FLUSH)
         }
 		
-		if (!isMerging) output.printToOutput(Event.FILE_ENDED)
+		if (!isMerging) output.processEvent(Event.FILE_ENDED)
         log.info("File ended. Lines processed: {}", curLine)
     }
 
+	@Override
 	public void process(List<File> data) {
         List<File> filteredData = fileFilter.filter(data)
 		if (filteredData != null) {
 			filteredData.each {
 				processData(initFile(it))
 			}
-			output.printToOutput(Event.ALL_FILES_PROCESSED)
+			output.processEvent(Event.ALL_FILES_PROCESSED)
 			output.closeOutput()
 		}
 	}

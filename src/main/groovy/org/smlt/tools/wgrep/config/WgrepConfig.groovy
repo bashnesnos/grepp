@@ -22,6 +22,7 @@ class WgrepConfig {
 
 	//internal
 	protected def configValidator
+	protected String configFilePath
 	protected Document cfgDoc = null
 	protected Element root = null
 	//GLOBAL
@@ -58,15 +59,7 @@ class WgrepConfig {
 		loadConfigInternal(configFilePath, configXSDpath)
 	}
 
-	public void loadConfig(String configFilePath) {
-		if (configValidator == null || validateConfigFile(configFilePath)) {
-			initConfig(configFilePath)
-		}
-		else {
-			throw new RuntimeException("config.xml is invalid")
-		}
-	}
-	
+
 	protected void loadConfigInternal(String configFilePath, String configXSDpath) {
 		if (configXSDpath == null || validateConfigFile(configFilePath, configXSDpath)) {
 			initConfig(configFilePath)
@@ -75,22 +68,19 @@ class WgrepConfig {
 			throw new RuntimeException("config.xml is invalid")
 		}
 	}
-
-	protected boolean validateConfigFile(String configFilePath) {
-		log.trace("Validating the config")
-		configValidator.validate(new StreamSource(new FileReader(configFilePath)))
-		return true
-	}
 	
 	protected boolean validateConfigFile(String configFilePath, String configXSDpath) {
 		log.trace("Loading validator")
 		def factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
 		def schema = factory.newSchema(new StreamSource(new FileReader(configXSDpath)))
 		this.configValidator = schema.newValidator()
-		return validateConfigFile(configFilePath)
+		log.trace("Validating the config")
+		configValidator.validate(new StreamSource(new FileReader(configFilePath)))
+		return true
 	}
 	
 	protected void initConfig(String configFilePath) {
+		this.configFilePath = configFilePath
 		this.cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
 		this.root = cfgDoc.documentElement
 		loadDefaults()
@@ -141,7 +131,12 @@ class WgrepConfig {
 	def getParam(String field)
 	{
 		if (field == null) return
-		return hasField(field) ? this."$field" : this.params[field]
+		if (field == 'FILES') {
+			return Collections.unmodifiableList(this."$field")
+		}
+		else {
+			return hasField(field) ? this."$field" : this.params[field]
+		}
 	}
 
 	/**
@@ -426,6 +421,17 @@ class WgrepConfig {
 		new LogEntryParser(this).subscribe()
 	}
 
+	protected void setPropertiesParsing(String field, def val) 
+	{
+		filterParser.unsubscribe()
+		setParam(field, val)
+	}
+
+	protected void setParseProperties(String field, def val)
+	{
+		filterParser.unsubscribe()
+		setParam(field, val)
+	}
 
 	/**
 	 * Method prints out some help
@@ -439,9 +445,7 @@ class WgrepConfig {
 CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
 
 Usage via supplied .bat or .sh file: 
-wgrep [CONFIG_FILE] [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
-
-CONFIG_FILE 		- path to config.xml for wgrep to use. If none is specified, it will be looked up in wgrep classpath
+wgrep [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] [FILENAME [FILENAME]]
 
 option 				- single character represeting a configured in config.xml <opt> element
 
@@ -461,7 +465,7 @@ FROM_DATE/TO_DATE 	- string representing date constraints for current search.
 						If TO_DATE is after FROM_DATE they will be swapped automatically.
 						Usage requires valid date pattern to be configured for such a file in config.xml
 
-FILENAME 			- filename for analysis. Could be multiple, or with wildcard *
+FILENAME 			- filename for analysis. Could be multiple, or with wildcard *. To use input stream contents for analysis do not specify any file names
 
 Examples:
 
@@ -479,6 +483,7 @@ wgrep 'SomethingINeedToFind' myanotherapp.log
 wgrep -s 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 
 wgrep 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' --dtime 2009-09-09T09:00 + thirdapp.log 
 wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
+cat blabla.txt | wgrep -L Chapter 'Once upon a time' > myfavoritechapter.txt
 """
 		println help
 	}

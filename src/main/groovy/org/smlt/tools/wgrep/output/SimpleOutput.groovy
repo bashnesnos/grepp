@@ -1,6 +1,5 @@
 package org.smlt.tools.wgrep.output;
 
-import org.smlt.tools.wgrep.config.ModuleBase
 import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.FilterChainFactory
@@ -16,18 +15,16 @@ import org.smlt.tools.wgrep.filters.FilterBase
  */
 
 @Slf4j
-public class SimpleOutput implements WgrepOutput {
+public class SimpleOutput implements WgrepOutput<Object, String> {
 	
 	protected PrintWriter printer;
 	protected FilterChainFactory filterFactory;
-	protected ingoreClose = false;
 	protected FilterBase filterChain;
 	
-	SimpleOutput(FilterChainFactory filterFactory_, PrintWriter printer_, boolean ignoreClose) {
+	SimpleOutput(FilterChainFactory filterFactory_, PrintWriter printer_) {
 		filterFactory = filterFactory_
 		printer = printer_
 		filterChain = filterFactory.createFilterChain()
-
 	}
 	
 	@Override
@@ -37,33 +34,31 @@ public class SimpleOutput implements WgrepOutput {
 
 	@Override
 	public void closeOutput() {
-		if (!ingoreClose) {
+		if (printer != null) {
 			printer.close();
 		}
 	}
 
 	@Override
-	public void refreshFilters(Object criteria) {
-		if (criteria instanceof String) {
+	public void refreshFilters(String criteria) {
 			try {
-				if (filterFactory.refreshConfigByFile((String) criteria))
+				if (filterFactory.refreshConfigByFile(criteria))
 				{
 					filterChain = filterFactory.createFilterChain()
 				}
 			}
 			catch(IllegalArgumentException e) {
-				e.printStackTrace(printer)
+				log.debug(e)
 			}
-		}
 	}
 	
 	@Override
-	public void printToOutput(Event event) {
+	public void processEvent(Event event) {
 		printNotFiltered(filterChain.processEvent(event))
 	}
 
 	protected void printNotFiltered(Object data) {
-		if ( data != null)
+		if (data != null)
 		{
 			printer.println(data)
 		}

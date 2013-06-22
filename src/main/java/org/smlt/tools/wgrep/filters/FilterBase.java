@@ -47,7 +47,7 @@ public abstract class FilterBase<E> {
 	 *            which is going to be checked
 	 * @return result of {@link this.passNext} method if check passed, null
 	 *         otherwise
-	 * @throws TimeToIsOverduedException
+	 * @throws FilteringIsInterruptedException
 	 * @throws ParseException
 	 */
 
@@ -69,7 +69,7 @@ public abstract class FilterBase<E> {
 	 * @param blockData
 	 *            which is going to be checked
 	 * @return true if data is ok to be passed, false otherwise
-	 * @throws TimeToIsOverduedException
+	 * @throws FilteringIsInterruptedException
 	 * @throws ParseException
 	 */
 
@@ -86,24 +86,25 @@ public abstract class FilterBase<E> {
 	 *            which is ok to be passed further
 	 */
 
-	public void beforePassing(E blockData) {
+	protected void beforePassing(E blockData) {
 
 	}
 
 	/**
 	 * 
 	 * Passes data further in chain. If there is no nextFilter, just returns
-	 * blockData.
-	 * 
-	 * @param blockData
-	 *            which is ok to be passed further
+	 * blockData. By passing it is meant that nextFilter.filter() is called.
+	 * <br>
+	 * If passingVal is not null, it will be passed/returned instead of the blockData
+	 *
+	 * @param blockData which is ok to be passed further
 	 * @return blockData if <code>this</code> is last in chain, result of
 	 *         <code>nextFilter.filter(blockData)</code> otherwise.
 	 * @throws TimeToIsOverduedException
 	 * @throws ParseException
 	 */
 
-	public E passNext(E blockData) throws FilteringIsInterruptedException {
+	protected E passNext(E blockData) throws FilteringIsInterruptedException {
 		log.trace("attempting to pass to next filter");
 		if (nextFilter != null) {
 			log.trace("nextFilter {}", nextFilter.getClass());

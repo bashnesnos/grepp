@@ -26,23 +26,9 @@ class WGrep
 
 		ClassPathResource springConfig = new ClassPathResource("wgrep-context.xml");
 		XmlBeanFactory beanFactory = new XmlBeanFactory(springConfig);
-
-		def argsToParse = args
-		def WGREP_CONFIG = argsToParse[0]
-
-		if (WGREP_CONFIG =~ /config.xml$/) {
-			if (args.size() > 1) {
-				argsToParse = args[1..args.size() - 1] //excluding config.xml file path from parameters		
-			}
-			else {
-				println "Nothing to do except config parsing"
-				return //only config.xml was passed
-			}
-			beanFactory.getBean("configInstance").loadConfig(WGREP_CONFIG)
-		}
-
+		
 		def facade = beanFactory.getBean("wgrepFacade")
-		facade.doProcessing(argsToParse)
+		facade.doCLProcessing(args, System.in)
 		log.info("Processing time = {} sec", ((new Date().getTime() - startTime.getTime())/1000))
 	}
 

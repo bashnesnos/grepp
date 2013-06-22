@@ -11,14 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author Alexander Semelit 
  */
 @Slf4j
-class WgrepFacade extends ModuleBase {
+public class WgrepFacade extends ModuleBase {
 	
 	@Autowired
 	private DataProcessorFactory dataProcessorFactory
 
 	/**
-	 * Returns <code>FileProcessor</code> instance associated with this facade.
-	 * @return <code>FileProcessor</code>
+	 * Returns <code>DataProcessorFactory</code> instance associated with this facade.
+	 * @return <code>DataProcessorFactory</code>
 	 */
 
 	DataProcessorFactory getDataProcessorFactory()
@@ -34,23 +34,31 @@ class WgrepFacade extends ModuleBase {
 	//General
 
 	/**
-	 * Method to trigger processing of supplied files.
+	 * Method for processing in CLI-style
 	 * Sequence is the following:
 	 * <li>1. Passes supplied arguments to the <code>configInstance</code></li>
-	 * <li>2. Calls <code>moduleInit</code></li>
-	 * <li>3. Performs validation via <code>check</code> method</li>
-	 * <li>4. Calls processing method of initialized FileProcessor</li>
+	 * <li>2. Performs validation via <code>check</code> method</li>
+	 * <li>3. Calls processing method of initialized a DataProcessor given by DataProcessorFactory</li>
 	 * @param args Command-line style arguments
+	 * @param input an InputStream containing data to process
 	 */
 
-	void doProcessing(def args)
+	public void doCLProcessing(def args, InputStream input)
 	{
 		try {
 			configInstance.processInVars(args)
-			if (!check(['FILES'], null)) {
+			def data = null
+			if (check(['FILES'], null)) {
+				log.trace("Files were specified")
+				data = getParam('FILES')
+			}
+			else if (input.available() > 0) {
+				data = input
+			}
+			if (data == null) {
 				return
 			}
-			dataProcessorFactory.getProcessorInstance().process(getParam('FILES'))
+			dataProcessorFactory.getProcessorInstance().process(data)
 		}
 		catch(Exception e)
 		{
