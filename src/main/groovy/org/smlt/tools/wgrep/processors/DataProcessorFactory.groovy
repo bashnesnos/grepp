@@ -21,10 +21,9 @@ class DataProcessorFactory extends ModuleBase {
 	}
 
 	/**
-	 * Simple factory method, which takes WgrepConfig instance and initializes appropriate filter chains.       
+	 * Simple factory method, intializes appropriate processors judging by configInstance.       
 	 *        
-	 * @param config WgrepConfig instance
-	 * @return new FileProcessor instance
+	 * @return new DataProcessor instance
 	 */
     DataProcessor<?> getProcessorInstance() 
     {

@@ -17,18 +17,18 @@ import org.smlt.tools.wgrep.util.WgrepUtil;
  *
  */
 
-public class ComplexFilter extends FilterBase<String> {
+final class ComplexFilter extends FilterBase<String> {
 
 	//Complex pattern processing and stuff
-	Pattern currentPattern = null;
-	StringBuilder PATTERN = new StringBuilder("(?ms)"); //for multiline support
-	List<String> EXTNDD_PTTRNS = new ArrayList<String>();
-	Map<String, Qualifier> EXTNDD_PTTRN_DICT = new HashMap<String, Qualifier>();
+	private Pattern currentPattern = null;
+	private StringBuilder PATTERN = new StringBuilder("(?ms)"); //for multiline support
+	private List<String> EXTNDD_PTTRNS = new ArrayList<String>();
+	private Map<String, Qualifier> EXTNDD_PTTRN_DICT = new HashMap<String, Qualifier>();
 
-	List<String> THRD_START_EXTRCTRS;
-	List<String> THRD_START_PTTRNS;
-	List<String> THRD_SKIP_END_PTTRNS;
-	List<String> THRD_END_PTTRNS;
+	private List<String> THRD_START_EXTRCTRS;
+	private List<String> THRD_START_PTTRNS;
+	private List<String> THRD_SKIP_END_PTTRNS;
+	private List<String> THRD_END_PTTRNS;
 
 	/**
 	 * Initializes configInstance, filterPattern and thread coupling config from config.xml
@@ -81,7 +81,7 @@ public class ComplexFilter extends FilterBase<String> {
 	 */
 	
 	@Override
-	public void beforePassing(String blockData) {
+	protected void beforePassing(String blockData) {
 		if (isThreadPreserveEnabled())
 		{
 			extractThreadPatterns(blockData);

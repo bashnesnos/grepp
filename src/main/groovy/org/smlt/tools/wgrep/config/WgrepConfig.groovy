@@ -445,7 +445,7 @@ class WgrepConfig {
 CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
 
 Usage via supplied .bat or .sh file: 
-wgrep [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] FILENAME [FILENAME]
+wgrep [-[:option:]] [--:filter_option:] [-L LOG_ENTRY_PATTERN] [FILTER_PATTERN] [--dtime FROM_DATE TO_DATE] [FILENAME [FILENAME]]
 
 option 				- single character represeting a configured in config.xml <opt> element
 
@@ -465,7 +465,7 @@ FROM_DATE/TO_DATE 	- string representing date constraints for current search.
 						If TO_DATE is after FROM_DATE they will be swapped automatically.
 						Usage requires valid date pattern to be configured for such a file in config.xml
 
-FILENAME 			- filename for analysis. Could be multiple, or with wildcard *
+FILENAME 			- filename for analysis. Could be multiple, or with wildcard *. To use input stream contents for analysis do not specify any file names
 
 Examples:
 
@@ -483,6 +483,7 @@ wgrep 'SomethingINeedToFind' myanotherapp.log
 wgrep -s 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12 2012-12-12T12:12 thirdapp.log 
 wgrep 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' --dtime 2009-09-09T09:00 + thirdapp.log 
 wgrep -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
+cat blabla.txt | wgrep -L Chapter 'Once upon a time' > myfavoritechapter.txt
 """
 		println help
 	}

@@ -52,10 +52,9 @@ class FileProcessor implements DataProcessor<List<File>>
     }
 
 	/**
-	 * Method which does processing of one portion of data, which contains lines. <br>
-	 * It is considered to be a File, but could be anything which supports eachLine returning a String.
+	 * Method which does processing of one File, which contains lines. <br>
 	 * 
-	 * @param data Supposed to be a File, or anything that supports eachLine method which returns String
+	 * @param data a File which needs to be processed
 	 */
     void processData(File data)
     {

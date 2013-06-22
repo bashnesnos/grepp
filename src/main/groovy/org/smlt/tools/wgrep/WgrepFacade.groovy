@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author Alexander Semelit 
  */
 @Slf4j
-class WgrepFacade extends ModuleBase {
+public class WgrepFacade extends ModuleBase {
 	
 	@Autowired
 	private DataProcessorFactory dataProcessorFactory
@@ -38,11 +38,12 @@ class WgrepFacade extends ModuleBase {
 	 * Sequence is the following:
 	 * <li>1. Passes supplied arguments to the <code>configInstance</code></li>
 	 * <li>2. Performs validation via <code>check</code> method</li>
-	 * <li>3. Calls processing method of initialized FileProcessor</li>
+	 * <li>3. Calls processing method of initialized a DataProcessor given by DataProcessorFactory</li>
 	 * @param args Command-line style arguments
+	 * @param input an InputStream containing data to process
 	 */
 
-	void doCLProcessing(def args, InputStream input)
+	public void doCLProcessing(def args, InputStream input)
 	{
 		try {
 			configInstance.processInVars(args)

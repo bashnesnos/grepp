@@ -1,9 +1,8 @@
-<root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
- xmlns="http://www.smltools.org/config"
- xsi:schemaLocation="http://www.smltools.org/config config.xsd">
+<root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.smltools.org/config"
+	xsi:schemaLocation="http://www.smltools.org/config config.xsd">
 	<global>
-        <spooling>.log</spooling>
-        <default_options>-c</default_options>
+		<spooling>.log</spooling>
+		<default_options>-c</default_options>
 	</global>
 	<options>
 		<opt field="VERBOSE" handler="enforceInfo">v</opt>
@@ -21,33 +20,38 @@
 	</options>
 	<pp_config default_sep="csv">
 		<pp_splitter_types>
-			<splitter_type handler="processPostFilter" id="filter"/>
-			<splitter_type handler="processPostCounter" id="counter"/>
-			<splitter_type handler="processPostGroup" id="group"/>
-			<splitter_type handler="processPostAverage" id="avg" handler_type="group_method"/>
+			<splitter_type handler="processPostFilter" id="filter" />
+			<splitter_type handler="processPostCounter" id="counter" />
+			<splitter_type handler="processPostGroup" id="group" />
+			<splitter_type handler="processPostAverage" id="avg"
+				handler_type="group_method" />
 		</pp_splitter_types>
 		<pp_separators>
 			<separator id="csv" spool=".csv">,</separator>
 		</pp_separators>
 	</pp_config>
 	<automation>
-		<level handler="parseCustomConfig" id="entry_pattern" order="1" tags="c, e, a"/>
-		<level handler="parseFilterConfig" id="filter_pattern" order="2" fireonce="true" tags="f, a"/>
-		<level handler="parseExecuteThreadConfig" id="execute_thread" order="3" tags="e, a"/>
-		<level handler="parsePostFilterConfig" id="post_process_pattern" order="4" fireonce="true" tags="f, a"/>
+		<level handler="parseCustomConfig" id="entry_pattern" order="1"
+			tags="c, e, a" />
+		<level handler="parseFilterConfig" id="filter_pattern" order="2"
+			fireonce="true" tags="f, a" />
+		<level handler="parseExecuteThreadConfig" id="execute_thread"
+			order="3" tags="e, a" />
+		<level handler="parsePostFilterConfig" id="post_process_pattern"
+			order="4" fireonce="true" tags="f, a" />
 	</automation>
 	<date_time_config>
-			<pattern id="INPUT_DATE_TIME_FORMAT" order="1" tags="dtime">yyyy-MM-dd'T'HH:mm:ss</pattern>
-			<pattern id="INPUT_DATE_TIME_FORMAT_M" order="2" tags="dtime">yyyy-MM-dd'T'HH:mm</pattern>
-			<pattern id="INPUT_DATE_TIME_FORMAT_H" order="3" tags="dtime">yyyy-MM-dd'T'HH</pattern>
-			<pattern id="INPUT_DATE_TIME_FORMAT_D" order="4" tags="dtime">yyyy-MM-dd</pattern>
-			<pattern id="INPUT_DATE_TIME_FORMAT_m" order="5" tags="dtime">yyyy-MM</pattern>
-			<pattern id="INPUT_DATE_TIME_FORMAT_Y" order="6" tags="dtime">yyyy</pattern>
+		<pattern id="INPUT_DATE_TIME_FORMAT" order="1" tags="dtime">yyyy-MM-dd'T'HH:mm:ss</pattern>
+		<pattern id="INPUT_DATE_TIME_FORMAT_M" order="2" tags="dtime">yyyy-MM-dd'T'HH:mm</pattern>
+		<pattern id="INPUT_DATE_TIME_FORMAT_H" order="3" tags="dtime">yyyy-MM-dd'T'HH</pattern>
+		<pattern id="INPUT_DATE_TIME_FORMAT_D" order="4" tags="dtime">yyyy-MM-dd</pattern>
+		<pattern id="INPUT_DATE_TIME_FORMAT_m" order="5" tags="dtime">yyyy-MM</pattern>
+		<pattern id="INPUT_DATE_TIME_FORMAT_Y" order="6" tags="dtime">yyyy</pattern>
 	</date_time_config>
 	<custom>
-	    <config id="properties">
-  			<starter>log4j.logger</starter>
-  			<pattern>.*\.properties</pattern>
+		<config id="properties">
+			<starter>log4j.logger</starter>
+			<pattern>.*\.properties</pattern>
 		</config>
 	</custom>
 </root>

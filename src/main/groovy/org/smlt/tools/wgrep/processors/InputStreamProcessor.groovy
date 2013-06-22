@@ -9,6 +9,13 @@ import org.smlt.tools.wgrep.output.WgrepOutput;
 import groovy.util.logging.Slf4j;
 import org.smlt.tools.wgrep.exceptions.*
 
+/**
+ * Simple processor to process a given InputStream
+ * 
+ * @author Alexander Semelit
+ *
+ */
+
 @Slf4j
 class InputStreamProcessor implements DataProcessor<InputStream> {
 
@@ -21,9 +28,9 @@ class InputStreamProcessor implements DataProcessor<InputStream> {
 	
 	/**
 	 * Method which does processing of one portion of data, which contains lines. <br>
-	 * It is considered to be a File, but could be anything which supports eachLine returning a String.
+	 * It is considered to be an InputSream.
 	 * 
-	 * @param data Supposed to be a File, or anything that supports eachLine method which returns String
+	 * @param data InputStream containing the data to process
 	 */
     void processData(InputStream data)
     {

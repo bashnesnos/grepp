@@ -18,10 +18,16 @@ import java.lang.reflect.Modifier;
  * @author Alexander Semelit
  *
  */
-public class WgrepUtil {
+public final class WgrepUtil {
 
 	private WgrepUtil() { throw new AssertionError(); } //please don't instantiate the class
 	
+	/**
+	 * Tries to retrieve text content, or CDATA content if no text content is present. It is assumed that the node containg either text or CDATA.
+	 * 
+	 * @param node Element node which is expected to have either text value or a CDATA
+	 * @return String representing CDATA/text contents 
+	 */
 	public static String getCDATA(Element node)
 	{
 		if (node == null) return null;
@@ -29,17 +35,37 @@ public class WgrepUtil {
 		return (txt != null) ? txt : node.getFirstChild().getNodeValue();
 	}
 
+	/**
+	 * Kind-of a default value method for a Map.get()
+	 * 
+	 * @param params a Map which will be the source
+	 * @param key a Key which will be used to get an object from the params
+	 * @param returnIfNull an Object which will be returned if there is nothing in params corresponding to the key
+	 * @return
+	 */
 	public static <K,V> V getNotNull(Map<K, V> params, K key, V returnIfNull)
 	{
 		V result = params.get(key);
 		return result != null ? result : returnIfNull;
 	}
 
+	/**
+	 * Simply throws IllegalArgumentException with a given message if a given Object is null
+	 * 
+	 * @param o Object to be checked for null
+	 * @param message which will be passed to an exception
+	 */
 	public static void throwIllegalAEifNull(Object o, String message)
 	{
 		if (o == null) throw new IllegalArgumentException(message);
 	}
 
+	/**
+	 * Looks in the class-path for a resource by name
+	 * 
+	 * @param name Resource name
+	 * @return null or String representing path to a resource
+	 */
 	public static String getResourcePathOrNull(String name) {
 		URL resourceURL = WgrepUtil.class.getClassLoader().getResource(name);
 		if (resourceURL != null)
@@ -51,6 +77,13 @@ public class WgrepUtil {
 		}
 	}
 
+	/**
+	 * Checks if a given Class has a given field as it's own member or has inherited it from a super class
+	 * 
+	 * @param clazz Class object
+	 * @param field name of a field to check
+	 * @return true if it has such a field or inherited it
+	 */
 	public static boolean hasField(Class<?> clazz, String field) {
 		if (!hasField(clazz, field, false)) {
 			return hasField(clazz.getSuperclass(), field, true);
@@ -60,7 +93,7 @@ public class WgrepUtil {
 		}
 	}
 
-	public static boolean hasField(Class<?> clazz, String field, boolean isSuper) {
+	private static boolean hasField(Class<?> clazz, String field, boolean isSuper) {
 		try {
 			if (!isSuper) {
 				clazz.getDeclaredField(field);	
@@ -76,6 +109,11 @@ public class WgrepUtil {
 		}
 	}
 
+	/**
+	 * Reloads current wgrep looging config as of logback.xml with a given String
+	 * 
+	 * @param logbackConfig XML with logback configuration
+	 */
 	public static void resetLogging(String logbackConfig) {
 		LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
 

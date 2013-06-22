@@ -19,19 +19,19 @@ import org.smlt.tools.wgrep.filters.FilterBase
  * @author Alexander Semelit 
  */
 
-class PostFilter extends FilterBase<String> {
+final class PostFilter extends FilterBase<String> {
 
     //Postprocessing stuff
-    Pattern postFilterPattern = null
-    def POST_PROCESS_SEP = null
-    def POST_PROCESS_DICT = new LinkedHashMap()
-    def POST_PROCESS_HEADER = null
-    def POST_GROUPS = [:]
-    def currentGroup = null
-    def groupMethod = null
-    def POST_GROUPS_METHODS = []
-    def HEADER_PRINTED = false
-    def result = null
+    private Pattern postFilterPattern = null
+    private def POST_PROCESS_SEP = null
+    private Map<?,?> POST_PROCESS_DICT = new LinkedHashMap()
+    private def POST_PROCESS_HEADER = null
+    private Map<?,?> POST_GROUPS = [:]
+    private def currentGroup = null
+    private def groupMethod = null
+    private List<?> POST_GROUPS_METHODS = []
+    private boolean HEADER_PRINTED = false
+    private def result = null
 
     /**
     * Creates new PostFilter on top of supplied filter chain and fills in params from supplied config. <br>

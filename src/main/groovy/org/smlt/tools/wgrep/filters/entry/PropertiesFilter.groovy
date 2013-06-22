@@ -4,7 +4,7 @@ import groovy.xml.MarkupBuilder
 import java.util.regex.*
 import org.smlt.tools.wgrep.filters.FilterBase
 
-class PropertiesFilter extends FilterBase<String> {
+final class PropertiesFilter extends FilterBase<String> {
 	//CW stands for Conversion Word
 	private static String CW_STARTER = "%"
 	private static String CW_OPTION_START = "\\{"

@@ -16,7 +16,7 @@ import org.smlt.tools.wgrep.filters.FilterBase;
  * 
  */
 
-class EntryDateFilter extends FilterBase<String> {
+final class EntryDateFilter extends FilterBase<String> {
 
 	private SimpleDateFormat DATE_FORMAT;
 	private Date FROM_DATE;

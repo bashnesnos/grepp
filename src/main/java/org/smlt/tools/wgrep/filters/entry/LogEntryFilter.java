@@ -17,7 +17,7 @@ import org.smlt.tools.wgrep.filters.FilterBase;
  * @author Alexander Semelit
  */
 
-class LogEntryFilter extends FilterBase<String> {
+final class LogEntryFilter extends FilterBase<String> {
 
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = null;
@@ -139,7 +139,7 @@ class LogEntryFilter extends FilterBase<String> {
 	 */
 
 	@Override
-    public void beforePassing(String blockData)
+    protected void beforePassing(String blockData)
     {
         passingVal = curBlock.toString();
         startNewBlock(blockData);
