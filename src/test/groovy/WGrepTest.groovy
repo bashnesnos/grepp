@@ -283,4 +283,40 @@ log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601
 
 	}
 
+	void testInputStreamProcessing() {
+		def pipeOut = new PipedOutputStream()
+		def pipeIn = new PipedInputStream(pipeOut)
+		def passToIn = new PrintStream(pipeOut)
+		def text = """\
+#asda
+asdas
+#asdas
+#sadas
+fdsfd
+"""
+		passToIn.print(text)
+		passToIn.close()
+		def oldIn = System.in
+		System.setIn(pipeIn)
+		def expectedResult = """\
+#asda
+asdas
+#asdas"""
+		
+		try {
+			assertWgrepOutput(expectedResult) {
+				WGrep.main("-L # asd".split(" "))
+			}
+		}
+		catch (Exception e) {
+			pipeIn.close()
+			System.setIn(oldIn)
+			throw e
+		}
+		finally {
+			pipeIn.close()
+			System.setIn(oldIn)
+		}
+	}
+	
 }

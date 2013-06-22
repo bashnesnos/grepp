@@ -32,7 +32,26 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 
 //WGrep.main("-t -L log4j.logger -p $HOME\\test.properties".split(" "))
 
-WGrep.main("-t Foo $HOME\\processing_test.log $HOME\\fpTest_test.log".split(" "))
+		def pipeOut = new PipedOutputStream()
+		def pipeIn = new PipedInputStream(pipeOut)
+		def passToIn = new PrintStream(pipeOut)
+		def text = """\
+#asda
+asdas
+#asdas
+#sadas
+fdsfd
+"""
+		passToIn.print(text)
+		passToIn.flush()
+		def oldIn = System.in
+		System.setIn(pipeIn)
+		def expectedResult = """\
+#asda
+asdas
+#asdas
+"""
+		WGrep.main("-L # asd".split(" "))
 
 
 //		def data = """\
