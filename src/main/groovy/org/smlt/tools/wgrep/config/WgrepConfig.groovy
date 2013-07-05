@@ -122,6 +122,18 @@ class WgrepConfig {
 		return WgrepUtil.getCDATA(node)
 	}
 
+	def getDataForProcessing() {
+		def data = null
+		if (check(['FILES'], null)) {
+			log.trace("Files were specified")
+			data = getParam('FILES')
+		}
+		else if (System.in.available() > 0) {
+			data = System.in
+		}
+		return data
+	}
+	
 	/**
 	 * Gets value of the {@link this.params} by key.
 	 * @param field Key for <code>params</code> which is needed to be get.

@@ -2,6 +2,7 @@ package org.smlt.tools.wgrep
 
 import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.processors.DataProcessorFactory
+import org.smlt.tools.wgrep.processors.DataProcessor
 import org.smlt.tools.wgrep.config.ModuleBase;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -40,25 +41,15 @@ public class WgrepFacade extends ModuleBase {
 	 * <li>2. Performs validation via <code>check</code> method</li>
 	 * <li>3. Calls processing method of initialized a DataProcessor given by DataProcessorFactory</li>
 	 * @param args Command-line style arguments
-	 * @param input an InputStream containing data to process
 	 */
 
-	public void doCLProcessing(def args, InputStream input)
+	public void doCLProcessing(def args)
 	{
 		try {
 			configInstance.processInVars(args)
-			def data = null
-			if (check(['FILES'], null)) {
-				log.trace("Files were specified")
-				data = getParam('FILES')
-			}
-			else if (input.available() > 0) {
-				data = input
-			}
-			if (data == null) {
-				return
-			}
-			dataProcessorFactory.getProcessorInstance().process(data)
+			def data = configInstance.getDataForProcessing()
+			DataProcessor<?> processor = dataProcessorFactory.getProcessorInstance(data)
+			processor.process(data)
 		}
 		catch(Exception e)
 		{
