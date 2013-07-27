@@ -2,9 +2,12 @@ package org.smlt.tools.wgrep.config.varparsers
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+
+import org.smlt.tools.wgrep.config.ConfigHolder;
+import org.smlt.tools.wgrep.config.Param;
 
 import groovy.util.logging.Slf4j;
-import org.smlt.tools.wgrep.config.WgrepConfig
 
 /**
  * Provides file name parameter parsing. <br>
@@ -14,31 +17,22 @@ import org.smlt.tools.wgrep.config.WgrepConfig
  *
  */
 @Slf4j
-class FileNameParser extends ParserBase {
-	def fSeparator
-	def curDir
-
-	FileNameParser(WgrepConfig config) {
-		super(config)
-		fSeparator = getParam('FOLDER_SEPARATOR')
-	}
-
-	/**
-	 * Never unsubscribes, since there could be supplied more than one filename.
-	 * 
-	 */
+class FileNameParser implements ParamParser<String> {
+	
 	@Override
-	void parseVar(def arg) {
-		log.trace("Parsing var: {}", arg)
-		analyzeFileName(arg)
-		//not unsubsrcibing since there could be more than one file
+	public boolean parseVar(ConfigHolder config, Map<Param, ?> params,
+			String fileName) {
+		return parseVar_(params, fileName)
 	}
 
-	void analyzeFileName(String fileName) {
+	private boolean parseVar_(Map<Param, ?> params, String fileName) {
 		List<File> fileList = []
+		def fSeparator = params[Param.FOLDER_SEPARATOR];
+		def curDir;
 
 		if (log.isTraceEnabled()) log.trace("analyzing supplied file: " + fileName);
-		if (fileName =~ /\*/) { //filename contains asterisk, should be a multi-file pattern
+		if (fileName =~ /\*/) {
+			//filename contains asterisk, should be a multi-file pattern
 			String flname = fileName;
 			if (fileName =~ fSeparator) {
 				curDir = (fileName =~/.*(?=$fSeparator)/)[0]
@@ -56,9 +50,18 @@ class FileNameParser extends ParserBase {
 			}
 		}
 		else { //all good seems to be a normal file, just adding it
-			addFile(new File(fileName))
+			fileList.add(new File(fileName))
 		}
-
-		fileList.each{addFile(it)}
+		
+		List<File> files = params[Param.FILES] 
+		if (files != null) {
+			files.addAll(fileList)
+		}
+		else {
+			params[Param.FILES] = fileList
+		}
+		
+		// Never unsubscribes, since there could be supplied more than one filename.
+		return false;
 	}
 }

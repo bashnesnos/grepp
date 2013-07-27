@@ -1,6 +1,8 @@
 package org.smlt.tools.wgrep.output;
 
 import groovy.util.logging.Slf4j
+import org.smlt.tools.wgrep.config.ParamsHolder
+import org.smlt.tools.wgrep.config.Param
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.FilterChainFactory
 import org.smlt.tools.wgrep.filters.FilterBase
@@ -25,11 +27,11 @@ final class ConfigOutput extends SimpleOutput {
 	private def root
 	private DOMBuilder domBuilder
 	
-	public ConfigOutput(FilterChainFactory filterFactory_, String configFile_) 
+	public ConfigOutput(ParamsHolder paramsHolder) 
 	{
-    	super(filterFactory_, null)
+    	super(paramsHolder, null)
     	domBuilder = DOMBuilder.newInstance(false, true) 
-    	configFilePath = configFile_
+    	configFilePath = paramsHolder.get(Param.CONFIG_FILE_PATH)
     	if (configFilePath != null) {
     		cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
         	root = cfgDoc.documentElement

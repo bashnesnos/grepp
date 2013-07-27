@@ -2,8 +2,7 @@ package org.smlt.tools.wgrep.config
 
 import org.springframework.core.io.Resource
 
-
-class WgrepConfigFactory {
+public class ConfigHolderFactory {
 	private Resource configFile
 	private Resource configXSD
 
@@ -23,11 +22,11 @@ class WgrepConfigFactory {
 		configXSD = res
 	}
 
-	public WgrepConfig getInstance()  {
+	public ConfigHolder getInstance()  {
 		if (configFile == null || configFile.getFile() == null) {
 			throw new IllegalArgumentException("Config file should present in classpath or specified explicitly")
 		}
 		def configXSDFile = configXSD.getFile()
-		return new PatternAutomationConfig(configFile.getFile().getCanonicalPath(), configXSDFile != null ? configXSDFile.getCanonicalPath() : null)
+		return new ConfigHolder(configFile.getFile().getCanonicalPath(), configXSDFile != null ? configXSDFile.getCanonicalPath() : null)
 	}
 }

@@ -1,6 +1,8 @@
 package org.smlt.tools.wgrep.output;
 
 import groovy.util.logging.Slf4j
+import org.smlt.tools.wgrep.config.ParamsHolder
+import org.smlt.tools.wgrep.config.ParamsHolderFactory
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.FilterChainFactory
 import org.smlt.tools.wgrep.filters.FilterBase
@@ -18,13 +20,13 @@ import org.smlt.tools.wgrep.filters.FilterBase
 public class SimpleOutput implements WgrepOutput<Object, String> {
 	
 	protected PrintWriter printer;
-	protected FilterChainFactory filterFactory;
+	protected ParamsHolder params;
 	protected FilterBase filterChain;
 	
-	SimpleOutput(FilterChainFactory filterFactory_, PrintWriter printer_) {
-		filterFactory = filterFactory_
+	SimpleOutput(ParamsHolder params_, PrintWriter printer_) {
 		printer = printer_
-		filterChain = filterFactory.createFilterChain()
+		params = params_
+		filterChain = FilterChainFactory.createFilterChain(params)
 	}
 	
 	@Override
@@ -42,9 +44,9 @@ public class SimpleOutput implements WgrepOutput<Object, String> {
 	@Override
 	public void refreshFilters(String criteria) {
 			try {
-				if (filterFactory.refreshConfigByFile(criteria))
+				if (params.refresh(criteria))
 				{
-					filterChain = filterFactory.createFilterChain()
+					filterChain = FilterChainFactory.createFilterChain(params)
 				}
 			}
 			catch(IllegalArgumentException e) {

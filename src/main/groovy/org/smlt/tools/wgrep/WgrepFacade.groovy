@@ -3,7 +3,8 @@ package org.smlt.tools.wgrep
 import groovy.util.logging.Slf4j
 import org.smlt.tools.wgrep.processors.DataProcessorFactory
 import org.smlt.tools.wgrep.processors.DataProcessor
-import org.smlt.tools.wgrep.config.ModuleBase;
+import org.smlt.tools.wgrep.config.ParamsHolderFactory;
+import org.smlt.tools.wgrep.config.ParamsHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -12,24 +13,23 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author Alexander Semelit 
  */
 @Slf4j
-public class WgrepFacade extends ModuleBase {
+public class WgrepFacade {
 	
-	@Autowired
-	private DataProcessorFactory dataProcessorFactory
+	private ParamsHolderFactory<?> paramsHolderFactory
 
 	/**
 	 * Returns <code>DataProcessorFactory</code> instance associated with this facade.
 	 * @return <code>DataProcessorFactory</code>
 	 */
 
-	DataProcessorFactory getDataProcessorFactory()
+	ParamsHolderFactory<?> getParamsHolderFactory()
 	{
-		return dataProcessorFactory
+		return paramsHolderFactory
 	}
 
-	void setDataProcessorFactory(DataProcessorFactory processorFactory)
+	void setParamsHolderFactory(ParamsHolderFactory<?> paramsHolderFactory_)
 	{
-		dataProcessorFactory = processorFactory
+		paramsHolderFactory = paramsHolderFactory_
 	}
 
 	//General
@@ -46,10 +46,8 @@ public class WgrepFacade extends ModuleBase {
 	public void doCLProcessing(def args)
 	{
 		try {
-			configInstance.processInVars(args)
-			def data = configInstance.getDataForProcessing()
-			DataProcessor<?> processor = dataProcessorFactory.getProcessorInstance(data)
-			processor.process(data)
+			ParamsHolder paramsHolder = paramsHolderFactory.getParamsHolder(args)
+			DataProcessorFactory.process(paramsHolder)
 		}
 		catch(Exception e)
 		{

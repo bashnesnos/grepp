@@ -18,11 +18,12 @@ def printTestClasspath = false //prints test classpath if true
 
 repositories {
 	mavenRepo name: "spring-repo", url: "http://repo.springsource.org/release"
+	mavenRepo name: "gsnapshots-repo", url: "http://snapshots.repository.codehaus.org"
     mavenCentral()
 }
 
 dependencies {
-    compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.0.6'
+    compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.1.7-SNAPSHOT'
 	compile group: 'org.slf4j', name:'slf4j-api', version: '1.7.5'
 	compile group: 'org.slf4j', name:'jcl-over-slf4j', version: '1.7.5'
 	compile group: 'ch.qos.logback', name:'logback-classic', version: '1.0.11'
@@ -35,7 +36,7 @@ dependencies {
         compile group: 'org.livetribe', name:'livetribe-jsr223', version: '2.0.1', transitive: true //for 1.5 compatibility
     }
 
-    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.0.6'
+    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.1.7-SNAPSHOT'
 	testCompile group: 'junit', name: 'junit', version: '4.10'
     
 }

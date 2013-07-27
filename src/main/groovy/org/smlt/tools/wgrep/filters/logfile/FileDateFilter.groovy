@@ -5,7 +5,6 @@ import java.util.regex.Matcher
 
 import groovy.util.logging.Slf4j
 import groovy.xml.dom.DOMCategory
-import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.FilterBase
 

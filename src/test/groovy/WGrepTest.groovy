@@ -1,7 +1,9 @@
 import org.smlt.tools.wgrep.*
 import org.smlt.tools.wgrep.filters.entry.PropertiesFilter
-import org.smlt.tools.wgrep.config.WgrepConfig
-import org.smlt.tools.wgrep.config.PatternAutomationConfig
+import org.smlt.tools.wgrep.config.ParamsHolderFactory
+import org.smlt.tools.wgrep.config.PredictingParamsHolderFactory
+import org.smlt.tools.wgrep.config.ConfigHolder
+import org.smlt.tools.wgrep.config.Param
 import org.smlt.tools.wgrep.util.WgrepUtil
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
@@ -10,15 +12,16 @@ import java.text.SimpleDateFormat
 
 class WGrepTest extends GroovyTestCase {
 	//WgrepFacade facade = WGrep.factory.getBean("facade")
-	WgrepConfig config
+	ConfigHolder config
+	ParamsHolderFactory paramFactory
 	def BASE_HOME = System.getProperty("wgrep.home")
 	def HOME = BASE_HOME + "\\build\\resources\\test"
 	def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
 	def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
-	def defalutOut = System.out
 
 	void setUp() {
-		config = new PatternAutomationConfig(WGREP_CONFIG, WGREP_CONFIG_XSD)
+		config = new ConfigHolder(WGREP_CONFIG, WGREP_CONFIG_XSD)
+		paramFactory = new PredictingParamsHolderFactory(config);
 	}
 
 	public static String getOutput(Closure operation) {
@@ -54,55 +57,58 @@ class WGrepTest extends GroovyTestCase {
 	}
 
 	public static void assertWgrepOutput(String expectedResult, Closure operation) {
-		assertTrue(expectedResult == getOutput(operation))
+		println "ER: ####\n$expectedResult\n#### :ER"
+		String actualResult = getOutput(operation)
+		println "AR: ####\n$actualResult\n#### :AR"
+		assertTrue(expectedResult == actualResult)
 	}
 
 	void testMainVarsProcessing() {
-		config.processInVars("-L test test $HOME\\fpTest*".split(" "))
-		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "test" )
-		assertTrue( config.getParam('FILTER_PATTERN') == "test" )
-		assertTrue( config.getParam('FILES') == [
+		def params = paramFactory.getParamsHolder("-L test test $HOME\\fpTest*".split(" "))
+		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "test" )
+		assertTrue( params.get(Param.FILTER_PATTERN) == "test" )
+		assertTrue( params.get(Param.FILES) == [
 			new File(HOME+"\\fpTest_test.log")]
 		)
-		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
+		assertTrue( params.get(Param.FOLDER_SEPARATOR) != null )
 	}
 	
 	void testConfigsProcessing() {
-		config.processInVars("--to_test --predef $HOME\\fpTest*".split(" "))
-		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "####\\[\\D{1,}\\].*(\\d{4}-\\d{1,2}-\\d{1,2} \\d{2}:\\d{2}:\\d{2})" )
-		assertTrue( config.getParam('FILTER_PATTERN') == "Something::" )
-		assertTrue( config.getParam('FILES') == [
+		def params = paramFactory.getParamsHolder("--to_test --predef $HOME\\fpTest*".split(" "))
+		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "####\\[\\D{1,}\\].*(\\d{4}-\\d{1,2}-\\d{1,2} \\d{2}:\\d{2}:\\d{2})" )
+		assertTrue( params.get(Param.FILTER_PATTERN) == "Something::" )
+		assertTrue( params.get(Param.FILES) == [
 			new File(HOME+"\\fpTest_test.log")]
 		)
-		assertTrue( config.getParam('FOLDER_SEPARATOR') != null )
+		assertTrue( params.get(Param.FOLDER_SEPARATOR) != null )
 	}
 
 	void testExtendedPatternProcessing() {
 
-		config.processInVars("-L test test%and%tets $HOME\\test*".split(" "))
-		assertTrue( config.getParam('FILTER_PATTERN') == "test%and%tets" )
+		def params = paramFactory.getParamsHolder("-L test test%and%tets $HOME\\test*".split(" "))
+		assertTrue( params.get(Param.FILTER_PATTERN) == "test%and%tets" )
 	}
 
 	void testComplexVarsProcessing() {
 
-		config.processInVars("-L test test --dtime 2013-01-25T12:00:00 + $HOME\\test*".split(" "))
-		assertTrue( config.getParam('DATE_TIME_FILTER') == "dtime" )
+		def params = paramFactory.getParamsHolder("-L test test --dtime 2013-01-25T12:00:00 + $HOME\\test*".split(" "))
+		assertTrue( params.get(Param.DATE_TIME_FILTER) == "dtime" )
 	}
 
 	void testAutomationProcessing() {
-		config.processInVars("-e test $HOME\\fpTest_*".split(" "))
-		config.refreshConfigByFile(config.getParam('FILES')[0])
-		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
-		assertTrue( config.getParam('LOG_DATE_FORMAT') == "yyyy-MM-dd HH:mm:ss" )
+		def params = paramFactory.getParamsHolder("-e test $HOME\\fpTest_*".split(" "))
+		params.refresh(params.get(Param.FILES)[0])
+		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
+		assertTrue( params.get(Param.LOG_DATE_FORMAT) == "yyyy-MM-dd HH:mm:ss" )
 	}
 
 	void testMoreComplexVarsProcessing() {
 
-		config.processInVars("-sL stCommand queryTime --some_timings cmd_only_1.log".split(" "))
-		assertTrue( config.getParam('LOG_ENTRY_PATTERN') == "stCommand" )
-		assertTrue( config.getParam('FILTER_PATTERN') == "queryTime" )
-		assertTrue( config.getParam('FILES') == [new File("cmd_only_1.log")])
-		assertTrue( config.getParam('FOLDER_SEPARATOR') == "\\\\" )
+		def params = paramFactory.getParamsHolder("-sL stCommand queryTime --some_timings cmd_only_1.log".split(" "))
+		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "stCommand" )
+		assertTrue( params.get(Param.FILTER_PATTERN) == "queryTime" )
+		assertTrue( params.get(Param.FILES) == [new File("cmd_only_1.log")])
+		assertTrue( params.get(Param.FOLDER_SEPARATOR) == "\\\\" )
 	}
 
 	void testComplexFiltering() {
@@ -284,9 +290,9 @@ log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601
 	}
 
 	void testInputStreamProcessing() {
-		def pipeOut = new PipedOutputStream()
-		def pipeIn = new PipedInputStream(pipeOut)
-		def passToIn = new PrintStream(pipeOut)
+		def tPipeOut = new PipedOutputStream()
+		def tPipeIn = new PipedInputStream(tPipeOut)
+		def passToIn = new PrintStream(tPipeOut)
 		def text = """\
 #asda
 asdas
@@ -297,9 +303,8 @@ fdsfd
 		passToIn.print(text)
 		passToIn.close()
 		def oldIn = System.in
-		System.setIn(pipeIn)
-		def expectedResult = """\
-#asda
+		System.setIn(tPipeIn)
+		def expectedResult = """#asda
 asdas
 #asdas"""
 		
@@ -309,12 +314,12 @@ asdas
 			}
 		}
 		catch (Exception e) {
-			pipeIn.close()
+			tPipeIn.close()
 			System.setIn(oldIn)
 			throw e
 		}
 		finally {
-			pipeIn.close()
+			tPipeIn.close()
 			System.setIn(oldIn)
 		}
 	}

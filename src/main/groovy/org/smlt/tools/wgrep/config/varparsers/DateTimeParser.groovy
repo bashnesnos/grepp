@@ -1,7 +1,13 @@
 package org.smlt.tools.wgrep.config.varparsers
 
 import java.text.SimpleDateFormat
-import org.smlt.tools.wgrep.config.WgrepConfig
+import java.util.Map;
+
+import org.smlt.tools.wgrep.config.ConfigHolder
+import org.smlt.tools.wgrep.config.Param
+import org.smlt.tools.wgrep.config.ParamsHolder
+import org.springframework.beans.factory.annotation.InitDestroyAnnotationBeanPostProcessor;
+
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 
@@ -13,58 +19,36 @@ import groovy.xml.dom.DOMCategory
  *
  */
 @Slf4j
-class DateTimeParser extends ParserBase
+class DateTimeParser implements ParamParser<String>
 {
-    private def INPUT_DATE_PTTRNS = []
+    private Collection INPUT_DATE_PTTRNS
+	private boolean initialized = false
     private boolean isFromParsed = false
     private boolean isToParsed = false
+	private Map<Param, ?> params
     private SimpleDateFormat defaultDateFormat = null
-    private offsetParamMap = ['FROM_DATE':null,
-        'TO_DATE':'FROM_DATE']
-
+    private Map<Param, Param> offsetParamMap = [:]
+	
 	/**
 	 * Fetches needed params from config and parses patterns from config.xml by identified <config> id.
 	 * 
 	 * @param config initialized instance of WgrepConfig
 	 */
-    DateTimeParser(WgrepConfig config)
+    private void init(ConfigHolder config, Map<Param, ?> pParams)
     {
-		super(config)
-		def dt_tag = getParam('DATE_TIME_FILTER')
-        use(DOMCategory)
-        {
-            def ptrns = getRoot().date_time_config.pattern.findAll { it.'@tags' =~ dt_tag }
-            ptrns.sort { it.'@order' }.each {INPUT_DATE_PTTRNS.add(it.text())}
+		if (initialized) return
+		
+		offsetParamMap[Param.FROM_DATE] = null
+		offsetParamMap[Param.TO_DATE] = Param.FROM_DATE
+		
+		params = pParams
+		def dt_tag = params[Param.DATE_TIME_FILTER]
+		INPUT_DATE_PTTRNS = config.withRoot { root ->
+            def ptrns = root.date_time_config.pattern.findAll { it.'@tags' =~ dt_tag }
+            return ptrns.sort { it.'@order' }.collect { it.text()}
         }
         defaultDateFormat = new SimpleDateFormat(INPUT_DATE_PTTRNS[0])
-    }
-
-	@Override
-    boolean isConfigValid() {
-        boolean checkResult = super.isConfigValid()
-        if (getParam('DATE_TIME_FILTER') == null)
-        {
-            log.warn('DATE_TIME_FILTER is not specified')
-            checkResult = false
-        }
-        return checkResult
-    }
-
-	/**
-	 * Parses FROM date and TO date and sequentially and then unsubscribes.
-	 * 
-	 */
-	@Override
-    void parseVar(def arg)
-    {
-        log.trace("Parsing var: {}", arg)
-        if (!isFromParsed) setDateFrom(arg)
-        else if (!isToParsed) 
-        {
-            setDateTo(arg)
-            checkDates()
-            unsubscribe()
-        }
+		initialized = true
     }
 
     /**
@@ -73,15 +57,15 @@ class DateTimeParser extends ParserBase
     */
     def checkDates() {
         log.trace("checking if dates are valid")
-        Date from = getParam('FROM_DATE')
-        Date to = getParam('TO_DATE')
+        Date from = params[Param.FROM_DATE]
+        Date to =  params[Param.TO_DATE]
         def swapDate = null
         if (from != null && to != null)
         {
             if (from.after(to)) { //swapping dates
                 log.trace("FROM is AFTER to, swapping them")
-                setParam('FROM_DATE', to)
-                setParam('TO_DATE', from)
+                params[Param.FROM_DATE] = to
+                params[Param.TO_DATE] = from
             }
         } 
         else {
@@ -127,7 +111,7 @@ class DateTimeParser extends ParserBase
      * @param offsetStr String in format -\d* or +\d*, which shows how many minutes to sbutract/add.
      * @return Date value of supplied String if it was parsed by configured date patterns.
      */
-    def parseOffset(def paramName, def offsetStr)
+    def parseOffset(Param paramName, def offsetStr)
     {
         def date = null
         log.trace("Applying format#1 by default: {}", defaultDateFormat.toPattern())
@@ -137,7 +121,9 @@ class DateTimeParser extends ParserBase
         {
             log.trace("Total minutes: {}", minutesMatcher.group(1))
             def minutes = Integer.valueOf(minutesMatcher.group(1))*60*1000
-            def curDate = getParam(paramName) != null ? getParam(paramName) : new Date()
+            def curDate = params[paramName]
+			if (curDate == null) curDate = new Date()
+			
             date = curDate
             switch(offsetStr) {
                 case ~/^\+.*/:
@@ -155,16 +141,16 @@ class DateTimeParser extends ParserBase
     }
 
 
-    def parseDate(def paramName, def dateStr) {
+    def parseDate(Param paramName, def dateStr) {
         def matcher = dateStr =~ /^[+-]/
         if (!matcher.find()) {
             log.trace("Usual dates parsing")
-            setParam(paramName, parseInput(dateStr))
+            params[paramName] = parseInput(dateStr)
         }
         else
         {
             log.trace("Offset dates parsing")
-            setParam(paramName, parseOffset(offsetParamMap[paramName],dateStr))
+            params[paramName] = parseOffset(offsetParamMap[paramName],dateStr)
         }
     }
 	/**
@@ -174,7 +160,7 @@ class DateTimeParser extends ParserBase
 	 */
     void setDateFrom(String date)
     {
-        parseDate('FROM_DATE', date)
+        parseDate(Param.FROM_DATE, date)
         isFromParsed = true
     }
 
@@ -185,7 +171,7 @@ class DateTimeParser extends ParserBase
 	 */
     void setDateTo(String date)
     {
-        parseDate('TO_DATE', date)
+        parseDate(Param.TO_DATE, date)
         isToParsed = true
     }
 
@@ -199,8 +185,24 @@ class DateTimeParser extends ParserBase
     def setFileDateFormat(def format)
     {
         log.trace("FILE_DATE_FORMAT set to {}", format)
-        setParam('FILE_DATE_FORMAT', format)
+        params[Param.FILE_DATE_FORMAT] = format
         return format
     }
+
+	@Override
+	public boolean parseVar(ConfigHolder config, Map<Param, ?> params,	String arg) {
+			
+		init(config, params)
+		
+		log.trace("Parsing var: {}", arg)
+		if (!isFromParsed) setDateFrom(arg)
+		else if (!isToParsed)
+		{
+			setDateTo(arg)
+			checkDates()
+			return true;
+		}
+		return false;
+	}
 
 }

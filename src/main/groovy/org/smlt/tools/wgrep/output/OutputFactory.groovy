@@ -9,37 +9,28 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 
 @Slf4j
-class OutputFactory extends ModuleBase {
-	
-	private FilterChainFactory filterFactory
-
-	public FilterChainFactory getFilterFactory()
-	{
-		return filterFactory
-	}
-
-	public void setFilterFactory(FilterChainFactory filterFactory_)
-	{
-		filterFactory = filterFactory_
-	}
-		
-	public WgrepOutput<?,?> getOutputInstance() {
+class OutputFactory {
+			
+	public static WgrepOutput<?,?> getOutputInstance(ParamsHolder paramsHolder) {
 		PrintWriter printer = null;
-		if (getParam('PARSE_PROPERTIES') != null) {
-			return new ConfigOutput(filterFactory, getParam("configFilePath"))
+		if (!paramsHolder.checkParamIsEmpty(Param.PARSE_PROPERTIES)) {
+			log.info("Creating config output")
+			return new ConfigOutput(paramsHolder)
 		}
-		if (getParam('SPOOLING') != null) {
-			printer = getFilePrinter()
-			return new SimpleOutput(filterFactory, printer)
+		if (!paramsHolder.checkParamIsEmpty(Param.SPOOLING)) {
+			log.info("Creating file output")
+			printer = getFilePrinter(paramsHolder)
+			return new SimpleOutput(paramsHolder, printer)
 		}
 		else
 		{
+			log.info("Creating console output")
 			printer = getConsolePrinter()
-			return new SimpleOutput(filterFactory, printer)
+			return new SimpleOutput(paramsHolder, printer)
 		}
 	}
 	
-	private getConsolePrinter() {
+	private static getConsolePrinter() {
 		def console = System.console()
 		if (console != null) {
 			return console.writer()
@@ -50,10 +41,10 @@ class OutputFactory extends ModuleBase {
 		}
 	}
 	
-	private PrintWriter getFilePrinter() {
-		def outputDir = new File(new File(getParam('HOME_DIR')), getParam('RESULTS_DIR'))
+	private static PrintWriter getFilePrinter(ParamsHolder paramsHolder) {
+		def outputDir = new File(new File(paramsHolder.get(Param.HOME_DIR)), paramsHolder.get(Param.RESULTS_DIR))
 		if (!outputDir.exists()) outputDir.mkdir()
-		def out_file = new File(outputDir, getParam('FILTER_PATTERN').replaceAll("[^\\p{L}\\p{N}]", {""}) + getParam('SPOOLING_EXT'))
+		def out_file = new File(outputDir, paramsHolder.get(Param.FILTER_PATTERN).replaceAll("[^\\p{L}\\p{N}]", {""}) + paramsHolder.get(Param.SPOOLING_EXT))
 		log.trace("Creating new file: {}", out_file.getCanonicalPath())
 		out_file.createNewFile()
 		return new PrintWriter(new FileWriter(out_file), true) //autoflushing PrintWriter

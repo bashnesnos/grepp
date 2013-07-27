@@ -4,7 +4,6 @@ import groovy.xml.dom.DOMCategory
 import org.smlt.tools.wgrep.util.WgrepUtil;
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.exceptions.FilteringIsInterruptedException;
 import org.smlt.tools.wgrep.filters.enums.Event
 import org.smlt.tools.wgrep.filters.enums.Qualifier

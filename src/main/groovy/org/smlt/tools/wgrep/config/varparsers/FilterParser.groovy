@@ -1,7 +1,11 @@
 package org.smlt.tools.wgrep.config.varparsers
 
+import java.util.Map;
+
 import groovy.util.logging.Slf4j;
-import org.smlt.tools.wgrep.config.WgrepConfig;
+
+import org.smlt.tools.wgrep.config.ConfigHolder;
+import org.smlt.tools.wgrep.config.Param
 
 /**
  * 
@@ -12,23 +16,18 @@ import org.smlt.tools.wgrep.config.WgrepConfig;
  *
  */
 @Slf4j
-class FilterParser extends ParserBase
+class FilterParser implements ParamParser<String>
 {
-	FilterParser(WgrepConfig config)
-	{
-		super(config)
-	}
-	
-	/**
-	 * Sets filter pattern and unsubsribes.
-	 * 
-	 */
+
 	@Override
-    void parseVar(def arg)
-    {
+	public boolean parseVar(ConfigHolder config, Map params, String arg) {
+		return parseVar(params, arg)
+	}
+
+	public boolean parseVar(Map params, String arg) {
         log.trace("Parsing var: {}", arg)
-        setFilterPattern(arg)
-        unsubscribe()
-    }
+        params[Param.FILTER_PATTERN] = arg
+        return true
+	}
 
 }

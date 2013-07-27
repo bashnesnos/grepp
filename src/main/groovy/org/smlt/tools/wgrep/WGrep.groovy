@@ -9,7 +9,6 @@ package org.smlt.tools.wgrep
 * @author Alexander Semelit
 */
 import groovy.util.logging.Slf4j
-import org.smlt.tools.wgrep.config.WgrepConfig
 import org.smlt.tools.wgrep.util.WgrepUtil
 import org.springframework.beans.factory.xml.XmlBeanFactory
 import org.springframework.core.io.ClassPathResource

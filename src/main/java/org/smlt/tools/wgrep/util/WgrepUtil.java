@@ -21,19 +21,7 @@ import java.lang.reflect.Modifier;
 public final class WgrepUtil {
 
 	private WgrepUtil() { throw new AssertionError(); } //please don't instantiate the class
-	
-	/**
-	 * Tries to retrieve text content, or CDATA content if no text content is present. It is assumed that the node containg either text or CDATA.
-	 * 
-	 * @param node Element node which is expected to have either text value or a CDATA
-	 * @return String representing CDATA/text contents 
-	 */
-	public static String getCDATA(Element node)
-	{
-		if (node == null) return null;
-		String txt = node.getTextContent();
-		return (txt != null) ? txt : node.getFirstChild().getNodeValue();
-	}
+
 
 	/**
 	 * Kind-of a default value method for a Map.get()

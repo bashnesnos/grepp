@@ -1,7 +1,11 @@
 package org.smlt.tools.wgrep.config.varparsers
 
+import java.util.Map;
+
+import org.smlt.tools.wgrep.config.ConfigHolder;
+import org.smlt.tools.wgrep.config.Param;
+
 import groovy.util.logging.Slf4j;
-import org.smlt.tools.wgrep.config.WgrepConfig
 
 /**
  *
@@ -12,21 +16,20 @@ import org.smlt.tools.wgrep.config.WgrepConfig
  *
  */
 @Slf4j
-class LogEntryParser extends ParserBase
+class LogEntryParser implements ParamParser<String>
 {
-	LogEntryParser(WgrepConfig config)
-	{
-		super(config)
-	}
+
 	/**
 	 * Sets log entry pattern and unsubscribes
 	 */
+
 	@Override
-	void parseVar(def arg)
-    {
-        log.trace("Parsing var: {}", arg)
-        setLogEntryPattern(arg)
-        unsubscribe()
-    }
+	public boolean parseVar(ConfigHolder config, Map<Param, ?> params,
+			String arg) {
+		
+		log.trace("Parsing var: {}", arg)
+        params[Param.LOG_ENTRY_PATTERN] = arg
+		return true;
+	}
 
 }

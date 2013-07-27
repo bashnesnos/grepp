@@ -2,7 +2,8 @@ package org.smlt.tools.wgrep.filters
 
 import groovy.util.logging.Slf4j;
 
-import org.smlt.tools.wgrep.config.ModuleBase;
+import org.smlt.tools.wgrep.config.Param
+import org.smlt.tools.wgrep.config.ParamsHolder
 import org.smlt.tools.wgrep.filters.entry.*;
 import org.smlt.tools.wgrep.filters.logfile.*;
 
@@ -14,7 +15,7 @@ import org.smlt.tools.wgrep.filters.logfile.*;
  */
 
 @Slf4j
-class FilterChainFactory extends ModuleBase {
+class FilterChainFactory {
 	
 	/**
 	 * Creates filter chain for entries depending on fulfilled parameters in the  <br>
@@ -30,28 +31,28 @@ class FilterChainFactory extends ModuleBase {
 	 * @return appropriate to supplied config entry filter chain
 	 */
 
-	FilterBase createFilterChain() {
+	public static FilterBase createFilterChain(ParamsHolder paramsHolder) {
 		FilterBase filterChain_ = null
 
-		if (checkParamIsEmpty('PARSE_PROPERTIES')) {
-			if (check(['POST_PROCESSING'], ['POST_PROCESS_PARAMS'])) {
-				filterChain_ = new PostFilter(filterChain_, getParam('POST_PROCESS_PARAMS'))
+		if (paramsHolder.checkParamIsEmpty(Param.PARSE_PROPERTIES)) {
+			if (paramsHolder.check([Param.POST_PROCESSING], [Param.POST_PROCESS_PARAMS])) {
+				filterChain_ = new PostFilter(filterChain_, paramsHolder.get(Param.POST_PROCESS_PARAMS))
 			}
 	
-			if (check(['DATE_TIME_FILTER', 'LOG_DATE_PATTERN', 'LOG_DATE_FORMAT'], ['FROM_DATE', 'TO_DATE'])) {
-					filterChain_ = new EntryDateFilter(filterChain_, getParam('LOG_DATE_PATTERN'), getParam('LOG_DATE_FORMAT'), getParam('FROM_DATE'), getParam('TO_DATE'))
+			if (paramsHolder.check([Param.DATE_TIME_FILTER, Param.LOG_DATE_PATTERN, Param.LOG_DATE_FORMAT], [Param.FROM_DATE, Param.TO_DATE])) {
+					filterChain_ = new EntryDateFilter(filterChain_, paramsHolder.get(Param.LOG_DATE_PATTERN), paramsHolder.get(Param.LOG_DATE_FORMAT), paramsHolder.get(Param.FROM_DATE), paramsHolder.get(Param.TO_DATE))
 			}
 	
-			if (check(['FILTER_PATTERN'], ['PRESERVE_THREAD', 'PRESERVE_THREAD_PARAMS'])) {
-				filterChain_ = new ComplexFilter(filterChain_, getParam('FILTER_PATTERN'), getParam('PRESERVE_THREAD_PARAMS'))
+			if (paramsHolder.check([Param.FILTER_PATTERN], [Param.PRESERVE_THREAD, Param.PRESERVE_THREAD_PARAMS])) {
+				filterChain_ = new ComplexFilter(filterChain_, paramsHolder.get(Param.FILTER_PATTERN), paramsHolder.get(Param.PRESERVE_THREAD_PARAMS))
 			}
 		}
 		else {
 			filterChain_ = new PropertiesFilter(filterChain_)
 		}
 
-		if (!checkParamIsEmpty('LOG_ENTRY_PATTERN')) {
-			filterChain_ = new LogEntryFilter(filterChain_, getParam('LOG_ENTRY_PATTERN'))
+		if (!paramsHolder.checkParamIsEmpty(Param.LOG_ENTRY_PATTERN)) {
+			filterChain_ = new LogEntryFilter(filterChain_, paramsHolder.get(Param.LOG_ENTRY_PATTERN))
 		}
 
 		return filterChain_
@@ -70,12 +71,12 @@ class FilterChainFactory extends ModuleBase {
 	 * @return appropriate to supplied config entry filter chain
 	 */
 
-	FilterBase createFileFilterChain() {
+	public static FilterBase createFileFilterChain(ParamsHolder paramsHolder) {
 		FilterBase filterChain_ = new FileSortFilter()
 
-		if (getParam('DATE_TIME_FILTER') != null) {
-			if (check(['FILE_DATE_FORMAT'],['FROM_DATE', 'TO_DATE', 'LOG_FILE_THRESHOLD']))
-				filterChain_ = new FileDateFilter(filterChain_, getParam('FILE_DATE_FORMAT'), getParam('FROM_DATE'), getParam('TO_DATE'), getParam('LOG_FILE_THRESHOLD'))
+		if (paramsHolder.checkParamIsEmpty(Param.DATE_TIME_FILTER)) {
+			if (paramsHolder.check([Param.FILE_DATE_FORMAT],[Param.FROM_DATE, Param.TO_DATE, Param.LOG_FILE_THRESHOLD]))
+				filterChain_ = new FileDateFilter(filterChain_, paramsHolder.get(Param.FILE_DATE_FORMAT), paramsHolder.get(Param.FROM_DATE), paramsHolder.get(Param.TO_DATE), paramsHolder.get(Param.LOG_FILE_THRESHOLD))
 		}
 		return filterChain_
 	}

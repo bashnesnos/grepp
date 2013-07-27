@@ -7,9 +7,8 @@ import org.smlt.tools.wgrep.config.varparsers.*
 import org.smlt.tools.wgrep.util.WgrepUtil;
 import org.w3c.dom.Document
 import org.w3c.dom.Element
-import javax.xml.XMLConstants
-import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.SchemaFactory
+
+import com.sun.org.apache.xalan.internal.xsltc.compiler.FilterParentPath;
 
 /**
  * Class represents wgrep config, which will be used to parse incoming arguments, config.xml and would be a source for processing, filtering etc. 
@@ -18,109 +17,61 @@ import javax.xml.validation.SchemaFactory
  *
  */
 @Slf4j
-class WgrepConfig {
-
-	//internal
-	protected def configValidator
-	protected String configFilePath
-	protected Document cfgDoc = null
-	protected Element root = null
-	//GLOBAL
-	protected String FOLDER_SEPARATOR = null
-	protected String CWD = null
-	protected String HOME_DIR = null
-	protected String RESULTS_DIR = 'results'
-	protected String SPOOLING_EXT = 'log'
-
-
-	//GENERAL
-	protected List<File> FILES = []
+public class BasicParamsHolderFactory implements ParamsHolderFactory<Object> {
+	
+	protected ConfigHolder config;
 
 	//OPTIONS
 	protected FilterParser filterParser =  null
 	protected FileNameParser fileNameParser =  null
-	protected List<ParserBase> varParsers = [] //organized as LIFO
-	protected Map params = [:] //all params as a Map
+	protected Deque<ParamParser> varParsers = new ArrayDeque<ParamParser>();
+	
 
-	/**
-	 * Constructor <br>
-	 * Initializes the instance. Parses config.xml and loads defaults from there.
-	 *
-	 * @param configFilePath String which can be recognized by a <code>FileReader</code> and is a valid path to an config.xml file
-	 */
-	WgrepConfig(String configFilePath)
-	{
-		this(configFilePath, null)	
+	public BasicParamsHolderFactory(ConfigHolder pConfig) {
+		config = pConfig
 	}
 	
-	
-	WgrepConfig(String configFilePath, String configXSDpath)
-	{
-		loadConfigInternal(configFilePath, configXSDpath)
-	}
-
-
-	protected void loadConfigInternal(String configFilePath, String configXSDpath) {
-		if (configXSDpath == null || validateConfigFile(configFilePath, configXSDpath)) {
-			initConfig(configFilePath)
-		}
-		else {
-			throw new RuntimeException("config.xml is invalid")
-		}
-	}
-	
-	protected boolean validateConfigFile(String configFilePath, String configXSDpath) {
-		log.trace("Loading validator")
-		def factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-		def schema = factory.newSchema(new StreamSource(new FileReader(configXSDpath)))
-		this.configValidator = schema.newValidator()
-		log.trace("Validating the config")
-		configValidator.validate(new StreamSource(new FileReader(configFilePath)))
-		return true
-	}
-	
-	protected void initConfig(String configFilePath) {
-		this.configFilePath = configFilePath
-		this.cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
-		this.root = cfgDoc.documentElement
-		loadDefaults()
-	}
-
 	/**
 	 *  Method loads defaults and spooling extension as configured in config.xml's <code>global</code> section.
 	 *  Loads some values set via System properties as well.
 	 */
-	protected void loadDefaults()
+	protected void loadDefaults(Map<Param, ?> params)
 	{
-		this.FOLDER_SEPARATOR = System.getProperty("file.separator")
-		this.HOME_DIR = System.getProperty("wgrep.home") + FOLDER_SEPARATOR
-		if (FOLDER_SEPARATOR == "\\") {
-			this.FOLDER_SEPARATOR += "\\"
+		params[Param.CONFIG_FILE_PATH] = config.getConfigFilePath()
+		
+		config.withRoot{ root ->
+			params[Param.SPOOLING_EXT] = root.global.spooling[0].text()
+			params[Param.RESULTS_DIR] = root.global.results_dir[0].text()
 		}
-		use(DOMCategory)
-		{
-			this.SPOOLING_EXT = root.global.spooling[0].text()
-			def defaultOptions = root.global.default_options[0]
-			if (defaultOptions != null)
-			{
-				defaultOptions.text().split(" ").each { opt -> processOptions(opt) } //processing default options
-			}
+				
+		def systemSep = System.getProperty("file.separator")
+		params[Param.HOME_DIR] = System.getProperty("wgrep.home") + systemSep
+		if (systemSep == "\\") {
+			systemSep += "\\"
+		}
+		params[Param.FOLDER_SEPARATOR] = systemSep
+
+		def defaults = config.withRoot{ root ->
+				def defaultOptions = root.global.default_options[0]
+				if (defaultOptions != null)
+				{
+					return defaultOptions.text();
+				}
+				else {
+					return defaultOptions;
+				}
 		}
 		
+		if (defaults != null) {
+			log.info("Processing defaults {}", defaults)
+			defaults.split(" ").each { opt -> processOptions(params, opt) } //processing default options
+		}
+		else {
+			log.info("Defaults not specified")
+		}
 	}
 
 	// Getters
-
-
-	/**
-	 * Getter to extract CDATA element value from a node which is expected to be text.
-	 * @return <code>node.text()</code> if the node has text. Value of CDATA element i.e. <code>node.getFirstChild().getNodeValue()</code> otherwise.
-	 */
-
-	String getCDATA(Element node)
-	{
-		return WgrepUtil.getCDATA(node)
-	}
 
 	def getDataForProcessing() {
 		def data = null
@@ -132,101 +83,6 @@ class WgrepConfig {
 			data = System.in
 		}
 		return data
-	}
-	
-	/**
-	 * Gets value of the {@link this.params} by key.
-	 * @param field Key for <code>params</code> which is needed to be get.
-	 * @return Value set to the key <code>field</code>
-	 */
-
-	def getParam(String field)
-	{
-		if (field == null) return
-		if (field == 'FILES') {
-			return Collections.unmodifiableList(this."$field")
-		}
-		else {
-			return hasField(field) ? this."$field" : this.params[field]
-		}
-	}
-
-	/**
-	 * Sets value of any field which exists in <code>WgrepFacade</code> via reflection. Is used to propagate value directly from config.xml
-	 * @param field Name of field of <code>WgrepFacade</code> which is needed to be set.
-	 * @param val Value to be set
-	 */
-
-	void setParam(String field, def val)
-	{
-		if (field == 'FILES')
-		{
-			this.FILES.add(val)
-		}
-		else if (hasField(field))
-		{
-			this."$field" = val
-		}
-		else
-		{
-			this.params[field] = val
-		}
-	}
-
-	/**
-	 * Method checks if mandatory and optional parameters are filled.
-	 * @return <code>true</code> if check is passed. <code>false</code> otherwise.
-	 */
-
-	boolean check(List<String> mandatory, List<String> optional)
-	{
-		boolean checkResult = true
-		
-		def emptyMandatory = mandatory.findAll{ paramName -> checkParamIsEmpty(paramName)}
-			.each{ paramName ->
-					log.error("Mandatory param {} is empty", paramName)
-			}
-		
-		if (emptyMandatory.size() > 0) return false
-
-		optional.findAll{ paramName -> checkParamIsEmpty(paramName)}
-			.each{ paramName ->
-				log.warn("Optional param {} is empty", paramName)
-			}
-
-		return checkResult
-	}
-
-	/**
-	 * Method checks if param is empty.
-	 * @return <code>true</code> if it is empty. <code>false</code> otherwise.
-	 */
-
-	boolean checkParamIsEmpty(String paramName) {
-		def param = getParam(paramName)
-		if (param != null) {
-			if (param instanceof Collection) {
-				return param.size() == 0
-			}
-			if (param instanceof Map) {
-				return param.size() == 0
-			}
-			return false
-		}
-		else {
-			return true
-		}
-	}
-
-	/**
-	* Checks if specified field is declared or not. 
-	* Used to determine whether the field should be looked up in the <code>params</code> Map or not.
-	*
-	*/
-
-	protected boolean hasField(String field)
-	{
-		WgrepUtil.hasField(this.getClass(), field)
 	}
 
 	// INITIALIZATION
@@ -248,29 +104,30 @@ class WgrepConfig {
 	 * @param args Array of strings containing arguments for parsing.
 	 */
 
-	void processInVars(def args)
+	public ParamsHolder getParamsHolder(Object args)
 	{
 		if (args == null || args.size() == 0) throw new IllegalArgumentException("Invalid arguments")
+		
+		filterParser = new FilterParser()
+		fileNameParser = new FileNameParser()
+		varParsers.addAll([filterParser, fileNameParser])
+		ParamsHolder params = new ParamsHolder(this);
 
-		filterParser = new FilterParser(this)
-		fileNameParser = new FileNameParser(this)
-		subscribeVarParsers([fileNameParser, filterParser])
-
-		for (arg in args)
-		{
-
-			log.debug("next arg: {}", arg);
-
-			switch (processOptions(arg))
+		params.withModifiableParams { map ->
+			loadDefaults(map)
+			for (arg in args)
 			{
-				case 1:
-					break
-				default:
-					parseVar(arg)
+				log.debug("next arg: {}", arg);
+				if (!this.processOptions(map, arg)) {
+					ParamParser<?> paramParser = varParsers.pop() 
+					if (!paramParser.parseVar(config, map, arg)) { //pushing back since this parser has more to parse
+						varParsers.push(paramParser)
+					}
+				} 
 			}
 		}
-
-		unsubscribeVarParsers(varParsers)
+		
+		return params
 	}
 
 	/**
@@ -280,19 +137,19 @@ class WgrepConfig {
 	 * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>0</code> otherwise.
 	 */
 
-	protected int processOptions(String arg)
+	protected boolean processOptions(Map<Param,?> params, String arg)
 	{
 		if (arg =~/^-(?![-0-9])/) //option should be a char and not a number
 		{
-			processSimpleArg(arg.substring(1)) //skipping '-' itself
-			return 1
+			this.processSimpleArg(params, arg.substring(1)) //skipping '-' itself
+			return true
 		}
 		else if (arg =~ /^--/)
 		{
-			processComlpexArg(arg.substring(2)) //skipping '--' itself
-			return 1
+			this.processComlpexArg(params, arg.substring(2)) //skipping '--' itself
+			return true
 		}
-		return 0
+		return false
 	}
 
 	/**
@@ -303,9 +160,9 @@ class WgrepConfig {
 	 *
 	 * @param arg An argument to be parsed
 	 */
-	protected void processSimpleArg(String arg)
+	protected void processSimpleArg(Map<Param,?> params, String arg)
 	{
-		(arg =~ /./).each{opt -> processOption(opt)}
+		(arg =~ /./).each{opt -> this.processOption(params, opt)}
 	}
 
 	/**
@@ -315,9 +172,9 @@ class WgrepConfig {
 	 * @param arg An argument to be parsed
 	 */
 
-	protected void processComlpexArg(String arg)
+	protected void processComlpexArg(Map<Param,?> params, String arg)
 	{
-		(arg =~ /.*/).each{opt -> if(opt) processOption(opt)}
+		(arg =~ /.*/).each{opt -> if(opt) this.processOption(params, opt)}
 	}
 
 	/**
@@ -330,68 +187,31 @@ class WgrepConfig {
 	 * @throws IllegalArgumentException If the supplied <code>arg</code> is not configured, i.e. cannot be found in the config.xml.
 	 */
 
-	protected void processOption(String opt)
+	protected void processOption(Map<Param,?> params, String opt)
 	{
-		use(DOMCategory)
-		{
+		config.withRoot{ root ->
 			def optElem = root.options.opt.find {it.text() == opt}
 			if (optElem == null) optElem = root.custom.options.opt.find {it.text() == opt}
 			if (optElem != null)
 			{
 				def handler = optElem['@handler']
-				this."$handler"(optElem['@field'], optElem.text())
+				def value = optElem.text()
+				params[Param.valueOf(optElem['@field'])] = value   
+				log.trace("Calling: {} for {}", handler, value)
+				if (handler != null && handler != "") {
+					this."$handler"(params, value)
+				}
 			}
 			else {
-
-				 throw new IllegalArgumentException("Invalid option, doesn't match any <opt>: " + opt)
+				optionNotFoundHook(params, opt)
 			}
 		}
 	}
 
-	/**
-	 * Method for parsing arguments which are not options or flags. I.e. they are variable values needed for correct processing.
-	 * <p>
-	 * It gets last parser from {@link varParsers} array and calls it <code>parseVar</code> function with supplied <code>arg</code>
-	 *
-	 * @param arg An argument to be parsed
-	 */
-
-	protected void parseVar(String arg)
-	{
-		if (varParsers == null) {
-			return
-		}
-
-		int nextParserIdx = varParsers.size() - 1
-		if (nextParserIdx >= 0)
-		{
-			log.debug("passing to parser")
-			varParsers[nextParserIdx].parseVar(arg)
-		}
+	protected void optionNotFoundHook(Map<Param, ?> params, String opt) {
+		throw new IllegalArgumentException("Invalid option, doesn't match any <opt>: " + opt)
 	}
-
-	/**
-	 * Method for subscribing var parsers.
-	 *
-	 * @param parsers List of {@link ParserBase} objects.
-	 */
-
-	void subscribeVarParsers(List<ParserBase> parsers)
-	{
-		this.varParsers.addAll(parsers)
-	}
-
-	/**
-	 * Method for unsubscribing var parsers.
-	 *
-	 * @param parsers List of {@link ParserBase} objects.
-	 */
-
-	void unsubscribeVarParsers(List<ParserBase> parsers)
-	{
-		this.varParsers.removeAll(parsers)
-	}
-
+	
 
     /**
     * Method for refreshing config params by a filename. Requires {@link PatternAutomationHelper} paHelper to be initialized. <br>
@@ -399,12 +219,26 @@ class WgrepConfig {
     * @param fileName String representing name of a file to be checked. Could be an absolute path as well.
     */
 
-    boolean refreshConfigByFile(File file)
+	boolean refreshParams(ParamsHolder params, Object file)
+	{
+		if (file instanceof File) {
+			return refreshParamsByFile(params, file as File)
+		}
+		else if (file instanceof String) {
+			return refreshParamsByFile(params, file as String)
+		}
+		else {
+			return false
+		}
+	}
+
+	
+	boolean refreshParamsByFile(ParamsHolder params, File file)
     {
-        return refreshConfigByFile(file.getName())
+        return refreshParamsByFile(params, file.getName())
     }
     
-    boolean refreshConfigByFile(String fileName)
+    boolean refreshParamsByFile(ParamsHolder params, String fileName)
     {
         return false
     }
@@ -415,10 +249,9 @@ class WgrepConfig {
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>date_time_config</code> section is expected here.
 	 */
 
-	protected void setDateTimeFilter(String field, def val)
+	protected void setDateTimeFilter(Map<Param, ?> params, def val)
 	{
-		setParam(field, val)
-		new DateTimeParser(this).subscribe()
+		varParsers.push(new DateTimeParser())
 	}
 
 	/**
@@ -427,32 +260,24 @@ class WgrepConfig {
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>date_time_config</code> section is expected here.
 	 */
 
-	protected void setUserLEPattern(String field, def val)
+	protected void setUserLEPattern(Map<Param, ?> params, def val)
 	{
-		setParam(field, val)
-		new LogEntryParser(this).subscribe()
+		varParsers.push(new LogEntryParser())
 	}
 
-	protected void setPropertiesParsing(String field, def val) 
+	protected void setPropertiesParsing(Map<Param, ?> params, def val) 
 	{
-		filterParser.unsubscribe()
-		setParam(field, val)
+		varParsers.remove(filterParser)
 	}
-
-	protected void setParseProperties(String field, def val)
-	{
-		filterParser.unsubscribe()
-		setParam(field, val)
-	}
-
+	
 	/**
 	 * Method prints out some help
 	 * <p>
 	 * Actually it has the same date as in groovydoc.
 	 */
-	protected void printHelp(String field, def arg)
+	protected void printHelp(Map<Param, ?> params, def val)
 	{
-		unsubscribeVarParsers(varParsers); //unsubscribing all
+		varParsers.clear(); //unsubscribing all
 		def help = """\
 CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
 
@@ -505,7 +330,7 @@ cat blabla.txt | wgrep -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	* Method enforces TRACE level of logging by resetting logback config and redirects it to STDOUT.
 	*/
 
-	protected void enforceTrace(String field, def val)
+	protected void enforceTrace(Map<Param, ?> params, def val)
 	{
 		log.debug("Enabling trace")
 		String traceConfig ="""\
@@ -532,7 +357,7 @@ cat blabla.txt | wgrep -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	* Method enforces INFO level of logging by resetting logback config and redirects it to STDOUT.
 	*/
 
-	protected void enforceInfo(String field, def val)
+	protected void enforceInfo(Map<Param, ?> params, def val)
 	{
 		log.debug("Redirecting info to STDOUT")
 		String infoConfig ="""\
