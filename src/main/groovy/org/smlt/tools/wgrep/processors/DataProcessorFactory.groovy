@@ -17,32 +17,28 @@ class DataProcessorFactory {
 	 */
     public static DataProcessor<?> getProcessorInstance(ParamsHolder paramsHolder) 
     {
-		final WgrepOutput<?,?> output = OutputFactory.getOutputInstance(paramsHolder)
 		def data = paramsHolder.getProcessingData()
-		if (data instanceof List<?>) {
-			if (((List<?>)data).get(0) instanceof File) {
+		return getProcessorInstanceForData(paramsHolder, data)
+    }
+	
+	public static void process(ParamsHolder paramsHolder) {
+		def data = paramsHolder.getProcessingData()
+		getProcessorInstanceForData(paramsHolder, data).process(data)
+	}
+	
+	public static <T> DataProcessor<T> getProcessorInstanceForData(ParamsHolder paramsHolder, T data) {
+		final WgrepOutput<?,?> output = OutputFactory.getOutputInstance(paramsHolder)
+		
+		if (data instanceof List<File>) {
 				return new FileProcessor(output, FilterChainFactory.createFileFilterChain(paramsHolder), !paramsHolder.checkParamIsEmpty(Param.FILE_MERGING))
-			}
 		}
 		else if (data instanceof InputStream){
 			return new InputStreamProcessor(output)
 		}
 		else {
-			return new DataProcessor<Object>() {
-				public void process(Object pData) {
-					if (pData != null) {
-						System.out.println("Couldn't find DataProcessor for " + pData.getClass().toString())
-					}
-					else {
-						System.out.println("Nothing to process")
-					}
-				}
-			}
+			throw new IllegalArgumentException("Unsupported data type: " + data.getClass().getCanonicalName());
 		}
-    }
-	
-	public static void process(ParamsHolder paramsHolder) {
-		getProcessorInstance(paramsHolder).process(paramsHolder.getProcessingData())
+
 	}
 	
 }

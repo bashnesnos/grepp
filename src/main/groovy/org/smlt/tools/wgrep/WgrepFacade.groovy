@@ -43,7 +43,7 @@ public class WgrepFacade {
 	 * @param args Command-line style arguments
 	 */
 
-	public void doCLProcessing(def args)
+	public void doCLProcessing(String[] args)
 	{
 		try {
 			ParamsHolder paramsHolder = paramsHolderFactory.getParamsHolder(args)
