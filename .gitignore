@@ -26,3 +26,5 @@ default*
 .project
 .settings/
 bin/
+/logs
+/results

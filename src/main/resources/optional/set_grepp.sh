@@ -1,0 +1,1 @@
+alias grepp='./bin/grepp'

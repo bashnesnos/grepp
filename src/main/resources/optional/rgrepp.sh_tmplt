@@ -1,0 +1,36 @@
+#!/bin/bash
+##############PARAMS
+OUTPUT="./results/"
+OUTPUT_FILENAME="rgrepp"
+WORK_DIR="#NIX_DIR#"
+GREPP_PATH="$WORK_DIR/bin/grepp"
+MODE=""
+EXT=""
+ALL_PARAMS="$@"
+BOXES=#BOXES#
+
+if [ ! -d $OUTPUT ]; then
+	mkdir $OUTPUT
+fi
+
+if [ ! "$EXT" == "" ]; then
+	OUTPUT_FILE_EXT=$EXT
+else
+	OUTPUT_FILE_EXT=".log"
+fi
+
+###############
+
+HISTORY_FILE="rgrepp.history"
+echo "####"$(date '+%Y-%m-%dT%H:%M:%S') "#wgrep $ALL_PARAMS" >> $HISTORY_FILE
+
+for box in ${BOXES[*]}
+do
+	#echo ssh $box $GREPP_PATH $ALL_PARAMS
+	if [ "$MODE" == "-agg" ]; then
+		eval ssh $box $GREPP_PATH $ALL_PARAMS >> $OUTPUT$OUTPUT_FILENAME$OUTPUT_FILE_EXT
+	else
+		eval ssh $box $GREPP_PATH $ALL_PARAMS > $OUTPUT$OUTPUT_FILENAME"_"$box$OUTPUT_FILE_EXT
+	fi
+done
+

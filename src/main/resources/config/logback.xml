@@ -3,7 +3,7 @@
 
 	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
 		<append>false</append>
-		<file>${wgrep.home}/logs/wgrep.log</file>
+		<file>${grepp.home}/logs/grepp.log</file>
 		<encoder>
 			<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
 		</encoder>

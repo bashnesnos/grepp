@@ -1,0 +1,20 @@
+#!/bin/bash
+USER='#USER#'
+GREP_HOME='#NIX_DIR#'
+echo $USER
+echo $GREP_HOME
+echo $1
+BOXES=#BOXES#
+
+for box in ${BOXES[*]}
+do
+	if [ ! "$1" == "-u" ] && [ ! "$1" == "-rm" ]; then 
+		ssh $box 'mkdir '$GREP_HOME';echo "grepp_home created"'
+	fi
+
+	if [ "$1" == "-rm" ]; then
+		ssh $box 'cd '$GREP_HOME';rm -r *;echo "cleaned"'
+	fi
+
+	scp -p -r ./ $USER@$box:$GREP_HOME
+done

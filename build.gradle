@@ -25,12 +25,7 @@ repositories {
 dependencies {
     compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.1.7-SNAPSHOT'
 	compile group: 'org.slf4j', name:'slf4j-api', version: '1.7.5'
-	compile group: 'org.slf4j', name:'jcl-over-slf4j', version: '1.7.5'
 	compile group: 'ch.qos.logback', name:'logback-classic', version: '1.0.11'
-
-    compile('org.springframework:spring-beans:3.2.2.RELEASE') {
-		exclude group: 'commons-logging'
-	}
 
     if (oldJdkCompatibility == 1.5) {
         compile group: 'org.livetribe', name:'livetribe-jsr223', version: '2.0.1', transitive: true //for 1.5 compatibility
@@ -51,16 +46,16 @@ compileGroovy {
 }
 
 startScripts {
-    mainClassName = 'org.smlt.tools.wgrep.WGrep'
+    mainClassName = 'org.smltools.grepp.Grepp'
     classpath += files('/config')
 
     doLast {
         def windowsScriptFile = file getWindowsScript()
         def unixScriptFile    = file getUnixScript()
         windowsScriptFile.text = windowsScriptFile.text.replace('%APP_HOME%\\lib\\config', '%APP_HOME%\\config')
-        windowsScriptFile.text = windowsScriptFile.text.replace('set APP_HOME=%DIRNAME%..', 'set APP_HOME=%DIRNAME%..\nset WGREP_OPTS="-Dwgrep.home=%APP_HOME%"')
+        windowsScriptFile.text = windowsScriptFile.text.replace('set APP_HOME=%DIRNAME%..', 'set APP_HOME=%DIRNAME%..\nset GREPP_OPTS="-Dgrepp.home=%APP_HOME%"')
         unixScriptFile.text    = unixScriptFile.text.replace('$APP_HOME/lib/config', '$APP_HOME/config')
-        unixScriptFile.text    = unixScriptFile.text.replace('APP_HOME="`pwd -P`"', 'APP_HOME="`pwd -P`"\nWGREP_OPTS="-Dwgrep.home=$APP_HOME"')
+        unixScriptFile.text    = unixScriptFile.text.replace('APP_HOME="`pwd -P`"', 'APP_HOME="`pwd -P`"\nGREPP_OPTS="-Dgrepp.home=$APP_HOME"')
     }
 
 }
@@ -73,7 +68,7 @@ jar.includes =['**/*.class'] //TODO: may be versioning or something is needed
 jar.includeEmptyDirs = false
 
 test {
-	systemProperty 'wgrep.home', rootDir.getAbsolutePath()
+	systemProperty 'grepp.home', rootDir.getAbsolutePath()
 	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main/config')
 	setClasspath(newCP)
     if (printTestClasspath)
@@ -143,7 +138,7 @@ task copyOptional(type: Copy) {
 task prepareSublimeSettings(type: Copy) {
     from rootDir.getAbsolutePath() + '/src/sublime/'
     filter { String line ->
-        line.replace('#WGREP_HOME#', rootDir.getAbsolutePath().replaceAll( '(\\\\)', '\\\\$1' ))
+        line.replace('#GREPP_HOME#', rootDir.getAbsolutePath().replaceAll( '(\\\\)', '\\\\$1' ))
     }
     into mkdir('.sublime')
 }

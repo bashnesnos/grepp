@@ -1,0 +1,6 @@
+{
+	"cmd": ["#GREPP_HOME#\\gradle", "build"],
+	"cmd": ["groovy", "-Dgrepp.home=#GREPP_HOME#", "-cp", "#GREPP_HOME#\\build\\libs\\grepp.jar", "$file"],
+	"file_regex": "^[ ]*File \"(...*?)\", line ([0-9]*)",
+	"selector": "source.groovy"
+}
