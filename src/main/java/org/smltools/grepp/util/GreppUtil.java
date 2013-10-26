@@ -3,7 +3,6 @@ package org.smltools.grepp.util;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.net.URL;
-import org.w3c.dom.Element;
 import org.slf4j.LoggerFactory;
 import org.smltools.grepp.util.GreppUtil;
 

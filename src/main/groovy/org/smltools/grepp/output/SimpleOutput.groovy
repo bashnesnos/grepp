@@ -25,6 +25,10 @@ public class SimpleOutput implements WgrepOutput<Object, String> {
 	protected ParamsHolder params;
 	protected FilterBase filterChain;
 	
+	SimpleOutput(ParamsHolder params_) {
+		this(params_, null)
+	}
+	
 	SimpleOutput(ParamsHolder params_, PrintWriter printer_) {
 		printer = printer_
 		params = params_

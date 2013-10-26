@@ -25,9 +25,9 @@ public enum Param {
 	TRACE("Indicator that force tracing is on"),
 	PREDEF_TAG("Predefined tag for processing set up"),
 	PRESERVE_THREAD("Toggles thread ID preserving, i.e. all the records for a thread will be fetched"),
-	PRESERVE_THREAD_PARAMS("Map contatinig all needed params for complex filtering processor"),
+	PRESERVE_THREAD_PARAMS("Map contatinig all needed params for complex filtering processor", Type.PARAMS),
 	POST_PROCESSING("Toggles results grouping and stuff to produce nice CSV files"),
-	POST_PROCESS_PARAMS("Map containing all needed params for post processor"),
+	POST_PROCESS_PARAMS("Map containing all needed params for post processor", Type.PARAMS),
 	PARSE_PROPERTIES("Toggles .property file to config.xml parsing");
 		
 	private final String descrptn;

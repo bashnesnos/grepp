@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat
 apply plugin: 'groovy'
 apply plugin: 'application'
 
+version = '1.0'
 //these properties are overwritten by subprojects dev and release if they are defined there
 def targetDir = new File("default") //is initialized with the project
 def includeOptional = false //whether to include optional sh scripts

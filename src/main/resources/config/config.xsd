@@ -22,7 +22,7 @@
             <element ref="tns:results_dir" maxOccurs="1" minOccurs="0"></element>
             <element ref="tns:default_options" maxOccurs="1"
 				minOccurs="0">
-			</element>
+			</element>
 		</sequence>
 	</complexType>
 

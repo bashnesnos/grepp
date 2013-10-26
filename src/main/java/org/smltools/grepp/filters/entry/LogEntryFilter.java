@@ -34,6 +34,7 @@ final class LogEntryFilter extends FilterBase<String> {
 	 */
 	LogEntryFilter(FilterBase<String> nextFilter_, String logEntryPtrn_) {
 		super(nextFilter_, LogEntryFilter.class);
+		log.debug("Entry pattern :/{}/", logEntryPtrn_);
 		logEntryPtrn = Pattern.compile(logEntryPtrn_);
         curBlock = new StringBuilder();
         clearBuffer();
