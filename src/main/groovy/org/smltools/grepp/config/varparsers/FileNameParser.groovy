@@ -27,20 +27,25 @@ class FileNameParser implements ParamParser<String> {
 
 	private boolean parseVar_(Map<Param, ?> params, String fileName) {
 		List<File> fileList = []
-		def fSeparator = params[Param.FOLDER_SEPARATOR];
-		def curDir;
+		def fSeparator = params[Param.FOLDER_SEPARATOR]
+		def curDir = params[Param.CWD]
 
-		if (log.isTraceEnabled()) log.trace("analyzing supplied file: " + fileName);
+		log.trace("analyzing supplied file: {}", fileName)
 		if (fileName =~ /\*/) {
 			//filename contains asterisk, should be a multi-file pattern
-			String flname = fileName;
+			String flname = fileName
 			if (fileName =~ fSeparator) {
-				curDir = (fileName =~/.*(?=$fSeparator)/)[0]
+				if (curDir == null) { 
+					curDir = new File((fileName =~/.*(?=$fSeparator)/)[0])
+				}
+				else {
+					log.debug("Directory is limited to {}", curDir.getAbsolutePath())
+				}
 				flname = (fileName =~ /.*$fSeparator(.*)/)[0][1]
 			}
-			List<File> files = new File(curDir).listFiles();
+			List<File> files = curDir.listFiles()
 			if (log.isTraceEnabled()) log.trace("files found " + files)
-			String ptrn = flname.replaceAll(/\*/) {it - '*' + '.*'};
+			String ptrn = flname.replaceAll(/\*/) {it - '*' + '.*'}
 			if (log.isTraceEnabled()) log.trace("matching ptrn " + ptrn)
 			files.each { file ->
 				if (file.name ==~ /$ptrn/) {
@@ -50,6 +55,14 @@ class FileNameParser implements ParamParser<String> {
 			}
 		}
 		else { //all good seems to be a normal file, just adding it
+			if (curDir != null) {
+				log.debug("Limiting directory to {}", curDir.getAbsolutePath())
+				if (fileName =~ fSeparator) {
+					fileName = (fileName =~ /.*$fSeparator(.*)/)[0][1]
+				}
+				fileName = "${curDir.getAbsolutePath()}\\$fileName"
+			}
+
 			fileList.add(new File(fileName))
 		}
 		

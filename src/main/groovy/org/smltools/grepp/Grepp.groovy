@@ -13,8 +13,10 @@ import groovy.util.logging.Slf4j
 import org.codehaus.groovy.classgen.Verifier.DefaultArgsAction;
 import org.codehaus.groovy.transform.NewifyASTTransformation;
 import org.smltools.grepp.config.ConfigHolder;
+import org.smltools.grepp.config.ParamsHolder
 import org.smltools.grepp.config.ParamsHolderFactory;
 import org.smltools.grepp.config.PredictingParamsHolderFactory
+import org.smltools.grepp.processors.DataProcessorFactory
 import org.smltools.grepp.filters.entry.LogEntryFilter;
 import org.smltools.grepp.util.GreppUtil
 
@@ -36,10 +38,16 @@ class Grepp
 		log.trace("Initializing: {}, {}", configPath, configXSDPath)
 		def configHolder = new ConfigHolder(configPath, configXSDPath)
 		ParamsHolderFactory<?> paramsFactory = new PredictingParamsHolderFactory(configHolder)
-		GreppFacade facade = new GreppFacade()
-		facade.setParamsHolderFactory(paramsFactory)
-		facade.doCLProcessing(args)
 		
+		try {
+			ParamsHolder paramsHolder = paramsFactory.getParamsHolder(args)
+			DataProcessorFactory.process(paramsHolder)
+		}
+		catch(Exception e)
+		{
+			log.error("An unexpected exception occured", e)
+		}
+				
 		log.info("Processing time = {} sec", ((new Date().getTime() - startTime.getTime())/1000))
 	}
 

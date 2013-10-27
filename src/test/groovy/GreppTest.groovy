@@ -22,6 +22,7 @@ class GreppTest extends GroovyTestCase {
 	void setUp() {
 		config = new ConfigHolder(GREPP_CONFIG, GREPP_CONFIG_XSD)
 		paramFactory = new PredictingParamsHolderFactory(config);
+		paramFactory.setWorkingDir(new File(HOME))
 	}
 
 	public static String getOutput(Closure operation) {
@@ -107,7 +108,9 @@ class GreppTest extends GroovyTestCase {
 		def params = paramFactory.getParamsHolder("-sL stCommand queryTime --some_timings cmd_only_1.log".split(" "))
 		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "stCommand" )
 		assertTrue( params.get(Param.FILTER_PATTERN) == "queryTime" )
-		assertTrue( params.get(Param.FILES) == [new File("cmd_only_1.log")])
+		def erFiles = [new File("cmd_only_1.log").getName()]
+		def arFiles = params.get(Param.FILES).collect {it.getName()}
+		assertTrue("ER: $erFiles; AR: $arFiles" , arFiles == erFiles)
 		assertTrue( params.get(Param.FOLDER_SEPARATOR) == "\\\\" )
 	}
 

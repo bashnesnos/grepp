@@ -25,8 +25,10 @@ public class BasicParamsHolderFactory implements ParamsHolderFactory<Object> {
 	protected FilterParser filterParser =  null
 	protected FileNameParser fileNameParser =  null
 	protected Deque<ParamParser> varParsers = new ArrayDeque<ParamParser>();
-	
 
+	protected File curWorkDir //allows to restrict access to a supplied working dir only
+	
+	
 	public BasicParamsHolderFactory(ConfigHolder pConfig) {
 		config = pConfig
 	}
@@ -85,6 +87,15 @@ public class BasicParamsHolderFactory implements ParamsHolderFactory<Object> {
 		return data
 	}
 
+	public void setWorkingDir(File cwd) {
+		log.trace("Directory limited to {}", cwd.getAbsolutePath())
+		curWorkDir = cwd
+	}
+	
+	public File getWorkingDir() {
+		return curWorkDir
+	}
+	
 	// INITIALIZATION
 
 	/**
@@ -113,6 +124,10 @@ public class BasicParamsHolderFactory implements ParamsHolderFactory<Object> {
 		varParsers.addAll([filterParser, fileNameParser])
 		ParamsHolder params = new ParamsHolder(this);
 
+		if (curWorkDir != null) {
+			params.set(Param.CWD, curWorkDir)
+		}
+		
 		params.withModifiableParams { map ->
 			loadDefaults(map)
 			for (arg in args)
@@ -126,7 +141,7 @@ public class BasicParamsHolderFactory implements ParamsHolderFactory<Object> {
 				} 
 			}
 		}
-		
+		varParsers.clear()
 		return params
 	}
 
