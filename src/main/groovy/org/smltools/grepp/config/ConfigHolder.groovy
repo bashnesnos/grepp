@@ -67,11 +67,11 @@ public class ConfigHolder {
 		}
 	}
 
-	public Class<?> getParamsHolderFactoryClass() {
+	public ParamsHolderFactory<?> getParamsHolderFactory() {
 		withRoot { root ->
 			String className = root.global.params_factory.text()
 			if (className != null) {
-				return GreppUtil.getClassByName(className);
+				 return GreppUtil.getClassByName(className).getConstructor(ConfigHolder.class).newInstance(this)
 			}
 			else {
 				throw new AssertionError("Should be validated by xsd")

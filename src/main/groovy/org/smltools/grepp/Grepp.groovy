@@ -39,7 +39,7 @@ class Grepp
 		def configHolder = new ConfigHolder(configPath, configXSDPath)
 		
 		try {
-			ParamsHolderFactory<?> paramsFactory = configHolder.getParamsHolderFactoryClass().getConstructor(ConfigHolder.class).newInstance(configHolder)
+			ParamsHolderFactory<?> paramsFactory = configHolder.getParamsHolderFactory()
 			ParamsHolder paramsHolder = paramsFactory.getParamsHolder(args)
 			DataProcessorFactory.process(paramsHolder)
 		}
