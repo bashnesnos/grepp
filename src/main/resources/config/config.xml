@@ -1,6 +1,7 @@
 <root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.smltools.org/config"
 	xsi:schemaLocation="http://www.smltools.org/config config.xsd">
 	<global>
+		<params_factory>org.smltools.grepp.config.PredictingParamsHolderFactory</params_factory>
 		<spooling>.log</spooling>
 		<results_dir>results</results_dir>
 		<default_options>-c</default_options>

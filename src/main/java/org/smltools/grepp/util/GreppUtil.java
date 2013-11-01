@@ -3,6 +3,7 @@ package org.smltools.grepp.util;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.net.URL;
+
 import org.slf4j.LoggerFactory;
 import org.smltools.grepp.util.GreppUtil;
 
@@ -10,6 +11,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.util.StatusPrinter;
+
 import java.lang.reflect.Modifier;
 
 /**
@@ -63,6 +65,15 @@ public final class GreppUtil {
 		}
 		else {
 			return null;
+		}
+	}
+	
+	public static Class<?> getClassByName(String className) throws ClassNotFoundException {
+		if (className != null) {
+			return GreppUtil.class.getClassLoader().loadClass(className);
+		}
+		else {
+			throw new IllegalArgumentException("Class name shouldn't be null");
 		}
 	}
 

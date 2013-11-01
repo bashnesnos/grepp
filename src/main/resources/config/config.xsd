@@ -18,11 +18,15 @@
 
 	<complexType name="global">
 		<sequence>
-			<element ref="tns:spooling" maxOccurs="1" minOccurs="0"></element>
-            <element ref="tns:results_dir" maxOccurs="1" minOccurs="0"></element>
-            <element ref="tns:default_options" maxOccurs="1"
+            <element ref="tns:params_factory" maxOccurs="1" minOccurs="1"></element>
+            <element ref="tns:spooling" maxOccurs="1" minOccurs="0"></element>
+			<element ref="tns:results_dir" maxOccurs="1"
 				minOccurs="0">
 			</element>
+			<element ref="tns:default_options" maxOccurs="1"
+				minOccurs="0">
+			</element>
+
 		</sequence>
 	</complexType>
 
@@ -233,4 +237,6 @@
 	<element name="root" type="tns:root"></element>
 
     <element name="results_dir" type="string"></element>
+
+    <element name="params_factory" type="string"></element>
 </schema>

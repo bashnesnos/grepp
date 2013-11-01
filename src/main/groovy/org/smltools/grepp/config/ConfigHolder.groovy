@@ -2,12 +2,16 @@ package org.smltools.grepp.config
 
 import groovy.xml.dom.DOMCategory;
 import groovy.util.logging.Slf4j
+
+import org.smltools.grepp.util.GreppUtil;
 import org.w3c.dom.Document
 import org.w3c.dom.Element
+
 import javax.xml.XMLConstants
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
 import javax.xml.validation.Validator
+
 import groovy.xml.DOMBuilder
 
 @Slf4j
@@ -62,7 +66,19 @@ public class ConfigHolder {
 			return closure.call(root);
 		}
 	}
-		
+
+	public Class<?> getParamsHolderFactoryClass() {
+		withRoot { root ->
+			String className = root.global.params_factory.text()
+			if (className != null) {
+				return GreppUtil.getClassByName(className);
+			}
+			else {
+				throw new AssertionError("Should be validated by xsd")
+			}
+		}
+	}
+			
 	private void loadConfigInternal(String pConfigFilePath, String pConfigXSDPath) {
 		if (pConfigXSDPath == null || validateConfigFile(pConfigFilePath, pConfigXSDPath)) {
 			initConfig(pConfigFilePath)

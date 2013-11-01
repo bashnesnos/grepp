@@ -37,9 +37,9 @@ class Grepp
 		}
 		log.trace("Initializing: {}, {}", configPath, configXSDPath)
 		def configHolder = new ConfigHolder(configPath, configXSDPath)
-		ParamsHolderFactory<?> paramsFactory = new PredictingParamsHolderFactory(configHolder)
 		
 		try {
+			ParamsHolderFactory<?> paramsFactory = configHolder.getParamsHolderFactoryClass().getConstructor(ConfigHolder.class).newInstance(configHolder)
 			ParamsHolder paramsHolder = paramsFactory.getParamsHolder(args)
 			DataProcessorFactory.process(paramsHolder)
 		}
