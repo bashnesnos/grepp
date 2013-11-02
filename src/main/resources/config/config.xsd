@@ -41,6 +41,7 @@
 			<extension base="string">
 				<attribute name="handler" type="string"></attribute>
 				<attribute name="field" type="string"></attribute>
+				<attribute name="descr" type="string"></attribute>
 			</extension>
 		</simpleContent>
 	</complexType>

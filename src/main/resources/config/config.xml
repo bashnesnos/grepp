@@ -12,13 +12,14 @@
 		<opt field="HELP" handler="printHelp">?</opt>
 		<opt field="SPOOLING">s</opt>
 		<opt field="FILE_MERGING">m</opt>
-		<opt field="USER_ENTRY_PATTERN" handler="setUserLEPattern">L</opt>
-		<opt field="PARSE_PROPERTIES" handler="setPropertiesParsing">parse</opt>
-		<opt field="ATMTN_LEVEL" handler="setAutomation">c</opt>
-		<opt field="ATMTN_LEVEL" handler="setAutomation">a</opt>
-		<opt field="ATMTN_LEVEL" handler="setAutomation">f</opt>
-		<opt field="ATMTN_LEVEL" handler="setAutomation">e</opt>
-		<opt field="DATE_TIME_FILTER" handler="setDateTimeFilter">dtime</opt>
+		<opt field="USER_ENTRY_PATTERN" handler="setUserLEPattern" descr="Flag to use a following pattern as current entry pattern">L</opt>
+		<opt field="PARSE_PROPERTIES" handler="setPropertiesParsing" descr="Parse and save logging properties file into grepp config">parse</opt>
+		<opt field="ATMTN_LEVEL" handler="setAutomation" descr="Identify entry &amp; date pattern by filename from config">c</opt>
+		<opt field="ATMTN_LEVEL" handler="setAutomation" descr="Use all available config-defined identifications">a</opt>
+		<opt field="ATMTN_LEVEL" handler="setAutomation" descr="Identify filter pattern by supplied option from config">f</opt>
+		<opt field="ATMTN_LEVEL" handler="setAutomation" descr="Identify thread chainig by supplied option from config">e</opt>
+		<opt field="DATE_TIME_FILTER" handler="setDateTimeFilter" descr="Turn on date time filtering and accept datetime boundaries">dtime</opt>
+
 	</options>
 	<pp_config default_sep="csv">
 		<pp_splitter_types>

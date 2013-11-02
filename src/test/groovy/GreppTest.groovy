@@ -64,6 +64,10 @@ class GreppTest extends GroovyTestCase {
 		assertTrue(expectedResult == actualResult)
 	}
 
+	void testGetOptions(){
+		config.getOptions()
+	}
+	
 	void testMainVarsProcessing() {
 		def params = paramFactory.getParamsHolder("-L test test $HOME\\fpTest*".split(" "))
 		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "test" )
