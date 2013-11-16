@@ -78,6 +78,18 @@ class GreppTest extends GroovyTestCase {
 		assertTrue( params.get(Param.FOLDER_SEPARATOR) != null )
 	}
 	
+	void testFileMTimeFiltering() {
+		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def dateFormat = new SimpleDateFormat("yyyy-MM-dd")
+		def testTimeStringFrom = dateFormat.format(new Date(fileTime.getTime() + 24*60*60*1000))
+
+		def expectedResult = ""
+		assertGreppOutput(expectedResult) {
+			Grepp.main("Foo --dtime $testTimeStringFrom + $HOME\\processing_time_test.log".split(" "))
+		}
+
+	}
+	
 	void testConfigsProcessing() {
 		def params = paramFactory.getParamsHolder("--to_test --predef $HOME\\fpTest*".split(" "))
 		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "####\\[\\D{1,}\\].*(\\d{4}-\\d{1,2}-\\d{1,2} \\d{2}:\\d{2}:\\d{2})" )

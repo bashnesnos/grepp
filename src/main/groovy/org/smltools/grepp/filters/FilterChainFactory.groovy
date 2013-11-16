@@ -75,10 +75,12 @@ class FilterChainFactory {
 	public static FilterBase createFileFilterChain(ParamsHolder paramsHolder) {
 		FilterBase filterChain_ = new FileSortFilter()
 
-		if (paramsHolder.checkParamIsEmpty(Param.DATE_TIME_FILTER)) {
-			if (paramsHolder.check([Param.FILE_DATE_FORMAT],[Param.FROM_DATE, Param.TO_DATE, Param.LOG_FILE_THRESHOLD]))
+		if (!paramsHolder.checkParamIsEmpty(Param.DATE_TIME_FILTER)) {
+			if (paramsHolder.check([Param.FILE_DATE_FORMAT],[Param.FROM_DATE, Param.TO_DATE, Param.LOG_FILE_THRESHOLD])) {
 				filterChain_ = new FileDateFilter(filterChain_, paramsHolder.get(Param.FILE_DATE_FORMAT), paramsHolder.get(Param.FROM_DATE), paramsHolder.get(Param.TO_DATE), paramsHolder.get(Param.LOG_FILE_THRESHOLD))
+			}
 		}
 		return filterChain_
 	}
 }
+	
