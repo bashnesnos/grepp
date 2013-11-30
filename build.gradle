@@ -144,6 +144,12 @@ task prepareSublimeSettings(type: Copy) {
     into mkdir('.sublime')
 }
 
+task copyToIvy(type: Copy) {
+    from jar
+    new File('C:\\Users\\asemelit\\.grails\\ivy-cache\\org.smltools').deleteDir()
+    into 'C:\\Users\\asemelit\\Documents\\GitHub\\grepp-server\\lib'
+}
+
 tasks.addRule("Pattern: install<ID>") { String taskName ->
 	if (taskName.startsWith("install"))
 	{

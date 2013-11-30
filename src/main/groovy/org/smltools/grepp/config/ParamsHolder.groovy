@@ -29,6 +29,10 @@ public class ParamsHolder {
 		return params[field]
 	}
 	
+	public String getSpoolFileName() {
+		return get(Param.FILTER_PATTERN).replaceAll("[^\\p{L}\\p{N}]", {""}) + get(Param.SPOOLING_EXT)
+	}
+	
 	public Object getProcessingData() {
 		List<Param> dataParams = Param.getDataParams()
 		Param suppliedData = dataParams.find { param ->

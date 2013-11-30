@@ -41,7 +41,7 @@ class OutputFactory {
 	private static PrintWriter getFilePrinter(ParamsHolder paramsHolder) {
 		def outputDir = new File(new File(paramsHolder.get(Param.HOME_DIR)), paramsHolder.get(Param.RESULTS_DIR))
 		if (!outputDir.exists()) outputDir.mkdir()
-		def out_file = new File(outputDir, paramsHolder.get(Param.FILTER_PATTERN).replaceAll("[^\\p{L}\\p{N}]", {""}) + paramsHolder.get(Param.SPOOLING_EXT))
+		def out_file = new File(outputDir, paramsHolder.getSpoolFileName())
 		log.trace("Creating new file: {}", out_file.getCanonicalPath())
 		out_file.createNewFile()
 		return new PrintWriter(new FileWriter(out_file), true) //autoflushing PrintWriter
