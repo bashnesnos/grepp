@@ -60,7 +60,7 @@ class FileNameParser implements ParamParser<String> {
 				if (fileName =~ fSeparator) {
 					fileName = (fileName =~ /.*$fSeparator(.*)/)[0][1]
 				}
-				fileName = "${curDir.getAbsolutePath()}\\$fileName"
+				fileName = "${curDir.getAbsolutePath()}$fSeparator$fileName"
 			}
 
 			fileList.add(new File(fileName))
