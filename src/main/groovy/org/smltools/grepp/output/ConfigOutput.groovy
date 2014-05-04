@@ -2,7 +2,7 @@ package org.smltools.grepp.output;
 
 import groovy.util.logging.Slf4j
 
-import org.smltools.grepp.config.ParamsHolder
+import org.smltools.grepp.config.ParamHolder
 import org.smltools.grepp.config.Param
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.FilterBase
@@ -28,7 +28,7 @@ final class ConfigOutput extends SimpleOutput {
 	private def root
 	private DOMBuilder domBuilder
 	
-	public ConfigOutput(ParamsHolder paramsHolder) 
+	public ConfigOutput(ParamHolder paramsHolder) 
 	{
     	super(paramsHolder, null)
     	domBuilder = DOMBuilder.newInstance(false, true) 

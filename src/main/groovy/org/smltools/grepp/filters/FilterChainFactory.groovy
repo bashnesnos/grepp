@@ -3,7 +3,7 @@ package org.smltools.grepp.filters
 import groovy.util.logging.Slf4j;
 
 import org.smltools.grepp.config.Param
-import org.smltools.grepp.config.ParamsHolder
+import org.smltools.grepp.config.ParamHolder
 import org.smltools.grepp.filters.FilterBase;
 import org.smltools.grepp.filters.entry.*;
 import org.smltools.grepp.filters.logfile.*;
@@ -32,7 +32,7 @@ class FilterChainFactory {
 	 * @return appropriate to supplied config entry filter chain
 	 */
 
-	public static FilterBase createFilterChain(ParamsHolder paramsHolder) {
+	public static FilterBase createFilterChain(ParamHolder paramsHolder) {
 		FilterBase filterChain_ = null
 
 		if (paramsHolder.checkParamIsEmpty(Param.PARSE_PROPERTIES)) {
@@ -72,7 +72,7 @@ class FilterChainFactory {
 	 * @return appropriate to supplied config entry filter chain
 	 */
 
-	public static FilterBase createFileFilterChain(ParamsHolder paramsHolder) {
+	public static FilterBase createFileFilterChain(ParamHolder paramsHolder) {
 		FilterBase filterChain_ = new FileSortFilter()
 
 		if (!paramsHolder.checkParamIsEmpty(Param.DATE_TIME_FILTER)) {

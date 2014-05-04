@@ -1,60 +1,73 @@
-<root xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.smltools.org/config"
-	xsi:schemaLocation="http://www.smltools.org/config config.xsd">
-	<global>
-		<params_factory>org.smltools.grepp.config.PredictingParamsHolderFactory</params_factory>
-		<spooling>.log</spooling>
-		<results_dir>results</results_dir>
-		<default_options>-c</default_options>
-	</global>
-	<options>
-		<opt field="VERBOSE" handler="enforceInfo">v</opt>
-		<opt field="TRACE" handler="enforceTrace">t</opt>
-		<opt field="HELP" handler="printHelp">?</opt>
-		<opt field="SPOOLING">s</opt>
-		<opt field="FILE_MERGING">m</opt>
-		<opt field="USER_ENTRY_PATTERN" handler="setUserLEPattern" descr="Flag to use a following pattern as current entry pattern">L</opt>
-		<opt field="PARSE_PROPERTIES" handler="setPropertiesParsing" descr="Parse and save logging properties file into grepp config">parse</opt>
-		<opt field="ATMTN_LEVEL" handler="setAutomation" descr="Identify entry &amp; date pattern by filename from config">c</opt>
-		<opt field="ATMTN_LEVEL" handler="setAutomation" descr="Use all available config-defined identifications">a</opt>
-		<opt field="ATMTN_LEVEL" handler="setAutomation" descr="Identify filter pattern by supplied option from config">f</opt>
-		<opt field="ATMTN_LEVEL" handler="setAutomation" descr="Identify thread chainig by supplied option from config">e</opt>
-		<opt field="DATE_TIME_FILTER" handler="setDateTimeFilter" descr="Turn on date time filtering and accept datetime boundaries">dtime</opt>
-
-	</options>
-	<pp_config default_sep="csv">
-		<pp_splitter_types>
-			<splitter_type handler="processPostFilter" id="filter" />
-			<splitter_type handler="processPostCounter" id="counter" />
-			<splitter_type handler="processPostGroup" id="group" />
-			<splitter_type handler="processPostAverage" id="avg"
-				handler_type="group_method" />
-		</pp_splitter_types>
-		<pp_separators>
-			<separator id="csv" spool=".csv">,</separator>
-		</pp_separators>
-	</pp_config>
-	<automation>
-		<level handler="parseCustomConfig" id="entry_pattern" order="1"
-			tags="c, e, a" />
-		<level handler="parseFilterConfig" id="filter_pattern" order="2"
-			fireonce="true" tags="f, a" />
-		<level handler="parseExecuteThreadConfig" id="execute_thread"
-			order="3" tags="e, a" />
-		<level handler="parsePostFilterConfig" id="post_process_pattern"
-			order="4" fireonce="true" tags="f, a" />
-	</automation>
-	<date_time_config>
-		<pattern id="INPUT_DATE_TIME_FORMAT" order="1" tags="dtime">yyyy-MM-dd'T'HH:mm:ss</pattern>
-		<pattern id="INPUT_DATE_TIME_FORMAT_M" order="2" tags="dtime">yyyy-MM-dd'T'HH:mm</pattern>
-		<pattern id="INPUT_DATE_TIME_FORMAT_H" order="3" tags="dtime">yyyy-MM-dd'T'HH</pattern>
-		<pattern id="INPUT_DATE_TIME_FORMAT_D" order="4" tags="dtime">yyyy-MM-dd</pattern>
-		<pattern id="INPUT_DATE_TIME_FORMAT_m" order="5" tags="dtime">yyyy-MM</pattern>
-		<pattern id="INPUT_DATE_TIME_FORMAT_Y" order="6" tags="dtime">yyyy</pattern>
-	</date_time_config>
-	<custom>
-		<config id="properties">
-			<starter>log4j.logger</starter>
-			<pattern>.*\.properties</pattern>
-		</config>
-	</custom>
+<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns="http://www.smltools.org/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.smltools.org/config config.xsd">
+	<defaults>
+		<spoolFileExtension>.log</spoolFileExtension>
+		<resultsDir>results</resultsDir>
+		<postProcessSeparator>csv</postProcessSeparator>
+	</defaults>
+	<postProcessSeparators>
+		<separator id="csv">
+			<spoolFileExtension>.csv</spoolFileExtension>
+			<value>,</value>
+		</separator>
+		<separator id="piped">
+			<spoolFileExtension>.txt</spoolFileExtension>
+			<value>|</value>
+		</separator>
+	</postProcessSeparators>
+	<logDateFormats>
+		<dateFormat id="iso">
+			<value>yyyy-MM-dd HH:mm:ss</value>
+			<regex>(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})</regex>
+		</dateFormat>
+	    <dateFormat id="iso_ms">
+	    	<value>yyyy-MM-dd HH:mm:ss,SSS</value>
+	    	<regex>(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})</regex>
+	    </dateFormat>
+	</logDateFormats>
+	<config id="cwms_debug_">
+		<dateFormat>iso_ms</dateFormat>
+		<starter>\#\#\#\#\[[TRACEDBUGINFOWLSV]* *\].*</starter>
+		<pattern>cwms_debug_.*\.log</pattern>
+	</config>
+    <config id="properties">
+		<starter>log4j.logger</starter>
+		<pattern>.*\.properties</pattern>
+	</config>
+	<config id="to_test">
+		<dateFormat>iso</dateFormat>
+		<starter>####\[\D{1,}\].*</starter>
+		<log_threshold>4</log_threshold>
+		<pattern>fpTest_</pattern>
+	</config>
+    <config id="pr_test">
+		<dateFormat>iso</dateFormat>
+		<log_threshold>24</log_threshold>
+		<pattern>processing_</pattern>
+	</config>
+    <processThreads>
+			<extractors>
+				<pattern tags="to_test,pr_test">ThreadStart: '\d{1,}'</pattern>	
+			</extractors>
+			<skipends>
+				<pattern tags="to_test,pr_test">SkipPattern</pattern>
+			</skipends>
+			<ends>
+				<pattern tags="to_test,pr_test">ThreadEnd1</pattern>
+				<pattern tags="to_test,pr_test">ThreadEnd2</pattern>
+			</ends>
+		</processThreads>
+    <postProcessColumns>
+		<splitter col_name="some_cmd" order="1" tags="some_timings" type="filter">Command name="?(.*?)"</splitter>
+		<splitter col_name="count_of_operands" order="2" tags="some_timings" type="counter">(operand)</splitter>
+		<splitter col_name="some_cmd" order="1" tags="avg_timings" type="group">Command name="?(.*?)"</splitter>
+		<splitter col_name="avg_processing" order="2" tags="avg_timings" type="avg">time="?(\d*)"</splitter>
+		<splitter col_name="some_cmd" order="1" tags="avg_operands" type="group">Command name="?(.*?)"</splitter>
+		<splitter col_name="avg_operands" order="2" tags="avg_operands" type="avg">(operand)</splitter>
+	</postProcessColumns>
+    <filterAliases>
+			<filter tags="predef">Something::</filter>
+			<filter tags="foo">Foo</filter>
+			<filter tags="some_timings,avg_timings">oo</filter>
+	</filterAliases>
 </root>

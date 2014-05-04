@@ -1,9 +1,9 @@
 package org.smltools.grepp.processors;
 
-import org.smltools.grepp.config.ParamsHolder
+import org.smltools.grepp.config.ParamHolder
 import org.smltools.grepp.config.Param
 import org.smltools.grepp.output.OutputFactory
-import org.smltools.grepp.output.WgrepOutput
+import org.smltools.grepp.output.GreppOutput
 import org.smltools.grepp.processors.DataProcessor;
 import org.smltools.grepp.filters.FilterChainFactory;
 
@@ -16,19 +16,19 @@ class DataProcessorFactory {
 	 *        
 	 * @return new DataProcessor instance
 	 */
-    public static DataProcessor<?> getProcessorInstance(ParamsHolder paramsHolder) 
+    public static DataProcessor<?> getProcessorInstance(ParamHolder paramsHolder) 
     {
 		def data = paramsHolder.getProcessingData()
 		return getProcessorInstanceForData(paramsHolder, data)
     }
 	
-	public static void process(ParamsHolder paramsHolder) {
+	public static void process(ParamHolder paramsHolder) {
 		def data = paramsHolder.getProcessingData()
 		getProcessorInstanceForData(paramsHolder, data).process(data)
 	}
 	
-	public static <T> DataProcessor<T> getProcessorInstanceForData(ParamsHolder paramsHolder, T data) {
-		final WgrepOutput<?,?> output = OutputFactory.getOutputInstance(paramsHolder)
+	public static <T> DataProcessor<T> getProcessorInstanceForData(ParamHolder paramsHolder, T data) {
+		final GreppOutput<?,?> output = OutputFactory.getOutputInstance(paramsHolder)
 		
 		if (data instanceof List<File>) {
 				return new FileProcessor(output, FilterChainFactory.createFileFilterChain(paramsHolder), !paramsHolder.checkParamIsEmpty(Param.FILE_MERGING))

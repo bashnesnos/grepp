@@ -2,11 +2,11 @@ package org.smltools.grepp.output;
 
 import groovy.util.logging.Slf4j
 
-import org.smltools.grepp.config.ParamsHolder
-import org.smltools.grepp.config.ParamsHolderFactory
+import org.smltools.grepp.config.ParamHolder
+import org.smltools.grepp.config.ParamHolderFactory
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.FilterBase
-import org.smltools.grepp.output.WgrepOutput;
+import org.smltools.grepp.output.GreppOutput;
 import org.smltools.grepp.filters.FilterChainFactory;
 
 
@@ -19,17 +19,17 @@ import org.smltools.grepp.filters.FilterChainFactory;
  */
 
 @Slf4j
-public class SimpleOutput implements WgrepOutput<Object, String> {
+public class SimpleOutput implements GreppOutput<Object, String> {
 	
 	protected PrintWriter printer;
-	protected ParamsHolder params;
+	protected ParamHolder params;
 	protected FilterBase filterChain;
 	
-	SimpleOutput(ParamsHolder params_) {
+	SimpleOutput(ParamHolder params_) {
 		this(params_, null)
 	}
 	
-	SimpleOutput(ParamsHolder params_, PrintWriter printer_) {
+	SimpleOutput(ParamHolder params_, PrintWriter printer_) {
 		printer = printer_
 		params = params_
 		filterChain = FilterChainFactory.createFilterChain(params)
@@ -49,15 +49,10 @@ public class SimpleOutput implements WgrepOutput<Object, String> {
 
 	@Override
 	public void refreshFilters(String criteria) {
-			try {
-				if (params.refresh(criteria))
-				{
-					filterChain = FilterChainFactory.createFilterChain(params)
-				}
-			}
-			catch(IllegalArgumentException e) {
-				log.debug(e)
-			}
+		if (params.refresh(criteria))
+		{
+			filterChain = FilterChainFactory.createFilterChain(params)
+		}
 	}
 	
 	@Override

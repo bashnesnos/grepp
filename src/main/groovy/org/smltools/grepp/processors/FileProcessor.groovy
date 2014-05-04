@@ -6,7 +6,7 @@ import java.util.regex.Matcher
 import java.lang.StringBuilder
 import org.smltools.grepp.filters.FilterBase
 import org.smltools.grepp.filters.enums.Event
-import org.smltools.grepp.output.WgrepOutput
+import org.smltools.grepp.output.GreppOutput
 import org.smltools.grepp.processors.DataProcessor;
 import org.smltools.grepp.exceptions.*
 
@@ -21,7 +21,7 @@ class FileProcessor implements DataProcessor<List<File>>
 {
    
     private boolean isMerging;
-	private WgrepOutput output;
+	private GreppOutput output;
 	private FilterBase<List<File>> fileFilter;
  
 	/**
@@ -31,7 +31,7 @@ class FileProcessor implements DataProcessor<List<File>>
 	 * @param filterChain_ FilterBase chain which will be used to filter each file line
 	 * @param filesFilterChain_ FilterBase chain which will be used to filter filename List
 	 */
-    FileProcessor(WgrepOutput output_, FilterBase<List<File>> fileFilter_, boolean isMerging_) 
+    FileProcessor(GreppOutput output_, FilterBase<List<File>> fileFilter_, boolean isMerging_) 
     {
 		output = output_
         isMerging = isMerging_
@@ -61,7 +61,7 @@ class FileProcessor implements DataProcessor<List<File>>
     {
         if (data == null) return
         def curLine = 0
-        WgrepOutput output = output //shadowing to get rid of GetEffectivePogo in the loop
+        GreppOutput output = output //shadowing to get rid of GetEffectivePogo in the loop
         try {
             data.eachLine { String line ->
                 log.trace("curLine: {}", curLine)

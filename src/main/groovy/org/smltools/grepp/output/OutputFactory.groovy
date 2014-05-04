@@ -1,14 +1,14 @@
 package org.smltools.grepp.output;
 
 import org.smltools.grepp.config.*
-import org.smltools.grepp.output.WgrepOutput;
+import org.smltools.grepp.output.GreppOutput;
 import org.smltools.grepp.filters.FilterChainFactory;
 import groovy.util.logging.Slf4j;
 
 @Slf4j
 class OutputFactory {
 			
-	public static WgrepOutput<?,?> getOutputInstance(ParamsHolder paramsHolder) {
+	public static GreppOutput<?,?> getOutputInstance(ParamHolder paramsHolder) {
 		PrintWriter printer = null;
 		if (!paramsHolder.checkParamIsEmpty(Param.PARSE_PROPERTIES)) {
 			log.info("Creating config output")
@@ -38,7 +38,7 @@ class OutputFactory {
 		}
 	}
 	
-	private static PrintWriter getFilePrinter(ParamsHolder paramsHolder) {
+	private static PrintWriter getFilePrinter(ParamHolder paramsHolder) {
 		def outputDir = new File(new File(paramsHolder.get(Param.HOME_DIR)), paramsHolder.get(Param.RESULTS_DIR))
 		if (!outputDir.exists()) outputDir.mkdir()
 		def out_file = new File(outputDir, paramsHolder.getSpoolFileName())

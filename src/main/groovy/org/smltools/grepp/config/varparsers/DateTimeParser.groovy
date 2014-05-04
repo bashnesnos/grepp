@@ -5,7 +5,7 @@ import java.util.Map;
 
 import org.smltools.grepp.config.ConfigHolder
 import org.smltools.grepp.config.Param
-import org.smltools.grepp.config.ParamsHolder
+import org.smltools.grepp.config.ParamHolder
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 
@@ -40,10 +40,10 @@ class DateTimeParser implements ParamParser<String>
 		offsetParamMap[Param.TO_DATE] = Param.FROM_DATE
 		
 		params = pParams
-		def dt_tag = params[Param.DATE_TIME_FILTER]
+		def dt_tag = 'dtime'
 		INPUT_DATE_PTTRNS = config.withRoot { root ->
             def ptrns = root.date_time_config.pattern.findAll { it.'@tags' =~ dt_tag }
-            return ptrns.sort { it.'@order' }.collect { it.text()}
+            return ptrns.sort { it.'@order' }.collect { it.text() }
         }
         defaultDateFormat = new SimpleDateFormat(INPUT_DATE_PTTRNS[0])
 		initialized = true

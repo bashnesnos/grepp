@@ -5,12 +5,12 @@ import java.util.Map;
 import groovy.util.logging.Slf4j;
 
 @Slf4j
-public class ParamsHolder {
+public class ParamHolder {
 	
-	private ParamsHolderFactory createdByFactory
+	private ParamHolderFactory createdByFactory
 	private final Map<Param, ?> params = [:] //all params as a Map
 	
-	public ParamsHolder(ParamsHolderFactory factory) {
+	public ParamHolder(ParamHolderFactory factory) {
 		createdByFactory = factory
 	}
 	
@@ -42,7 +42,7 @@ public class ParamsHolder {
 			return this.get(suppliedData)
 		}
 		else {
-			return dataParams.get(0).getDefaultValue()
+			return Param.Type.DATA.getDefaultValue()
 		}
 	}
 	

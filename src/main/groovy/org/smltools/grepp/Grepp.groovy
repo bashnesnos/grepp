@@ -8,23 +8,19 @@ package org.smltools.grepp
 * 
 * @author Alexander Semelit
 */
-import groovy.util.logging.Slf4j
-
-import org.codehaus.groovy.classgen.Verifier.DefaultArgsAction;
-import org.codehaus.groovy.transform.NewifyASTTransformation;
-import org.smltools.grepp.config.ConfigHolder;
-import org.smltools.grepp.config.ParamsHolder
-import org.smltools.grepp.config.ParamsHolderFactory;
-import org.smltools.grepp.config.PredictingParamsHolderFactory
 import org.smltools.grepp.processors.DataProcessorFactory
-import org.smltools.grepp.filters.entry.LogEntryFilter;
+import org.smltools.grepp.config.XMLConfigHolder;
+import org.smltools.grepp.config.ParamHolderFactory;
+import org.smltools.grepp.config.CLIParamHolderFactory
 import org.smltools.grepp.util.GreppUtil
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Slf4j
 class Grepp 
 {
 	public static void main(String[] args)
 	{
+		Logger log = LoggerFactory.getLogger('Grepp')
 		Date startTime = new Date()
 		log.info("{}", args)
 		if (args == null || args.size() < 1) return
@@ -36,12 +32,12 @@ class Grepp
 			throw new IllegalArgumentException("Config file should present in classpath or specified explicitly")
 		}
 		log.trace("Initializing: {}, {}", configPath, configXSDPath)
-		def configHolder = new ConfigHolder(configPath, configXSDPath)
 		
 		try {
-			ParamsHolderFactory<?> paramsFactory = configHolder.getParamsHolderFactory()
-			ParamsHolder paramsHolder = paramsFactory.getParamsHolder(args)
-			DataProcessorFactory.process(paramsHolder)
+			def configHolder = new XMLConfigHolder(configPath, configXSDPath)
+			ParamHolderFactory<List<String>> paramFactory = new CLIParamHolderFactory(configHolder)
+			ParamHolder paramHolder = paramFactory.getParamHolder(args)
+			DataProcessorFactory.process(paramHolder)
 		}
 		catch(Exception e)
 		{

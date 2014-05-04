@@ -1,7 +1,7 @@
 import org.smltools.grepp.*
 import org.smltools.grepp.filters.entry.PropertiesFilter
-import org.smltools.grepp.config.ParamsHolderFactory
-import org.smltools.grepp.config.PredictingParamsHolderFactory
+import org.smltools.grepp.config.ParamHolderFactory
+import org.smltools.grepp.config.CLIParamHolderFactory
 import org.smltools.grepp.config.ConfigHolder
 import org.smltools.grepp.config.Param
 import org.smltools.grepp.util.GreppUtil
@@ -13,7 +13,7 @@ import java.text.SimpleDateFormat
 class GreppTest extends GroovyTestCase {
 
 	ConfigHolder config
-	ParamsHolderFactory paramFactory
+	ParamHolderFactory paramFactory
 	def BASE_HOME = System.getProperty("grepp.home")
 	def HOME = BASE_HOME + "\\build\\resources\\test"
 	def GREPP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
@@ -21,8 +21,7 @@ class GreppTest extends GroovyTestCase {
 
 	void setUp() {
 		config = new ConfigHolder(GREPP_CONFIG, GREPP_CONFIG_XSD)
-		paramFactory = new PredictingParamsHolderFactory(config);
-		paramFactory.setWorkingDir(new File(HOME))
+		paramFactory = new CLIParamHolderFactory(config);
 	}
 
 	public static String getOutput(Closure operation) {
@@ -69,7 +68,7 @@ class GreppTest extends GroovyTestCase {
 	}
 	
 	void testMainVarsProcessing() {
-		def params = paramFactory.getParamsHolder("-L test test $HOME\\fpTest*".split(" "))
+		def params = paramFactory.getParamHolder("-L test test $HOME\\fpTest*".tokenize(" "))
 		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "test" )
 		assertTrue( params.get(Param.FILTER_PATTERN) == "test" )
 		assertTrue( params.get(Param.FILES) == [
@@ -91,7 +90,7 @@ class GreppTest extends GroovyTestCase {
 	}
 	
 	void testConfigsProcessing() {
-		def params = paramFactory.getParamsHolder("--to_test --predef $HOME\\fpTest*".split(" "))
+		def params = paramFactory.getParamHolder("--to_test --predef $HOME\\fpTest*".tokenize(" "))
 		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "####\\[\\D{1,}\\].*(\\d{4}-\\d{1,2}-\\d{1,2} \\d{2}:\\d{2}:\\d{2})" )
 		assertTrue( params.get(Param.FILTER_PATTERN) == "Something::" )
 		assertTrue( params.get(Param.FILES) == [
@@ -102,18 +101,18 @@ class GreppTest extends GroovyTestCase {
 
 	void testExtendedPatternProcessing() {
 
-		def params = paramFactory.getParamsHolder("-L test test%and%tets $HOME\\test*".split(" "))
+		def params = paramFactory.getParamHolder("-L test test%and%tets $HOME\\test*".tokenize(" "))
 		assertTrue( params.get(Param.FILTER_PATTERN) == "test%and%tets" )
 	}
 
 	void testComplexVarsProcessing() {
 
-		def params = paramFactory.getParamsHolder("-L test test --dtime 2013-01-25T12:00:00 + $HOME\\test*".split(" "))
-		assertTrue( params.get(Param.DATE_TIME_FILTER) == "dtime" )
+		def params = paramFactory.getParamHolder("-L test --dtime 2013-01-25T12:00:00;+ test $HOME\\test*".tokenize(" "))
+		assertTrue( params.get(Param.FROM_DATE) != null )
 	}
 
 	void testAutomationProcessing() {
-		def params = paramFactory.getParamsHolder("-e test $HOME\\fpTest_*".split(" "))
+		def params = paramFactory.getParamHolder("-e test $HOME\\fpTest_*".tokenize(" "))
 		params.refresh(params.get(Param.FILES)[0])
 		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
 		assertTrue( params.get(Param.LOG_DATE_FORMAT) == "yyyy-MM-dd HH:mm:ss" )
@@ -121,13 +120,11 @@ class GreppTest extends GroovyTestCase {
 
 	void testMoreComplexVarsProcessing() {
 
-		def params = paramFactory.getParamsHolder("-sL stCommand queryTime --some_timings cmd_only_1.log".split(" "))
-		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "stCommand" )
-		assertTrue( params.get(Param.FILTER_PATTERN) == "queryTime" )
-		def erFiles = [new File("cmd_only_1.log").getName()]
-		def arFiles = params.get(Param.FILES).collect {it.getName()}
-		assertTrue("ER: $erFiles; AR: $arFiles" , arFiles == erFiles)
-		assertTrue( params.get(Param.FOLDER_SEPARATOR) == "\\\\" )
+		def params = paramFactory.getParamHolder("-s -L stCommand --some_timings cmd_only_1.log".tokenize(" "))
+		assertTrue('logEntry', "stCommand".equals(params.get(Param.LOG_ENTRY_PATTERN))  )
+		assertTrue('filterPattern', "oo".equals(params.get(Param.FILTER_PATTERN))  )
+		assertTrue('files', params.get(Param.FILES).containsAll([new File("cmd_only_1.log")]))
+		assertTrue('separator', "\\\\".equals(params.get(Param.FOLDER_SEPARATOR)))
 	}
 
 	void testComplexFiltering() {
@@ -193,7 +190,7 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("Foo --dtime $testTimeStringFrom +60 $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("--dtime $testTimeStringFrom;+60 Foo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -212,7 +209,7 @@ ${logDateFormat.format(new Date(fileTime.getTime() + 3*60*60*1000))}:05:56,951 [
 Foo Man Chu
 #basic"""
 		assertGreppOutput(expectedResult) {
-			Grepp.main("Foo --dtime $testTimeStringFrom + $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("--dtime $testTimeStringFrom;+ Foo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -228,7 +225,7 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--foo --dtime + $testTimeStringTo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("--dtime +;$testTimeStringTo --foo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -240,7 +237,7 @@ Foo,3
 Koo,1"""
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--f --some_timings $HOME\\processing_report_test.log".split(" "))
+			Grepp.main("--some_timings $HOME\\processing_report_test.log".split(" "))
 		}
 	}
 
@@ -252,7 +249,7 @@ Foo,150
 Koo,200
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("-f --avg_timings $HOME\\processing_report_test.log".split(" "))
+			Grepp.main("--avg_timings $HOME\\processing_report_test.log".split(" "))
 		}
 	}
 

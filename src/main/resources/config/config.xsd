@@ -5,71 +5,26 @@
 
 	<complexType name="root">
 		<sequence>
-			<element ref="tns:global" maxOccurs="1" minOccurs="0"></element>
-			<element ref="tns:options" maxOccurs="1" minOccurs="1"></element>
-			<element ref="tns:pp_config" maxOccurs="1" minOccurs="0"></element>
-			<element ref="tns:automation" maxOccurs="1" minOccurs="0"></element>
-			<element ref="tns:date_time_config" maxOccurs="1" minOccurs="0">
-			</element>
-			<element ref="tns:custom" maxOccurs="1" minOccurs="0"></element>
+			<element ref="tns:defaults" maxOccurs="1" minOccurs="0"></element>
+			<element ref="tns:postProcessSeparators" maxOccurs="1" minOccurs="0"></element>
+			<element ref="tns:logDateFormats" maxOccurs="1" minOccurs="0"></element>
+			<element ref="tns:config" maxOccurs="unbounded" minOccurs="0"></element>
+			<element ref="tns:processThreads" maxOccurs="1" minOccurs="0"></element>
+			<element ref="tns:postProcessColumns" maxOccurs="1" minOccurs="0"></element>
+			<element ref="tns:filterAliases" maxOccurs="1" minOccurs="0"></element>
 		</sequence>
 	</complexType>
 
 
-	<complexType name="global">
+	<complexType name="defaults">
 		<sequence>
-            <element ref="tns:params_factory" maxOccurs="1" minOccurs="1"></element>
-            <element ref="tns:spooling" maxOccurs="1" minOccurs="0"></element>
-			<element ref="tns:results_dir" maxOccurs="1"
-				minOccurs="0">
-			</element>
-			<element ref="tns:default_options" maxOccurs="1"
-				minOccurs="0">
-			</element>
-
+			<element ref="tns:spoolFileExtension" maxOccurs="1" minOccurs="0"></element>
+            <element ref="tns:resultsDir" maxOccurs="1" minOccurs="0"></element>
+            <element ref="tns:postProcessSeparator" maxOccurs="1" minOccurs="0"></element>
 		</sequence>
 	</complexType>
 
-	<complexType name="options">
-		<sequence>
-			<element ref="tns:opt" maxOccurs="unbounded" minOccurs="1"></element>
-		</sequence>
-	</complexType>
-
-	<complexType name="option">
-		<simpleContent>
-			<extension base="string">
-				<attribute name="handler" type="string"></attribute>
-				<attribute name="field" type="string"></attribute>
-				<attribute name="descr" type="string"></attribute>
-			</extension>
-		</simpleContent>
-	</complexType>
-
-	<complexType name="pp_config">
-		<sequence>
-			<element ref="tns:pp_splitter_types" maxOccurs="unbounded"
-				minOccurs="1">
-			</element>
-			<element ref="tns:pp_separators"></element>
-		</sequence>
-		<attribute name="default_sep" type="string"></attribute>
-	</complexType>
-
-	<complexType name="pp_splitter_types">
-		<sequence>
-			<element ref="tns:splitter_type" maxOccurs="unbounded"
-				minOccurs="1"></element>
-		</sequence>
-	</complexType>
-
-	<complexType name="splitter_type">
-		<attribute name="handler" type="string"></attribute>
-		<attribute name="handler_type" type="string"></attribute>
-		<attribute name="id" type="string"></attribute>
-	</complexType>
-
-	<complexType name="pp_separators">
+	<complexType name="postProcessSeparators">
 		<sequence>
 			<element ref="tns:separator" maxOccurs="unbounded" minOccurs="1"></element>
 		</sequence>
@@ -77,112 +32,75 @@
 
 
 	<complexType name="separator">
-		<simpleContent>
-			<extension base="string">
-				<attribute name="id" type="string"></attribute>
-				<attribute name="spool" type="string"></attribute>
-			</extension>
-		</simpleContent>
+		<sequence>
+			<element ref="tns:spoolFileExtension" maxOccurs="1" minOccurs="1"></element>
+			<element ref="tns:value" maxOccurs="1" minOccurs="1"></element>
+		</sequence>
+		<attribute name="id" type="string"></attribute>				
 	</complexType>
 
-	<complexType name="automation">
+	<complexType name="logDateFormats">
 		<sequence>
-			<element ref="tns:level" maxOccurs="unbounded" minOccurs="1"></element>
+			<element ref="tns:dateFormat" maxOccurs="unbounded" minOccurs="1"></element>
 		</sequence>
 	</complexType>
 
-	<complexType name="level">
-		<attribute name="handler" type="string"></attribute>
-		<attribute name="id" type="string"></attribute>
-		<attribute name="order" type="int"></attribute>
-		<attribute name="fireonce" type="string"></attribute>
-		<attribute name="tags" type="string"></attribute>
-	</complexType>
-
-	<complexType name="date_time_config">
+	<complexType name="dateFormat">
 		<sequence>
-			<element ref="tns:pattern" maxOccurs="unbounded" minOccurs="1"></element>
+			<element ref="tns:value" maxOccurs="1" minOccurs="1"></element>
+			<element ref="tns:regex" maxOccurs="1" minOccurs="1"></element>
 		</sequence>
+		<attribute name="id" type="string"></attribute>				
 	</complexType>
 
 	<complexType name="pattern" mixed="true">
 		<simpleContent>
 			<extension base="string">
 				<attribute name="tags" type="string"></attribute>
-				<attribute name="alevel" type="string"></attribute>
-				<attribute name="id" type="string"></attribute>
-				<attribute name="order" type="int"></attribute>
 			</extension>
 		</simpleContent>
 	</complexType>
 
-	<element name="spooling" type="string"></element>
+	<element name="spoolFileExtension" type="string"></element>
 
-	<element name="default_options" type="string"></element>
+	<element name="postProcessSeparator" type="string"></element>
 
-	<element name="opt" type="tns:option"></element>
+	<element name="value" type="string"></element>
 
-	<element name="splitter_type" type="tns:splitter_type"></element>
-
-	<element name="pp_splitter_types" type="tns:pp_splitter_types"></element>
+	<element name="regex" type="string"></element>
 
 	<element name="separator" type="tns:separator"></element>
 
-	<element name="pp_separators" type="tns:pp_separators"></element>
-
-	<element name="pp_config" type="tns:pp_config"></element>
-
-	<element name="options" type="tns:options"></element>
-
-	<element name="level" type="tns:level"></element>
-
-	<element name="automation" type="tns:automation"></element>
+    <element name="resultsDir" type="string"></element>
 
 	<element name="pattern" type="tns:pattern"></element>
 
-	<element name="date_time_config" type="tns:date_time_config"></element>
-
-	<complexType name="custom">
-		<sequence>
-			<element ref="tns:options" maxOccurs="1" minOccurs="0"></element>
-			<element ref="tns:config" maxOccurs="unbounded" minOccurs="0">
-			</element>
-			<element ref="tns:thread_configs" maxOccurs="1" minOccurs="0">
-			</element>
-			<element ref="tns:pp_splitters" maxOccurs="1" minOccurs="0">
-			</element>
-			<element ref="tns:filters" maxOccurs="1" minOccurs="0"></element>
-		</sequence>
-	</complexType>
-
 	<complexType name="config">
 		<sequence>
-			<element ref="tns:date_format" maxOccurs="1" minOccurs="0"></element>
-			<element ref="tns:date" maxOccurs="1" minOccurs="0"></element>
+			<element ref="tns:logDateFormat" maxOccurs="1" minOccurs="0"></element>
 			<element ref="tns:starter" maxOccurs="1" minOccurs="0"></element>
-			<element ref="tns:log_threshold" maxOccurs="1" minOccurs="0"></element>
+			<element ref="tns:logThreshold" maxOccurs="1" minOccurs="0"></element>
 			<element ref="tns:pattern" maxOccurs="1" minOccurs="0"></element>
 		</sequence>
 		<attribute name="id" type="string"></attribute>
 	</complexType>
 
-	<element name="date_format" type="string"></element>
+	<element name="logDateFormat" type="string"></element>
 
 	<element name="starter" type="string"></element>
 
 	<element name="date" type="string"></element>
 
-	<element name="log_threshold" type="string"></element>
+	<element name="logThreshold" type="string"></element>
 
 	<element name="config" type="tns:config"></element>
 
-	<complexType name="thread_configs">
+	<complexType name="processThreads">
 		<sequence>
 			<element ref="tns:extractors" maxOccurs="1" minOccurs="1"></element>
 			<element ref="tns:skipends" maxOccurs="1" minOccurs="0"></element>
 			<element ref="tns:ends" maxOccurs="1" minOccurs="1"></element>
 		</sequence>
-		<attribute name="alevel" type="string"></attribute>
 	</complexType>
 
 
@@ -199,9 +117,9 @@
 
 	<element name="ends" type="tns:thread_patterns"></element>
 
-	<element name="thread_configs" type="tns:thread_configs"></element>
+	<element name="processThreads" type="tns:processThreads"></element>
 
-	<complexType name="pp_splitters">
+	<complexType name="postProcessColumns">
 		<sequence>
 			<element ref="tns:splitter" maxOccurs="unbounded" minOccurs="1"></element>
 		</sequence>
@@ -218,9 +136,9 @@
 
 	<element name="splitter" type="tns:splitter"></element>
 
-	<element name="pp_splitters" type="tns:pp_splitters"></element>
+	<element name="postProcessColumns" type="tns:postProcessColumns"></element>
 
-	<complexType name="filters">
+	<complexType name="filterAliases">
 		<sequence>
 			<element ref="tns:filter" maxOccurs="unbounded" minOccurs="1"></element>
 		</sequence>
@@ -229,15 +147,18 @@
 
 	<element name="filter" type="tns:pattern"></element>
 
-	<element name="filters" type="tns:filters"></element>
+	<element name="filterAliases" type="tns:filterAliases"></element>
 
-	<element name="custom" type="tns:custom"></element>
+	<element name="defaults" type="tns:defaults"></element>
 
-	<element name="global" type="tns:global"></element>
+	<element name="postProcessSeparators" type="tns:postProcessSeparators"></element>
 
 	<element name="root" type="tns:root"></element>
 
+<<<<<<< Updated upstream
     <element name="results_dir" type="string"></element>
 
     <element name="params_factory" type="string"></element>
+=======
+>>>>>>> Stashed changes
 </schema>

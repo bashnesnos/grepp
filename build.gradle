@@ -18,23 +18,25 @@ def oldJreLibPath //= "C:\\Program Files\\Java\\jre1.5.0_10\\lib"//; populate if
 def printTestClasspath = false //prints test classpath if true
 
 repositories {
-	mavenRepo name: "spring-repo", url: "http://repo.springsource.org/release"
-	mavenRepo name: "gsnapshots-repo", url: "http://snapshots.repository.codehaus.org"
     mavenCentral()
 }
 
 dependencies {
-    compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.1.7-SNAPSHOT'
-	compile group: 'org.slf4j', name:'slf4j-api', version: '1.7.5'
-	compile group: 'ch.qos.logback', name:'logback-classic', version: '1.0.11'
+    compile group: 'org.slf4j', name:'slf4j-api', version: '1.7.6'
+    compile group: 'ch.qos.logback', name:'logback-classic', version: '1.1.1'
+    compile group: 'commons-cli', name:'commons-cli', version: '1.2'
 
-    if (oldJdkCompatibility == 1.5) {
+    if (oldJdkCompatibility != null && !oldJdkCompatibility =~ /1.[78]/) {
+        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1'
         compile group: 'org.livetribe', name:'livetribe-jsr223', version: '2.0.1', transitive: true //for 1.5 compatibility
+        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1'
     }
-
-    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.1.7-SNAPSHOT'
-	testCompile group: 'junit', name: 'junit', version: '4.10'
+    else {
+        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1', classifier: 'indy'
+        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1', classifier: 'indy'
+    }
     
+    testCompile group: 'junit', name: 'junit', version: '4.10'
 }
 
 compileGroovy {
@@ -84,11 +86,11 @@ processTestResources {
                 .replace('#TEST_TIME_TO#', dateFormat.format(new Date(curDate.getTime() + 60*60*1000)))
                 .replace('#TEST_TIME_TOO_FAR#', dateFormat.format(new Date(curDate.getTime() + 3*60*60*1000)))
     }   
-    doLast {
-        mergeConfig (rootDir.getAbsolutePath() + '/build/resources/main/config/config.xml'
-                    , rootDir.getAbsolutePath() + '/build/resources/test/config.custom'
-                    , rootDir.getAbsolutePath() + '/build/resources/test/config.xml')
-    }
+//    doLast {
+//        mergeConfig (rootDir.getAbsolutePath() + '/build/resources/main/config/config.xml'
+//                    , rootDir.getAbsolutePath() + '/build/resources/test/config.custom'
+//                    , rootDir.getAbsolutePath() + '/build/resources/test/config.xml')
+//    }
 }
 
 

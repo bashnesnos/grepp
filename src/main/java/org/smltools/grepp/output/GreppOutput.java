@@ -8,7 +8,7 @@ import org.smltools.grepp.filters.enums.Event;
  * @author Alexander Semelit
  *
  */
-public interface WgrepOutput<E, V> {
+public interface GreppOutput<E, V> {
 
 	/**
 	 * Refreshes filters/filtering params by some criteria.
