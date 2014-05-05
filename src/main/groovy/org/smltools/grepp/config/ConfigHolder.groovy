@@ -18,6 +18,16 @@ import java.util.Set;
 
 public abstract class ConfigHolder extends ConfigObject {
 
-    public abstract void addAndSave(ConfigObject newSubConfig);
+    public abstract void mergeAndSave(ConfigObject newSubConfig);
 
+    public ConfigHolder() {
+    	loadDefaults()
+    }
+
+    protected void loadDefaults() {
+        this.defaults.spoolFileExtension = '.log'
+        this.defaults.resultsDir = 'results'
+        this.defaults.postProcessSeparator.value = ','
+        this.defaults.postProcessSeparator.spoolFileExtension = '.csv'
+    }
 }

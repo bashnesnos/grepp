@@ -37,7 +37,7 @@ class Grepp
 		try {
 			def configHolder = new XMLConfigHolder(configPath, configXSDPath)
 			ParamHolderFactory<List<String>> paramFactory = new CLIParamHolderFactory(configHolder)
-			ParamHolder paramHolder = paramFactory.getParamHolder(args)
+			ParamHolder paramHolder = paramFactory.getParamHolder(Arrays.asList(args))
 			DataProcessorFactory.process(paramHolder)
 		}
 		catch(Exception e)

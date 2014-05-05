@@ -4,7 +4,8 @@ import java.util.Date
 import java.text.SimpleDateFormat
 
 def BASE_HOME = System.getProperty("grepp.home")
-def HOME = BASE_HOME + "\\build\\resources\\main\\config"
+//def HOME = BASE_HOME + "\\build\\resources\\main\\config"
+def HOME = BASE_HOME + "\\build\\resources\\test"
 
 //		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
 //		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
@@ -13,5 +14,6 @@ def HOME = BASE_HOME + "\\build\\resources\\main\\config"
 //
 //
 //Grepp.main("-t --dtime +;$testTimeStringTo --foo $HOME\\processing_time_test.log".split(" "))
-
-println new XMLConfigHolder("$HOME\\config.xml", "$HOME\\config.xsd").savedConfigs
+//Grepp.main("-h".split(" "))
+Grepp.main("-t --some_timings $HOME\\processing_report_test.log".split(" "))
+//println new XMLConfigHolder("$HOME\\config.xml", "$HOME\\config.xsd").processThreads

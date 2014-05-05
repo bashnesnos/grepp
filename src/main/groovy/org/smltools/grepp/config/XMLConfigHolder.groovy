@@ -37,7 +37,7 @@ public class XMLConfigHolder extends ConfigHolder {
     }
 
     @Override
-    public void addAndSave(ConfigObject newSubConfig) {
+    public void mergeAndSave(ConfigObject newSubConfig) {
         this.merge(newSubConfig)        
         serializeConfig()
     }
@@ -90,17 +90,36 @@ public class XMLConfigHolder extends ConfigHolder {
         this.cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
         def root = this.cfgDoc.documentElement
 
-        parseDefaults(root)        
         parseLogDateFormats(root)
         parseCustomConfigs(root)
+        parseComplexFilterParams(root)
         parseFilterAliases(root)
         parsePostFilterParams(root)
+        parseDefaults(root)
     }
 
     private void parseDefaults(Element root) {
         use(DOMCategory) {
-            this.defaults.spoolFileExtension = root.defaults.spoolFileExtension[0].text()
-            this.defaults.resultsDir = root.defaults.resultsDir[0].text()
+            def defaultProp = root.defaults.spoolFileExtension[0]
+            if (defaultProp != null) {
+                this.defaults.spoolFileExtension = defaultProp.text()
+            }
+
+            defaultProp = root.defaults.resultsDir[0]
+            if (defaultProp != null) {
+                this.defaults.resultsDir = defaultProp.text()
+            }
+            
+            defaultProp = root.defaults.spoolFileExtension[0]
+            if (defaultProp != null) {
+                def postProcessSeparatorId = defaultProp.text()
+                if (this.postProcessSeparators.containsKey(postProcessSeparatorId)) {
+                    this.defaults.postProcessSeparator = this.postProcessSeparators."$postProcessSeparatorId"
+                }
+                else {
+                    log.warn("Given default postProcessSeparator {} doesn't exist", postProcessSeparatorId)
+                }
+            }
         }
     }
 
@@ -139,6 +158,12 @@ public class XMLConfigHolder extends ConfigHolder {
                 if (starter != null) {
                     newCustomConfig.starter = starter.text()
                 }
+
+                def pattern = customCfg.pattern[0]
+                if (pattern != null) {
+                    newCustomConfig.pattern = pattern.text()
+                }
+
                 def date = customCfg.logDateFormat[0]
                 if (date != null) {
                     def dateFormatId = date.text()
@@ -221,7 +246,7 @@ public class XMLConfigHolder extends ConfigHolder {
     void parseComplexFilterParams(Element root) {
         def processThreads = this.processThreads
         use(DOMCategory) {
-            root.processThreads.extractors.each { extractor ->
+            root.processThreads.extractors.pattern.each { extractor ->
                 def tagList = extractor.'@tags'.tokenize(",")
                 def firstTag = tagList.remove(0)
                 def processThreadsPropMap = processThreads."$firstTag"
@@ -236,7 +261,7 @@ public class XMLConfigHolder extends ConfigHolder {
                 }
             }
             
-            root.processThreads.skipends.each { skipend ->
+            root.processThreads.skipends.pattern.each { skipend ->
                 def tagList = skipend.'@tags'.tokenize(",")
                 def firstTag = tagList.remove(0)
                 def processThreadsPropMap = processThreads."$firstTag"
@@ -251,7 +276,7 @@ public class XMLConfigHolder extends ConfigHolder {
                 }
             }
 
-            root.processThreads.ends.each { end ->
+            root.processThreads.ends.pattern.each { end ->
                 def tagList = end.'@tags'.tokenize(",")
                 def firstTag = tagList.remove(0)
                 def processThreadsPropMap = processThreads."$firstTag"

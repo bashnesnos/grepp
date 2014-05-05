@@ -263,12 +263,14 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		//applying all that matches, i.e. greedy
 
 		if (checkIfConfigExsits(id)) { //checking if  there exists a config with such id and applying it if so
+			log.debug("Applying savedConfig for {}", id)
 			matchedAny = true
 			params[Param.PREDEF_TAG] = id
 			setPredefinedConfig(params, id)
 		}
 
 		if (checkIfFilterExsits(id)) { //checking filter wasn't supplied explicitly and there exists a filter with such id and applying it if so
+			log.debug("Applying filterAlias for {}", id)
 			matchedAny = true
 			params[Param.PREDEF_TAG] = id
 			setPredefinedFilter(params, id)
@@ -276,11 +278,13 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		if (checkIfExecuteThreadExsits(id)) { //checking if there exists a thread preserving patterns with such id and applying it if so
+			log.debug("Applying processThread for {}", id)
 			matchedAny = true
 			setThreadPreserving(params, id)
 		}
 
 		if (checkIfPostProcessExsits(id)) { //checking if there exists a post_processing config with such id and applying it if so
+			log.debug("Applying postProcessColumns for {}", id)
 			matchedAny = true
 			setPostProcessing(params, id)
 		}
@@ -445,8 +449,6 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		if (checkIfConfigExsits(configId))
 		{
 			def customCfg = config.savedConfigs."$configId"
-			log.trace("Injecting config for {}", configId)
-
 			def dateFormat
 			def starter
 
@@ -498,7 +500,6 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	void parseFilterConfig(Map<Param, ?> params, String filterAliasId)
 	{
 		if (checkIfFilterExsits(filterAliasId)) {
-			log.trace("Parsing filter config for {}", filterAliasId)
 			params[Param.FILTER_PATTERN] = config.filterAliases."$filterAliasId"
 			isAmmended = true
 		}
@@ -543,7 +544,6 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		def POST_GROUPS_METHODS = []
 		def POST_PROCESS_HEADER = null
 		def PATTERN = new StringBuilder()
-		log.trace("Looking for splitters of {}", postProcessColumnId)
 		if (checkIfPostProcessExsits(postProcessColumnId)) {
 
 			//defaults come first
@@ -553,6 +553,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 			def handlers = config.postProcessColumns."$postProcessColumnId"
 			def sortedHandlers = handlers.sort { it.value.order }
 			sortedHandlers.each { type, props ->
+				log.trace("postProcessColumn type: {}; props: {}", type, props.keySet())
 				if (type.equals('postProcessSeparator')) {
 					POST_PROCESS_SEP = props.value
 					params[Param.SPOOLING_EXT] = props.spoolFileExtension
@@ -620,7 +621,6 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @return Mapping of ComplexFilter params
 	 */
 	Map parseComplexFilterParams(String processThreadId) {
-		def pt_tag = preserveTag
 		def cfParams = [:]
 		if (checkIfExecuteThreadExsits(processThreadId)) {
 			def threadConfig = config.processThreads."$processThreadId"
@@ -644,7 +644,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 			if (filename =~ currentConfigPtrn) return isAmmended
 			else currentConfigPtrn = null //since it's a different file
 		}
-
+		log.debug("Checking if any config exists for {}", filename)
 		currentConfigId = findConfigIdByData(filename)
 		loadParamsById(params, currentConfigId)
 
@@ -660,16 +660,15 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 
 	String findConfigIdByData(String data)
 	{
-		log.trace("findConfigByData started")
-
 		if (data == null)
 		{
 			throw new IllegalArgumentException("Data shouldn't be null")
 		}
 
-		config.savedConfigs.findResult { configId, params ->
-			if (params.containsKey('pattern')) {
-				currentConfigPtrn = params.pattern
+		config.savedConfigs.findResult { configId, props ->
+			log.trace("id: {}; props: {}", configId, props.keySet())
+			if (props.containsKey('pattern')) {
+				currentConfigPtrn = props.pattern
 				log.trace("ptrn=/{}/ data='{}'", currentConfigPtrn, data)
 				if (data =~ currentConfigPtrn) {
 					return configId
