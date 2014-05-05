@@ -1,8 +1,8 @@
 package org.smltools.grepp.filters.entry
 
-import groovy.xml.MarkupBuilder
 import java.util.regex.*
 import org.smltools.grepp.filters.FilterBase
+import groovy.util.ConfigObject
 
 final class PropertiesFilter extends FilterBase<String> {
 	//CW stands for Conversion Word
@@ -22,7 +22,7 @@ final class PropertiesFilter extends FilterBase<String> {
 
 	private static String CLASSNAME_REGEX = "(\\\\w+\\\\.)*\\\\w*"
 	private static String PADDING_REGEX = " *"
-	private static String LOG_LEVEL_REGEX = "[TRACEDBUGINFOWLSV]*"
+	private static String LOG_LEVEL_REGEX = "[TRACEDBUGINFLOWSV]*"
 	private static String NOT_VALUABLE_REGEX = null //i.e. the results of the conversion are immaterial/belong more to message body rather than can be used for log entry start judgement
 	private static String FILENAME_REGEX = "\\\\w*\\\\.(java|groovy)"
 	private static String NUMBER_REGEX = "\\\\d*"
@@ -87,7 +87,7 @@ final class PropertiesFilter extends FilterBase<String> {
 	]
 
 
-	private CustomConfigXmlBuilder builder
+	private SavedConfigBuilder builder
 	private List<String> configs = []
 	private def result = null
 
@@ -233,7 +233,7 @@ final class PropertiesFilter extends FilterBase<String> {
 	public String parseConfig(String configString) {
 		Matcher fileMatcher = APPENDER_FILE_STRING_PTRN.matcher(configString)
 		if (fileMatcher.find()) {
-			builder = new CustomConfigXmlBuilder()
+			builder = new SavedConfigBuilder()
 			String fileNameString = fileMatcher.group(1)
 			log.info("File name string found = {}", fileNameString)
 			String filePattern = parseFileConfig(fileNameString)
@@ -247,7 +247,7 @@ final class PropertiesFilter extends FilterBase<String> {
 					String starterPtrn = parseConfigLayout(layoutString)
 					if (starterPtrn != null) {
 						builder.setStarterVal(starterPtrn)
-						return builder.buildXmlString()
+						return builder.buildSavedConfig()
 					}
 					else { // no log entry pattern
 						log.info("Starter was not identified")
@@ -288,7 +288,7 @@ final class PropertiesFilter extends FilterBase<String> {
         super(nextFilter_, PropertiesFilter.class)
 	}
 
-	class CustomConfigXmlBuilder {
+	class SavedConfigBuilder {
 		private String idVal
 		private String dateFormatVal
 		private String dateVal
@@ -297,56 +297,68 @@ final class PropertiesFilter extends FilterBase<String> {
 		private String patternVal
 		
 
-		CustomConfigXmlBuilder setIdVal(String idVal_) {
+		SavedConfigBuilder setIdVal(String idVal_) {
 			idVal = idVal_
 			return this
 		}
 
-		CustomConfigXmlBuilder setDateFormatVal(String dateFormat_) {
+		SavedConfigBuilder setDateFormatVal(String dateFormat_) {
 			dateFormatVal = dateFormat_
 			return this
 		}
 
-		CustomConfigXmlBuilder setDateVal(String date_) {
+		SavedConfigBuilder setDateVal(String date_) {
 			dateVal = date_
 			return this
 		}
 
-		CustomConfigXmlBuilder setStarterVal(String starter_) {
+		SavedConfigBuilder setStarterVal(String starter_) {
 			starterVal = starter_
 			return this
 		}
 
-		CustomConfigXmlBuilder setLogThresholdVal(String logThreshold_) {
+		SavedConfigBuilder setLogThresholdVal(String logThreshold_) {
 			logThresholdVal = logThreshold_
 			return this
 		}
 
-		CustomConfigXmlBuilder setPatternVal(String pattern_) {
+		SavedConfigBuilder setPatternVal(String pattern_) {
 			patternVal = pattern_
 			return this
 		}
 
-		String buildXmlString(){
-			def writer = new StringWriter()
-			def xml = new MarkupBuilder(writer)
-			
-			if (idVal == null || idVal == "") //pointless to create if config doesn't have an identifier
+		String buildSavedConfig(){
+						
+			if (idVal == null || idVal == "") {//pointless to create if config doesn't have an identifier
 				return null
-
-			xml.config("id":idVal, 'xmlns':"http://www.smltools.org/config") {
-				if (dateFormatVal != null)
-					date_format(dateFormatVal)
-				if (dateVal != null)
-					date("(" + dateVal + ")")
-				if (starterVal != null && starterVal != dateVal)
-					starter(starterVal + ".*")
-				if (logThresholdVal != 0)
-					log_threshold(logThresholdVal)
-				if (patternVal != null)
-					pattern(patternVal)
 			}
-			return writer.toString()
+
+			def config = new ConfigObject()
+			def props = config."$idVal"
+
+			if (dateFormatVal != null) {
+				props.dateFormat.value = dateFormatVal
+			}
+
+			if (dateVal != null) {
+				props.dateFormat.regex = "(" + dateVal + ")"
+			}
+
+			if (starterVal != null && starterVal != dateVal) {
+				props.starter = starterVal + ".*"
+			}
+
+			if (logThresholdVal != 0) {
+				config.logThreshold = logThresholdVal
+			}
+
+			if (patternVal != null) {
+				props.pattern = patternVal
+			}
+
+			def writer = new StringWriter()
+			config.writeTo(writer)
+			return writer.toString().replace("\\", "\\\\")
 
 		}
 	}

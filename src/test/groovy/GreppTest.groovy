@@ -280,31 +280,33 @@ log4j.appender.CWMSGlobal.layout=org.apache.log4j.PatternLayout
 log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601} %t %c - %n%m%n
 """
 		def expectedResult = """\
-<config id='cwms_debug_' xmlns='http://www.smltools.org/config'>
-  <date_format>yyyy-MM-dd HH:mm:ss,SSS</date_format>
-  <date>(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})</date>
-  <starter>\\#\\#\\#\\#\\[[TRACEDBUGINFOWLSV]* *\\].*</starter>
-  <pattern>cwms_debug_.*\\.log</pattern>
-</config>"""	
+cwms_debug_ {
+	dateFormat {
+		value='yyyy-MM-dd HH:mm:ss,SSS'
+		regex='(\\\\d{4}-\\\\d{2}-\\\\d{2} \\\\d{2}:\\\\d{2}:\\\\d{2},\\\\d{3})'
+	}
+	starter='\\\\#\\\\#\\\\#\\\\#\\\\[[TRACEDBUGINFLOWSV]* *\\\\].*'
+	pattern='cwms_debug_.*\\\\.log'
+}
+"""	
 		def propFilter = new PropertiesFilter(null)
-		assertTrue(propFilter.filter(configString) == expectedResult)
+		assertTrue(propFilter.filter(configString).replace("\r\n", "\n") == expectedResult)
 	}
 
-//	void testPropertiesProcessing() {
-//
-//		Grepp.main("--parse $HOME\\test.properties".split(" "))
-//		def cfgDoc = DOMBuilder.parse(new FileReader(GREPP_CONFIG))
-//		def root = cfgDoc.documentElement
-//		use(DOMCategory) {
-//			def config = root.custom.config.find { it.'@id' == "cwms_debug_" }
-//			assertTrue(config != null)
-//			assertTrue(config.date_format.text() == "yyyy-MM-dd HH:mm:ss,SSS")
-//			assertTrue(config.date.text() == "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})")
-//			assertTrue(config.starter.text() == "\\#\\#\\#\\#\\[[TRACEDBUGINFOWLSV]* *\\].*")
-//			assertTrue(config.pattern.text() == "cwms_debug_.*\\.log")
-//		}
-//
-//	}
+	void testPropertiesProcessing() {
+
+		Grepp.main("--parse $HOME\\test.properties".split(" "))
+		def cfgDoc = DOMBuilder.parse(new FileReader(GREPP_CONFIG))
+		def root = cfgDoc.documentElement
+		use(DOMCategory) {
+			def config = root.config.find { it.'@id' == "cwms_debug_" }
+			assertTrue(config != null)
+			assertTrue(config.logDateFormat.text() == "cwms_debug_")
+			assertTrue(config.starter.text() == "\\#\\#\\#\\#\\[[TRACEDBUGINFLOWSV]* *\\].*")
+			assertTrue(config.pattern.text() == "cwms_debug_.*\\.log")
+		}
+
+	}
 
 	void testInputStreamProcessing() {
 		def tPipeOut = new PipedOutputStream()

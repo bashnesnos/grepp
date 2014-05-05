@@ -2,6 +2,8 @@ import org.smltools.grepp.Grepp
 import org.smltools.grepp.config.XMLConfigHolder
 import java.util.Date
 import java.text.SimpleDateFormat
+import org.smltools.grepp.filters.entry.PropertiesFilter
+import groovy.xml.MarkupBuilder
 
 def BASE_HOME = System.getProperty("grepp.home")
 //def HOME = BASE_HOME + "\\build\\resources\\main\\config"
@@ -15,5 +17,5 @@ def HOME = BASE_HOME + "\\build\\resources\\test"
 //
 //Grepp.main("-t --dtime +;$testTimeStringTo --foo $HOME\\processing_time_test.log".split(" "))
 //Grepp.main("-h".split(" "))
-Grepp.main("-t --some_timings $HOME\\processing_report_test.log".split(" "))
-//println new XMLConfigHolder("$HOME\\config.xml", "$HOME\\config.xsd").processThreads
+//Grepp.main("-t --some_timings $HOME\\processing_report_test.log".split(" "))
+Grepp.main("-t --parse $HOME\\test.properties".split(" "))

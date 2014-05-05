@@ -7,11 +7,8 @@ import org.smltools.grepp.config.Param
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.FilterBase
 import org.smltools.grepp.filters.FilterChainFactory;
-import org.w3c.dom.Element
-import groovy.xml.DOMBuilder
-import groovy.xml.dom.DOMCategory
-import groovy.xml.XmlUtil
-
+import org.smltools.grepp.config.ConfigHolder
+import groovy.util.ConfigSlurper
 /**
  * 
  * Output writing directly to config.xml
@@ -23,49 +20,21 @@ import groovy.xml.XmlUtil
 @Slf4j
 final class ConfigOutput extends SimpleOutput {
 	
-	private String configFilePath;
-	private def cfgDoc
-	private def root
-	private DOMBuilder domBuilder
+	private ConfigHolder config;
 	
-	public ConfigOutput(ParamHolder paramsHolder) 
-	{
+	public ConfigOutput(ParamHolder paramsHolder) {
     	super(paramsHolder, null)
-    	domBuilder = DOMBuilder.newInstance(false, true) 
-    	configFilePath = paramsHolder.get(Param.CONFIG_FILE_PATH)
-    	if (configFilePath != null) {
-    		cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
-        	root = cfgDoc.documentElement
+    	config = paramsHolder.get(Param.CONFIG)
+    	if (config == null) {
+			throw new IllegalArgumentException("ConfigHolder is null")
     	}
-    	else throw new IllegalArgumentException("Config file is null")
-
    	}
 
 
 	@Override
 	protected void printNotFiltered(Object data) {
-		if (data instanceof StringBuilder || data instanceof String)
-		{
-			def customConfig = domBuilder.parseText(data.toString()).documentElement
-			def configId = ""
-	        use(DOMCategory) {
-	        	configId = customConfig.'@id'
-	        	def existing = root.custom.config.find { it.'@id' == configId }
-	        	if (existing == null) {
-	        		def importedNode = cfgDoc.importNode(customConfig, true)
-	        		if (root.custom[0] == null) { //creating custom element
-	        			def custom = cfgDoc.createElement("custom")
-	        			root.appendChild(custom)
-	        		}
-					root.custom[0].insertBefore(importedNode, root.custom.config[0])
-					cfgDoc.normalizeDocument()
-					XmlUtil.serialize(root, new FileWriter(configFilePath))
-	        	}
-	        	else {
-	        		log.debug("Config exists")
-	        	}
-	       	}
-			log.debug("Config {} parsed", configId)			
+		if (data instanceof String || data instanceof StringBuilder) {
+			config.mergeAndSave(new ConfigSlurper().parse(data.toString()))
 		}
 		else {
 			log.debug("No custom config found")

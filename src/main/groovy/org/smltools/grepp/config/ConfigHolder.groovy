@@ -18,16 +18,29 @@ import java.util.Set;
 
 public abstract class ConfigHolder extends ConfigObject {
 
-    public abstract void mergeAndSave(ConfigObject newSubConfig);
+    public void mergeAndSave(ConfigObject newSubConfig) {
+    	backupConfigFile()
+    	this.merge(newSubConfig)
+    	newSubConfig.each {id, props ->
+	    	this.savedConfigs."$id" = props
+	    	if (props.containsKey('dateFormat')) {
+	    		this.logDateFormats."$id" = props.dateFormat
+	    	}
+    	}
+    	writeToConfigFile()
+    }
 
     public ConfigHolder() {
     	loadDefaults()
     }
 
-    protected void loadDefaults() {
+    void loadDefaults() {
         this.defaults.spoolFileExtension = '.log'
         this.defaults.resultsDir = 'results'
         this.defaults.postProcessSeparator.value = ','
         this.defaults.postProcessSeparator.spoolFileExtension = '.csv'
     }
+
+    abstract void backupConfigFile();
+    abstract void writeToConfigFile();
 }
