@@ -13,9 +13,9 @@ def includeOptional = false //whether to include optional sh scripts
 def params = [:] //params for used templates
 
 //these properties are not overrided by subprojects and should be populated here. If should
-def oldJdkCompatibility //= 1.5//; populate if app is going to be ran on JRE older than yours. Works on 1.5
+def oldJdkCompatibility = null //1.6 //; populate if app is going to be ran on JRE older than yours. Works on 1.5
 def oldJreLibPath //= "C:\\Program Files\\Java\\jre1.5.0_10\\lib"//; populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
-def printTestClasspath = false //prints test classpath if true
+def printTestClasspath = true //prints test classpath if true
 
 repositories {
     mavenCentral()
@@ -26,21 +26,25 @@ dependencies {
     compile group: 'ch.qos.logback', name:'logback-classic', version: '1.1.1'
     compile group: 'commons-cli', name:'commons-cli', version: '1.2'
 
-    if (oldJdkCompatibility != null && !oldJdkCompatibility =~ /1.[78]/) {
-        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1'
-        compile group: 'org.livetribe', name:'livetribe-jsr223', version: '2.0.1', transitive: true //for 1.5 compatibility
-        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1'
+    if (oldJdkCompatibility != null) {
+        if (oldJdkCompatibility =~ /1.6/) {
+            compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
+            testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
+        }
+        if (oldJdkCompatibility =~ /1.5/) {
+            compile group: 'org.livetribe', name:'livetribe-jsr223', version: '2.0.1', transitive: true //for 1.5 compatibility
+        }
     }
     else {
-        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1', classifier: 'indy'
-        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.1', classifier: 'indy'
+        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2', classifier: 'indy'
+        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2', classifier: 'indy'
     }
     
     testCompile group: 'junit', name: 'junit', version: '4.10'
 }
 
 compileGroovy {
-    if (oldJdkCompatibility) {
+    if (oldJdkCompatibility != null && oldJdkCompatibility =~ /1.5/) {
         sourceCompatibility = oldJdkCompatibility
         targetCompatibility = oldJdkCompatibility
         options.fork = true

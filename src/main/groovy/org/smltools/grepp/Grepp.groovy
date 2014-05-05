@@ -9,12 +9,13 @@ package org.smltools.grepp
 * @author Alexander Semelit
 */
 import org.smltools.grepp.processors.DataProcessorFactory
-import org.smltools.grepp.config.XMLConfigHolder;
-import org.smltools.grepp.config.ParamHolderFactory;
+import org.smltools.grepp.config.XMLConfigHolder
+import org.smltools.grepp.config.ParamHolderFactory
 import org.smltools.grepp.config.CLIParamHolderFactory
+import org.smltools.grepp.config.ParamHolder
 import org.smltools.grepp.util.GreppUtil
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 class Grepp 
 {

@@ -33,23 +33,23 @@ public abstract class ConfigHolder extends ConfigObject {
      *  }
      * @return Map containing all options with description including filters etc. grouped by corresponding prefix ('-' or '--')
      */
-    public Map<String, ?> getOptions() {
-        Map<String, ?> result = [:]
-        result["-"] = [:]
-        result["--"] = [:]
-        def addFlag = { name, descr ->
-            result["-"][name] = [descr]
-        }
+//    public Map<String, ?> getOptions() {
+//        Map<String, ?> result = [:]
+//        result["-"] = [:]
+//        result["--"] = [:]
+//        def addFlag = { name, descr ->
+//            result["-"][name] = [descr]
+//        }
         
-        def addOpt = { name, descr ->
-            def descrList = result["--"][name]
-            if (descrList == null) {
-                result["--"][name] = [descr]
-            }
-            else {
-                descrList.add(descr)
-            }
-        }
+//        def addOpt = { name, descr ->
+//            def descrList = result["--"][name]
+//            if (descrList == null) {
+//                result["--"][name] = [descr]
+//            }
+//            else {
+//                descrList.add(descr)
+//            }
+//        }
         
 //        withRoot { root ->
 //            root.options.opt.each {
@@ -111,7 +111,7 @@ public abstract class ConfigHolder extends ConfigObject {
 //            }
 //        }
         
-        return result;
-    }
+//        return result;
+//    }
 
 }

@@ -128,6 +128,7 @@
 	<complexType name="splitter">
 		<simpleContent>
 			<extension base="tns:pattern">
+				<attribute name="order" type="string"></attribute>
 				<attribute name="col_name" type="string"></attribute>
 				<attribute name="type" type="string"></attribute>
 			</extension>
@@ -153,12 +154,9 @@
 
 	<element name="postProcessSeparators" type="tns:postProcessSeparators"></element>
 
+	<element name="logDateFormats" type="tns:logDateFormats"></element>
+
+	<element name="dateFormat" type="tns:dateFormat"></element>
+
 	<element name="root" type="tns:root"></element>
-
-<<<<<<< Updated upstream
-    <element name="results_dir" type="string"></element>
-
-    <element name="params_factory" type="string"></element>
-=======
->>>>>>> Stashed changes
 </schema>

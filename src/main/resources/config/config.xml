@@ -26,7 +26,7 @@
 	    </dateFormat>
 	</logDateFormats>
 	<config id="cwms_debug_">
-		<dateFormat>iso_ms</dateFormat>
+		<logDateFormat>iso_ms</logDateFormat>
 		<starter>\#\#\#\#\[[TRACEDBUGINFOWLSV]* *\].*</starter>
 		<pattern>cwms_debug_.*\.log</pattern>
 	</config>
@@ -35,14 +35,14 @@
 		<pattern>.*\.properties</pattern>
 	</config>
 	<config id="to_test">
-		<dateFormat>iso</dateFormat>
+		<logDateFormat>iso</logDateFormat>
 		<starter>####\[\D{1,}\].*</starter>
-		<log_threshold>4</log_threshold>
+		<logThreshold>4</logThreshold>
 		<pattern>fpTest_</pattern>
 	</config>
     <config id="pr_test">
-		<dateFormat>iso</dateFormat>
-		<log_threshold>24</log_threshold>
+		<logDateFormat>iso</logDateFormat>
+		<logThreshold>24</logThreshold>
 		<pattern>processing_</pattern>
 	</config>
     <processThreads>

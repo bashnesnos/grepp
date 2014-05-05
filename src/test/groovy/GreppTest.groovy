@@ -2,6 +2,7 @@ import org.smltools.grepp.*
 import org.smltools.grepp.filters.entry.PropertiesFilter
 import org.smltools.grepp.config.ParamHolderFactory
 import org.smltools.grepp.config.CLIParamHolderFactory
+import org.smltools.grepp.config.XMLConfigHolder
 import org.smltools.grepp.config.ConfigHolder
 import org.smltools.grepp.config.Param
 import org.smltools.grepp.util.GreppUtil
@@ -20,7 +21,7 @@ class GreppTest extends GroovyTestCase {
 	def GREPP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
 
 	void setUp() {
-		config = new ConfigHolder(GREPP_CONFIG, GREPP_CONFIG_XSD)
+		config = new XMLConfigHolder(GREPP_CONFIG, GREPP_CONFIG_XSD)
 		paramFactory = new CLIParamHolderFactory(config);
 	}
 
