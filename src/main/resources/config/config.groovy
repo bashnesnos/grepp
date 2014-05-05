@@ -41,6 +41,7 @@ processThreads {
 }
 postProcessColumns {
     some_timings {
+        postProcessSeparator=postProcessSeparators.piped
         filter {
             order=1
             colName="some_cmd"

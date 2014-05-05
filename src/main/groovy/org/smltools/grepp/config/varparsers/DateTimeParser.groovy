@@ -41,10 +41,12 @@ class DateTimeParser implements ParamParser<String>
 		
 		params = pParams
 		def dt_tag = 'dtime'
-		INPUT_DATE_PTTRNS = config.withRoot { root ->
-            def ptrns = root.date_time_config.pattern.findAll { it.'@tags' =~ dt_tag }
-            return ptrns.sort { it.'@order' }.collect { it.text() }
-        }
+		INPUT_DATE_PTTRNS =  [ "yyyy-MM-dd'T'HH:mm:ss"
+        , "yyyy-MM-dd'T'HH:mm"
+        , "yyyy-MM-dd'T'HH"
+        , "yyyy-MM-dd"
+        , "yyyy-MM"
+        , "yyyy" ]
         defaultDateFormat = new SimpleDateFormat(INPUT_DATE_PTTRNS[0])
 		initialized = true
     }

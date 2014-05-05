@@ -260,26 +260,32 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 
 	protected void loadParamsById(Map<Param, ?> params, String id) {
 		boolean matchedAny = false
+		//applying all that matches, i.e. greedy
+
 		if (checkIfConfigExsits(id)) { //checking if  there exists a config with such id and applying it if so
-			matchedAny = matchedAny || true
+			matchedAny = true
 			params[Param.PREDEF_TAG] = id
 			setPredefinedConfig(params, id)
 		}
+
 		if (checkIfFilterExsits(id)) { //checking filter wasn't supplied explicitly and there exists a filter with such id and applying it if so
-			matchedAny = matchedAny || true
+			matchedAny = true
 			params[Param.PREDEF_TAG] = id
 			setPredefinedFilter(params, id)
 			varParsers.remove(filterParser)			
 		}
+
 		if (checkIfExecuteThreadExsits(id)) { //checking if there exists a thread preserving patterns with such id and applying it if so
-			matchedAny = matchedAny || true
+			matchedAny = true
 			setThreadPreserving(params, id)
 		}
+
 		if (checkIfPostProcessExsits(id)) { //checking if there exists a post_processing config with such id and applying it if so
-			matchedAny = matchedAny || true
+			matchedAny = true
 			setPostProcessing(params, id)
 		}
-		if (!matchedAny) {
+
+		if (id != null && !matchedAny) {
 			throw new IllegalArgumentException("Invalid id, doesn't match any pre-configured: " + id)
 		}
 	}
@@ -423,6 +429,213 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 
 
+	/**
+	 * Gets savedConfig section with id equal to supplied configId. Depending on which elements are supplied it fills: <br>
+	 * LOG_ENTRY_PATTERN <br>
+	 * LOG_DATE_PATTERN <br>
+	 * LOG_DATE_FORMAT <br>
+	 * LOG_FILE_THRESHOLD <br>
+	 * If custom config was found and params were filled, toggles isAmmended flag.
+	 * 
+	 * @param savedConfig's id
+	 */
+
+	void parseCustomConfig(Map<Param, ?> params, String configId)
+	{
+		if (checkIfConfigExsits(configId))
+		{
+			def customCfg = config.savedConfigs."$configId"
+			log.trace("Injecting config for {}", configId)
+
+			def dateFormat
+			def starter
+
+			if (customCfg.containsKey('starter'))
+			{
+				starter = customCfg.starter
+			}
+
+			if (customCfg.containsKey('dateFormat'))
+			{
+				dateFormat = customCfg.dateFormat
+				params[Param.LOG_DATE_PATTERN] = dateFormat.regex
+				params[Param.LOG_DATE_FORMAT] = dateFormat.value
+				isAmmended = true				
+			}
+			
+			if (customCfg.containsKey('logThreshold'))
+			{
+				params[Param.LOG_FILE_THRESHOLD] = customCfg.logThreshold
+			}
+
+			if (starter != null || dateFormat != null) 
+			{
+				params[Param.LOG_ENTRY_PATTERN] = ((starter != null) ? starter : "") + ((dateFormat != null) ? dateFormat.regex : "" )
+				isAmmended = true
+			}
+			else
+			{
+				log.warn("Either starter or dateFormat should be filled for config: {}", configId)
+			}
+		}
+		else
+		{
+			log.trace("Entry is undefined for {}", configId)
+		}
+	}
+
+	boolean checkIfConfigExsits(String configId) {
+		return config.savedConfigs.containsKey(configId)
+	}
+
+	/**
+	 * Looks for filter with filterAliasId parameter containing supplied tag. Method fills: <br>
+	 * FILTER_PATTERN
+	 * 
+	 * @param filterAliasId
+	 */
+
+	void parseFilterConfig(Map<Param, ?> params, String filterAliasId)
+	{
+		if (checkIfFilterExsits(filterAliasId)) {
+			log.trace("Parsing filter config for {}", filterAliasId)
+			params[Param.FILTER_PATTERN] = config.filterAliases."$filterAliasId"
+			isAmmended = true
+		}
+		else
+		{
+			log.trace("Filter is undefined for {}", filterAliasId)
+		}
+	}
+
+	boolean checkIfFilterExsits(String filterAliasId) {
+		return config.filterAliases.containsKey(filterAliasId)
+	}
+
+	/**
+	 * Simply sets POST_PROCESSING to a supplied tag value
+	 * 
+	 * @param postProcessColumnId
+	 */
+
+	void parsePostFilterConfig(Map<Param, ?> params, String postProcessColumnId)
+	{
+		params[Param.POST_PROCESSING] = postProcessColumnId
+		params[Param.POST_PROCESS_PARAMS] = parsePostFilterParams(params, postProcessColumnId)
+	}
+
+
+	boolean checkIfPostProcessExsits(String postProcessColumnId) {
+		return config.postProcessColumns.containsKey(postProcessColumnId)
+	}
+	
+	/**
+	 * Parses PostFilter configuration from config.xml 
+	 * 
+	 * @param postProcessColumnId "tag" attribute associated with post processing config
+	 * @param params ParamHolder insides
+	 * @return Mapping of params desired by PostFilter
+	 */
+
+	Map parsePostFilterParams(Map<Param, ?> params, String postProcessColumnId){
+		def POST_PROCESS_SEP = null
+		def POST_PROCESS_DICT = new LinkedHashMap()
+		def POST_GROUPS_METHODS = []
+		def POST_PROCESS_HEADER = null
+		def PATTERN = new StringBuilder()
+		log.trace("Looking for splitters of {}", postProcessColumnId)
+		if (checkIfPostProcessExsits(postProcessColumnId)) {
+
+			//defaults come first
+			POST_PROCESS_SEP = config.defaults.postProcessSeparator.value
+			params[Param.SPOOLING_EXT] = config.defaults.postProcessSeparator.spoolFileExtension
+
+			def handlers = config.postProcessColumns."$postProcessColumnId"
+			def sortedHandlers = handlers.sort { it.value.order }
+			sortedHandlers.each { type, props ->
+				if (type.equals('postProcessSeparator')) {
+					POST_PROCESS_SEP = props.value
+					params[Param.SPOOLING_EXT] = props.spoolFileExtension
+				}
+				else {
+					def curPtrn = props.value
+					PATTERN = PATTERN.size() == 0 ? PATTERN.append("(?ms)").append(curPtrn) : PATTERN.append(Qualifier.and.getPattern()).append(curPtrn)
+					switch (type) {
+						case "filter":
+							POST_PROCESS_DICT[curPtrn] = 'processPostFilter'
+							break
+						case "counter":
+							POST_PROCESS_DICT[curPtrn] = 'processPostCounter'
+							break
+						case "group":
+							POST_PROCESS_DICT[curPtrn] = 'processPostGroup'
+							break
+						case "avg":
+							POST_PROCESS_DICT[curPtrn] = 'processPostAverage'
+							POST_GROUPS_METHODS.add('processPostAverage')
+							break
+						default:
+							throw new IllegalArgumentException("Unknown handler type: " + type)
+					}
+
+					POST_PROCESS_HEADER = (POST_PROCESS_HEADER != null) ? POST_PROCESS_HEADER + POST_PROCESS_SEP + props.colName : props.colName
+				}
+			}
+			POST_PROCESS_HEADER += "\n"
+			isAmmended = true
+		}
+		else {
+			log.trace('POST_PROCESSING is not defined for {}', postProcessColumnId)
+		}
+
+		return ["POST_PROCESS_SEP":POST_PROCESS_SEP,
+			"POST_PROCESS_DICT":POST_PROCESS_DICT,
+			"POST_GROUPS_METHODS":POST_GROUPS_METHODS,
+			"POST_PROCESS_HEADER":POST_PROCESS_HEADER,
+			"PATTERN":PATTERN.toString()]
+	}
+
+	/**
+	 * Method simply sets PRESERVE_THREAD value to supplied processThreadId
+	 * 
+	 * @param processThreadId
+	 */
+
+	void parseExecuteThreadConfig(Map<Param, ?> params, String processThreadId)
+	{
+		if (params[Param.PRESERVE_THREAD]) {
+			params[Param.PRESERVE_THREAD_PARAMS] = parseComplexFilterParams(processThreadId)
+		}
+	}
+
+	boolean checkIfExecuteThreadExsits(String processThreadId) {
+		return config.processThreads.containsKey(processThreadId)
+	}
+
+	/**
+	 * 
+	 * Parses appropriate ComplexFilter params from config
+	 * 
+	 * @param processThreadId
+	 * @return Mapping of ComplexFilter params
+	 */
+	Map parseComplexFilterParams(String processThreadId) {
+		def pt_tag = preserveTag
+		def cfParams = [:]
+		if (checkIfExecuteThreadExsits(processThreadId)) {
+			def threadConfig = config.processThreads."$processThreadId"
+			cfParams['THRD_START_EXTRCTRS'] = threadConfig.extractors
+			cfParams['THRD_SKIP_END_PTTRNS'] = threadConfig.skipends
+			cfParams['THRD_END_PTTRNS'] = threadConfig.ends
+			isAmmended = true
+		}
+		else {
+			log.trace('Thread preserving is undefined')
+		}
+		return cfParams
+	}
+
+
 	boolean loadParamsByFileName(Map<Param, ?> params, String filename)
 	{
 		isAmmended = false
@@ -439,216 +652,6 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 
 	/**
-	 * Gets savedConfig section with id equal to supplied tag. Depending on which elements are supplied it fills: <br>
-	 * LOG_ENTRY_PATTERN <br>
-	 * LOG_DATE_PATTERN <br>
-	 * LOG_DATE_FORMAT <br>
-	 * LOG_FILE_THRESHOLD <br>
-	 * If custom config was found and params were filled, toggles isAmmended flag.
-	 * 
-	 * @param savedConfig's id
-	 */
-
-	void parseCustomConfig(Map<Param, ?> params, String tag)
-	{
-		config.withRoot { root ->
-			def customCfg = root.custom.config.find { it.'@id' ==~ tag }
-			if (customCfg != null)
-			{
-				log.trace("Parsing entry config for {}", tag)
-
-				def starter = customCfg.starter[0]
-				if (starter != null) starter = starter.text()
-				
-				def date = customCfg.date[0]
-				if (date != null) date = date.text()
-								
-				if (starter != null || date != null)
-				{
-					params[Param.LOG_ENTRY_PATTERN] = ((starter != null) ? starter : "") + ((date != null) ? date : "" )
-				}
-				else
-				{
-					log.warn("Either <starter> or <date> should be filled for config: {}", tag)
-				}
-				params[Param.LOG_DATE_PATTERN] = customCfg.date.text()
-				params[Param.LOG_DATE_FORMAT] = customCfg.date_format.text()
-				def thrshld = customCfg.log_threshold.text()
-				if (thrshld != null && thrshld != "") params[Param.LOG_FILE_THRESHOLD] = Integer.valueOf(thrshld)
-				isAmmended = true
-			}
-			else
-			{
-				log.trace("Entry config is undefined")
-			}
-		}
-	}
-
-	boolean checkIfConfigExsits(String tag) {
-		config.withRoot{ root ->
-			def customCfg = root.custom.config.find { it.'@id' ==~ tag }
-			return customCfg != null
-		}
-	}
-
-	/**
-	 * Looks for <filter> element with "tags" parameter containing supplied tag. Method fills: <br>
-	 * FILTER_PATTERN
-	 * 
-	 * @param tag One of "tags", which could be found in <filter> element.
-	 */
-
-	void parseFilterConfig(Map<Param, ?> params, String tag)
-	{
-		config.withRoot{ root ->
-			log.trace("Parsing filter config for {}", tag)
-			def customFilter = root.custom.filters.filter.find { checkInTags(it.'@tags', tag)}
-			if (customFilter != null)
-			{
-				params[Param.FILTER_PATTERN] = customFilter.text()
-				isAmmended = true
-			}
-			else
-			{
-				log.trace("Filter is undefined")
-			}
-		}
-	}
-
-	boolean checkIfFilterExsits(String tag) {
-		config.withRoot{ root ->
-			def customFilter = root.custom.filters.filter.find { checkInTags(it.'@tags', tag)}
-			return customFilter != null
-		}
-	}
-
-	/**
-	 * Simply sets POST_PROCESSING to a supplied tag value
-	 * 
-	 * @param tag One of a <splitter> element tags
-	 */
-
-	void parsePostFilterConfig(Map<Param, ?> params, String tag)
-	{
-		params[Param.POST_PROCESSING] = tag
-		params[Param.POST_PROCESS_PARAMS] = parsePostFilterParams(params, tag)
-	}
-
-
-	boolean checkIfPostProcessExsits(String tag) {
-		config.withRoot { root ->
-			def postPatterns = root.custom.pp_splitters.splitter.find{ checkInTags(it.'@tags', tag) }
-			return postPatterns != null
-		}
-	}
-	
-	/**
-	 * Parses PostFilter configuration from config.xml 
-	 * 
-	 * @param pp_tag "tag" attribute associated with post processing config
-	 * @param config WgrepConfig instance
-	 * @return Mapping of params desired by PostFilter
-	 */
-
-	Map parsePostFilterParams(Map<Param, ?> params, String pp_tag){
-		def POST_PROCESS_SEP = null
-		def POST_PROCESS_DICT = new LinkedHashMap()
-		def POST_GROUPS_METHODS = []
-		def POST_PROCESS_HEADER = null
-		def PATTERN = new StringBuilder()
-		config.withRoot{ root ->
-			log.trace("Looking for splitters of type={}", pp_tag)
-			def pttrns = root.custom.pp_splitters.splitter.findAll { checkInTags(it.'@tags', pp_tag) }
-			log.trace("Patterns found={}", pttrns)
-			if (pttrns != null) {
-				pttrns.sort { it.'@order' }
-				pttrns.each { ptrn_node ->
-					String pttrn = ptrn_node.text()
-
-					def sep_tag = ptrn_node.'@sep'
-
-					if (sep_tag != null && POST_PROCESS_SEP == null) {
-
-						if (sep_tag == '') {
-							sep_tag = root.pp_config.'@default_sep'[0]
-						}
-						log.trace("Looking for separator={}", sep_tag)
-
-						def sep = root.pp_config.pp_separators.separator.find { it.'@id' ==~ sep_tag}
-						if (sep != null) {
-							POST_PROCESS_SEP = sep.text()
-							if (sep.'@spool' != null) params[Param.SPOOLING_EXT] = sep.'@spool'
-						}
-					}
-
-					PATTERN = PATTERN.size() == 0 ? PATTERN.append("(?ms)").append(pttrn) : PATTERN.append(Qualifier.and.getPattern()).append(pttrn)
-					def splitter_type = root.pp_config.pp_splitter_types.splitter_type.find { sp_type -> sp_type.'@id' ==~ ptrn_node.'@type' }
-					def handler = splitter_type.'@handler'
-					POST_PROCESS_DICT[pttrn] = handler
-					if (splitter_type.'@handler_type' ==~ "group_method") {
-						POST_GROUPS_METHODS.add(handler)
-					}
-					POST_PROCESS_HEADER = (POST_PROCESS_HEADER != null) ? POST_PROCESS_HEADER + POST_PROCESS_SEP + ptrn_node.'@col_name' : ptrn_node.'@col_name'
-				}
-				POST_PROCESS_HEADER += "\n"
-				isAmmended = true
-			}
-			else {
-				log.trace('POST_PROCESSING is not defined')
-			}
-		}
-		return ["POST_PROCESS_SEP":POST_PROCESS_SEP,
-			"POST_PROCESS_DICT":POST_PROCESS_DICT,
-			"POST_GROUPS_METHODS":POST_GROUPS_METHODS,
-			"POST_PROCESS_HEADER":POST_PROCESS_HEADER,
-			"PATTERN":PATTERN.toString()]
-	}
-
-	/**
-	 * Method simply sets PRESERVE_THREAD value to supplied tag
-	 * 
-	 * @param tag One of "tags", which could be found in <extractor> or <pattern> element
-	 */
-
-	void parseExecuteThreadConfig(Map<Param, ?> params, String tag)
-	{
-		if (params[Param.PRESERVE_THREAD]) {
-			params[Param.PRESERVE_THREAD_PARAMS] = parseComplexFilterParams(tag)
-		}
-	}
-
-	boolean checkIfExecuteThreadExsits(String tag) {
-		config.withRoot { root ->
-			def startExtractors = root.custom.thread_configs.extractors.pattern.find{ checkInTags(it.'@tags', tag)}
-			return startExtractors != null
-		}
-	}
-
-	/**
-	 * 
-	 * Parses appropriate ComplexFilter params from config.xml
-	 * 
-	 * @param preserveTag "tag" attribute associated with thread preserving patterns in config.xml
-	 * @param config Initialized WgrepConfig
-	 * @return Mapping of ComplexFilter params
-	 */
-	Map parseComplexFilterParams(String preserveTag) {
-		def pt_tag = preserveTag
-		def cfParams = [:]
-		config.withRoot{ root ->
-			if (pt_tag != null) {
-				cfParams['THRD_START_EXTRCTRS'] = root.custom.thread_configs.extractors.pattern.findAll { checkInTags(it.'@tags', pt_tag) }.collect{it.text()}
-				cfParams['THRD_SKIP_END_PTTRNS'] = root.custom.thread_configs.skipends.pattern.findAll { checkInTags(it.'@tags', pt_tag) }.collect{it.text()}
-				cfParams['THRD_END_PTTRNS'] = root.custom.thread_configs.ends.pattern.findAll { checkInTags(it.'@tags', pt_tag) }.collect{it.text()}
-				isAmmended = true
-			}
-			else {
-				log.trace('Thread preserving is undefined')
-			}
-		}
-		return cfParams
-	}
-	/**
 	 * Finds config id by specified String. Method looks up for <config> element containing matching <pattern> with "alevel" parameter equal to level.
 	 * 
 	 * @param data String which would be matched to <pattern> element values which have corresponding to level "alevel" parameter.
@@ -664,22 +667,109 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 			throw new IllegalArgumentException("Data shouldn't be null")
 		}
 
-		String id = null
-		config.withRoot{ root ->
-			def configs = root.custom.config.findAll { it.pattern[0] }
-			def config = configs.find { config ->
-				currentConfigPtrn = config.pattern[0].text()
+		config.savedConfigs.findResult { configId, params ->
+			if (params.containsKey('pattern')) {
+				currentConfigPtrn = params.pattern
 				log.trace("ptrn=/{}/ data='{}'", currentConfigPtrn, data)
-				data =~ currentConfigPtrn
+				if (data =~ currentConfigPtrn) {
+					return configId
+				}
 			}
-			if (config != null) id = config.'@id'
 		}
-		return id
 	}
 
-	private boolean checkInTags(String tagsToCheckIn, String tagToLookFor) {
-		log.trace("Looking in /{}/ for tag /{}/",tagsToCheckIn, tagToLookFor)
-		return tagsToCheckIn != null && tagsToCheckIn =~ /(?<!\w)$tagToLookFor/
-	}
+    /**
+     * Builds the following structure:
+     *  {
+     *      "-" : {
+     *              "L":"Flag to use a following pattern as current entry pattern"
+     *              ...
+     *            } 
+     *      "--" : {
+     *              "dtime":"Turn on date time filtering and accept datetime boundaries"
+     *              }
+     *  }
+     * @return Map containing all options with description including filters etc. grouped by corresponding prefix ('-' or '--')
+     */
+    public Map<String, ?> getOptions() {
+        Map<String, ?> result = [:]
+        result["-"] = [:]
+        result["--"] = [:]
+        def addFlag = { name, descr ->
+            result["-"][name] = [descr]
+        }
+        
+        def addOpt = { name, descr ->
+            def descrList = result["--"][name]
+            if (descrList == null) {
+                result["--"][name] = [descr]
+            }
+            else {
+                descrList.add(descr)
+            }
+        }
+        
+//        withRoot { root ->
+//            root.options.opt.each {
+//                String name = it.text()
+//                String descr = it.'@descr'
+//                if (descr != null) {
+//                    if (name.length() > 1) {
+//                        addOpt(name, descr)
+//                    }
+//                    else {
+//                        addFlag(name, descr)
+//                    }
+//                }
+//            }
+            //
+//            root.custom.filters.filter.each { filter ->
+//                String tags = filter.'@tags'
+//                if (tags != null) {
+//                    tags.split(", ?").each { tag ->  
+//                        addOpt(tag, "Filter. /${filter.text()}/")   
+//                    }
+//                }
+//            }
+            //
+//            root.custom.pp_splitters.splitter.each{ splitter ->
+//                String tags = splitter.'@tags'
+//                if (tags != null) {
+//                    tags.split(", ?").each { tag ->
+//                        addOpt(tag, "Post filter. Type: ${splitter.'@type'} Ptrn: /${splitter.text()}/")
+//                    }
+//                }
+//            }
+            //
+//            root.custom.thread_configs.extractors.pattern.each { extrctr -> 
+//                String tags = extrctr.'@tags'
+//                if (tags != null) {
+//                    tags.split(", ?").each { tag ->
+//                        addOpt(tag, "Thread. Start extractor. /${extrctr.text()}/")
+//                    }
+//                }
+//            }
+//
+//            root.custom.thread_configs.skipends.pattern.each { skipend ->
+//                String tags = skipend.'@tags'
+//                if (tags != null) {
+//                    tags.split(", ?").each { tag ->
+//                        addOpt(tag, "Thread. Skip ends. /${skipend.text()}/")
+//                    }
+//                }
+//            }
+//
+//            root.custom.thread_configs.ends.pattern.each { end ->
+//                String tags = end.'@tags'
+//                if (tags != null) {
+//                    tags.split(", ?").each { tag ->
+//                        addOpt(tag, "Thread. End. /${end.text()}/")
+//                    }
+//                }
+//            }
+//        }
+        
+        return result;
+    }
 
 }

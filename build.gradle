@@ -15,7 +15,7 @@ def params = [:] //params for used templates
 //these properties are not overrided by subprojects and should be populated here. If should
 def oldJdkCompatibility = null //1.6 //; populate if app is going to be ran on JRE older than yours. Works on 1.5
 def oldJreLibPath //= "C:\\Program Files\\Java\\jre1.5.0_10\\lib"//; populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
-def printTestClasspath = true //prints test classpath if true
+def printTestClasspath = false //prints test classpath if true
 
 repositories {
     mavenCentral()

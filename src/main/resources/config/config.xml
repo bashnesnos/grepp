@@ -20,16 +20,7 @@
 			<value>yyyy-MM-dd HH:mm:ss</value>
 			<regex>(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})</regex>
 		</dateFormat>
-	    <dateFormat id="iso_ms">
-	    	<value>yyyy-MM-dd HH:mm:ss,SSS</value>
-	    	<regex>(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})</regex>
-	    </dateFormat>
 	</logDateFormats>
-	<config id="cwms_debug_">
-		<logDateFormat>iso_ms</logDateFormat>
-		<starter>\#\#\#\#\[[TRACEDBUGINFOWLSV]* *\].*</starter>
-		<pattern>cwms_debug_.*\.log</pattern>
-	</config>
     <config id="properties">
 		<starter>log4j.logger</starter>
 		<pattern>.*\.properties</pattern>
