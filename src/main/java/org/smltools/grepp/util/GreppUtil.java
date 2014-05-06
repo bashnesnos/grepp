@@ -57,11 +57,11 @@ public final class GreppUtil {
 	 * @param name Resource name
 	 * @return null or String representing path to a resource
 	 */
-	public static String getResourcePathOrNull(String name) {
+	public static URL getResourceOrNull(String name) {
 		URL resourceURL = GreppUtil.class.getClassLoader().getResource(name);
 		if (resourceURL != null)
 		{
-			return resourceURL.getPath();
+			return resourceURL;
 		}
 		else {
 			return null;
@@ -128,6 +128,10 @@ public final class GreppUtil {
 			// StatusPrinter will handle this
 		}
 		StatusPrinter.printInCaseOfErrorsOrWarnings(context);
+	}
+
+	public static String escapeRegexes(String stringWithRegex) {
+		return stringWithRegex.replaceAll("(\\\\)(?!['])", "$1$1");
 	}
 
 }

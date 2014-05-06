@@ -9,6 +9,7 @@ package org.smltools.grepp
 * @author Alexander Semelit
 */
 import org.smltools.grepp.processors.DataProcessorFactory
+import org.smltools.grepp.config.ConfigHolder
 import org.smltools.grepp.config.XMLConfigHolder
 import org.smltools.grepp.config.ParamHolderFactory
 import org.smltools.grepp.config.CLIParamHolderFactory
@@ -26,16 +27,24 @@ class Grepp
 		log.info("{}", args)
 		if (args == null || args.size() < 1) return
 
-		def configPath = GreppUtil.getResourcePathOrNull("config.xml");
-		def configXSDPath = GreppUtil.getResourcePathOrNull("config.xsd");
-		
-		if (configPath == null) {
-			throw new IllegalArgumentException("Config file should present in classpath or specified explicitly")
+		ConfigHolder configHolder = null
+		def configPath = GreppUtil.getResourceOrNull("config.groovy");
+		if (configPath != null) {
+			configHolder = new ConfigHolder(configPath)
 		}
-		log.trace("Initializing: {}, {}", configPath, configXSDPath)
-		
+		else {
+			configPath = GreppUtil.getResourceOrNull("config.xml");
+			def configXSDPath = GreppUtil.getResourceOrNull("config.xsd");
+			if (configPath != null) {
+				configHolder = new XMLConfigHolder(configPath.getPath(), configXSDPath == null ?: configXSDPath.getPath())
+			}
+			else {
+				System.err.println("Can't find config file to initialize")
+				System.exit(1)
+			}
+		}
+
 		try {
-			def configHolder = new XMLConfigHolder(configPath, configXSDPath)
 			ParamHolderFactory<List<String>> paramFactory = new CLIParamHolderFactory(configHolder)
 			ParamHolder paramHolder = paramFactory.getParamHolder(Arrays.asList(args))
 			DataProcessorFactory.process(paramHolder)
@@ -43,6 +52,8 @@ class Grepp
 		catch(Exception e)
 		{
 			log.error("An unexpected exception occured", e)
+			System.err.println("Error occured")
+			System.exit(1)
 		}
 				
 		log.info("Processing time = {} sec", ((new Date().getTime() - startTime.getTime())/1000))

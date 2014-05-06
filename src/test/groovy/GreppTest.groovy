@@ -6,6 +6,7 @@ import org.smltools.grepp.config.XMLConfigHolder
 import org.smltools.grepp.config.ConfigHolder
 import org.smltools.grepp.config.Param
 import org.smltools.grepp.util.GreppUtil
+import java.net.URL
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
 import groovy.util.GroovyTestCase
@@ -17,11 +18,18 @@ class GreppTest extends GroovyTestCase {
 	ParamHolderFactory paramFactory
 	def BASE_HOME = System.getProperty("grepp.home")
 	def HOME = BASE_HOME + "\\build\\resources\\test"
-	def GREPP_CONFIG = BASE_HOME + "\\build\\resources\\main\\config\\config.xml"
+	def GREPP_CONFIG = BASE_HOME + "\\build\\resources\\main\\config\\" + System.getProperty("grepp.config")
 	def GREPP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
 
 	void setUp() {
-		config = new XMLConfigHolder(GREPP_CONFIG, GREPP_CONFIG_XSD)
+		switch(GREPP_CONFIG) {
+			case ~/.*\.groovy/:
+				config = new ConfigHolder(new URL('file', '/', GREPP_CONFIG))			
+				break
+			case ~/.*\.xml/:
+				config = new XMLConfigHolder(GREPP_CONFIG, GREPP_CONFIG_XSD)			
+				break
+		}
 		paramFactory = new CLIParamHolderFactory(config);
 	}
 
@@ -296,14 +304,25 @@ cwms_debug_ {
 	void testPropertiesProcessing() {
 
 		Grepp.main("--parse $HOME\\test.properties".split(" "))
-		def cfgDoc = DOMBuilder.parse(new FileReader(GREPP_CONFIG))
-		def root = cfgDoc.documentElement
-		use(DOMCategory) {
-			def config = root.config.find { it.'@id' == "cwms_debug_" }
-			assertTrue(config != null)
-			assertTrue(config.logDateFormat.text() == "cwms_debug_")
-			assertTrue(config.starter.text() == "\\#\\#\\#\\#\\[[TRACEDBUGINFLOWSV]* *\\].*")
-			assertTrue(config.pattern.text() == "cwms_debug_.*\\.log")
+		switch (GREPP_CONFIG) {
+			case ~/.*\.xml/:
+				def cfgDoc = DOMBuilder.parse(new FileReader(GREPP_CONFIG))
+				def root = cfgDoc.documentElement
+				use(DOMCategory) {
+					def config = root.config.find { it.'@id' == "cwms_debug_" }
+					assertTrue(config != null)
+					assertTrue(config.logDateFormat.text() == "cwms_debug_")
+					assertTrue(config.starter.text() == "\\#\\#\\#\\#\\[[TRACEDBUGINFLOWSV]* *\\].*")
+					assertTrue(config.pattern.text() == "cwms_debug_.*\\.log")
+				}
+				break
+			case ~/.*\.groovy/:
+				def changedConfig = new ConfigHolder(new URL('file', '/', GREPP_CONFIG))
+				assertTrue(changedConfig.savedConfigs.containsKey('cwms_debug_'))
+				assertTrue(changedConfig.logDateFormats.containsKey('cwms_debug_'))
+				assertTrue(changedConfig.savedConfigs.cwms_debug_.starter == "\\#\\#\\#\\#\\[[TRACEDBUGINFLOWSV]* *\\].*")
+				assertTrue(changedConfig.savedConfigs.cwms_debug_.pattern == "cwms_debug_.*\\.log")
+				break
 		}
 
 	}

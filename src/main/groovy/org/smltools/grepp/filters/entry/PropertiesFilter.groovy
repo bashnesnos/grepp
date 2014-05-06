@@ -2,6 +2,7 @@ package org.smltools.grepp.filters.entry
 
 import java.util.regex.*
 import org.smltools.grepp.filters.FilterBase
+import org.smltools.grepp.util.GreppUtil
 import groovy.util.ConfigObject
 
 final class PropertiesFilter extends FilterBase<String> {
@@ -358,7 +359,7 @@ final class PropertiesFilter extends FilterBase<String> {
 
 			def writer = new StringWriter()
 			config.writeTo(writer)
-			return writer.toString().replace("\\", "\\\\")
+			return GreppUtil.escapeRegexes(writer.toString())
 
 		}
 	}

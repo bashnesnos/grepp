@@ -34,6 +34,7 @@ public class XMLConfigHolder extends ConfigHolder {
     
     public XMLConfigHolder(String pConfigFilePath, String pConfigXSDPath)
     {
+        if (pConfigFilePath == null) throw new IllegalArgumentException("configFilePath shouldn't be null")
         loadConfigInternal(pConfigFilePath, pConfigXSDPath)
     }
 

@@ -74,13 +74,28 @@ sourceSets {
 jar.includes =['**/*.class'] //TODO: may be versioning or something is needed 
 jar.includeEmptyDirs = false
 
-test {
+task testGroovyProps(type: Test) {
 	systemProperty 'grepp.home', rootDir.getAbsolutePath()
+    systemProperty 'grepp.config', 'config.groovy'
 	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main/config')
 	setClasspath(newCP)
-    if (printTestClasspath)
+    if (printTestClasspath) {
         newCP.getFiles().each {print it.getCanonicalPath() + ";"}
+    }
+
+    doLast {
+        new File('build/resources/main/config/config.groovy').delete()
+    }
 }
+
+test {
+    systemProperty 'grepp.home', rootDir.getAbsolutePath()
+    systemProperty 'grepp.config', 'config.xml'
+    def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main/config')
+    setClasspath(newCP)
+}
+
+test.dependsOn testGroovyProps
 
 processTestResources {
     def dateFormat = new SimpleDateFormat('yyyy-MM-dd HH')
