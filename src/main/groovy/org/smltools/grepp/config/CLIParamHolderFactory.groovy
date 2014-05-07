@@ -112,8 +112,8 @@ grepp --my_predefined_config --dtime 2011-11-11T11:10;2011-11-11T11:11 myapp.log
 grepp --my_predefined_config --dtime 2011-11-11T11:10;-10 myapp.log 
 grepp --my_predefined_regex_id myapp.log 
 grepp 'SomethingINeedToFind' myanotherapp.log 
-grepp -s 'RecordShouldContainThis%and%ShouldContainThisAsWell' --dtime 2012-12-12T12;2012-12-12T12:12 thirdapp.log 
-grepp 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' --dtime 2009-09-09T09:00 + thirdapp.log 
+grepp -s --dtime 2012-12-12T12;2012-12-12T12:12 'RecordShouldContainThis%and%ShouldContainThisAsWell' thirdapp.log 
+grepp --dtime 2009-09-09T09:00;+ 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' thirdapp.log 
 grepp -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
 cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 """)

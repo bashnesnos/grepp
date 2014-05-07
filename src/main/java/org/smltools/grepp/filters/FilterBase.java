@@ -7,6 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.smltools.grepp.exceptions.FilteringIsInterruptedException;
 import org.smltools.grepp.filters.FilterBase;
 import org.smltools.grepp.filters.enums.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
 
 /**
  * Super class for all filters. Provides filtering process template with hooking
@@ -35,6 +38,21 @@ public abstract class FilterBase<E> {
 			log.trace("Added on top of {}", nextFilter.getClass().getCanonicalName());	
 		}
 
+	}
+
+	public static <T extends FilterBase> T createFilterFromConfigByConfigId(Class<T> filterClass, Map<?, ?> config, String configId) {
+		try {
+			Constructor<T> constructByConfigId = filterClass.getDeclaredConstructor(Map.class, String.class);
+			return constructByConfigId.newInstance(config, configId);
+		} catch(InvocationTargetException ite) {
+			throw new RuntimeException(ite);
+		} catch (NoSuchMethodException nsme) {
+			throw new UnsupportedOperationException("A particular Filter implementation should have a constructor by Map and configId", nsme);
+		} catch (InstantiationException ie) {
+			throw new RuntimeException(ie);
+		} catch (IllegalAccessException iace) {
+			throw new RuntimeException(iace);
+		} 
 	}
 
 	/**
