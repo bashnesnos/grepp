@@ -7,8 +7,7 @@ package org.smltools.grepp.filters.enums;
  *
  */
 public enum Event { 
-    FILE_ENDED,
-	 ALL_FILES_PROCESSED,
-	  CONFIG_REFRESHED,
-	  	FLUSH 
+    CHUNK_ENDED,
+	 ALL_CHUNKS_PROCESSED,
+	  CONFIG_REFRESHED
 }

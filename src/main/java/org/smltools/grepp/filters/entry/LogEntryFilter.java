@@ -17,27 +17,82 @@ import org.smltools.grepp.filters.enums.Event;
  * @author Alexander Semelit
  */
 
-final class LogEntryFilter extends FilterBase<String> {
+final class LogEntryFilter extends StatefulFilterBase<String> {
+	public final static String SAVED_CONFIG_KEY = "savedConfigs";
+	public final static String STARTER_KEY = "starter";
+	public final static String DATE_FORMAT_KEY = "dateFormat";
+	public final static String DATE_FORMAT_REGEX_KEY = "regex";
 
 	private boolean isBlockMatched = false;
-	private StringBuilder curBlock = null;
+	private StringBuilder curBlock = new StringBuilder();
 	private Pattern logEntryPtrn = null;
 
 	/**
-	 * Creates filter on top of supplied fiter chain basing on supplied
-	 * WgrepConfig instance.
-	 * 
-	 * @param nextFilter_next
-	 *            filter in chain
-	 * @param config
-	 *            Instanntiated config instance
+	 * Creates non-refreshable and non-publicly modifiable, standalone LogEntryFilter
+	 * @param logEntryPtrn
+	 *            pattern to slice data for entries
 	 */
-	LogEntryFilter(FilterBase<String> nextFilter_, String logEntryPtrn_) {
-		super(nextFilter_, LogEntryFilter.class);
-		log.debug("Entry pattern :/{}/", logEntryPtrn_);
-		logEntryPtrn = Pattern.compile(logEntryPtrn_);
-        curBlock = new StringBuilder();
-        clearBuffer();
+	public LogEntryFilter(String logEntryPtrn) {
+		super(LogEntryFilter.class, null);
+		LOGGER.debug("Entry pattern :/{}/", logEntryPtrn);
+		this.logEntryPtrn = Pattern.compile(logEntryPtrn);
+        this.setChainState(null);
+        flush();
+	}
+
+	/**
+	* Creates LogEntryFilter from config
+	*
+	*/
+	public LogEntryFilter(Map<?, ?> config, String configId) {
+		super(LogEntryFilter.class, config);
+		fillParamsByConfigIdInternal(configId);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+    private boolean fillParamsByConfigIdInternal(String configId) {
+    	if (!LogEntryFilter.configIdExists(config, configId)) {
+    		throw new ConfigNotExistsRuntimeException(configId);
+    	}
+    	
+    	Map<?, ?> configs = (Map<?,?>) config.get(SAVED_CONFIG_KEY);
+    	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
+
+		String starter;
+		String dateRegex;
+
+		if (customCfg.containsKey(STARTER_KEY))
+		{
+			starter = (String) customCfg.get(STARTER_KEY);
+		}
+
+		if (customCfg.containsKey(DATE_FORMAT_KEY))
+		{
+			dateRegex = (String) ((Map<?, ?>) customCfg.get(DATE_FORMAT_KEY)).get(DATE_FORMAT_REGEX_KEY);
+		}
+		
+		if (starter != null || dateFormat != null) 
+		{
+			logEntryPtrn = Pattern.compile((starter != null ? starter : "") + (dateFormat != null ? dateFormat.regex : "" ));
+			LOGGER.debug("Entry pattern :/{}/", logEntryPtrn.pattern());
+			return true;
+		}
+		else
+		{
+			throw new PropertiesNotFoundRuntimeException("Either " + STARTER_KEY + " or " + DATE_FORMAT_KEY + "." + DATE_FORMAT_REGEX_KEY + " should be filled for config: " + configId);
+		}
+    }
+
+    @SuppressWarnings("unchecked")
+	public static boolean configIdExists(Map<?, ?> config, String configId) {
+		Map<?, ?> configs = (Map<?,?>) config.get(SAVED_CONFIG_KEY);
+		if (configs != null) {
+			return configs.containsKey(configId);
+		}
+		else {
+			return false;
+		}
 	}
 
 	/**
@@ -51,28 +106,29 @@ final class LogEntryFilter extends FilterBase<String> {
 	 */
 
 	@Override
-    public boolean check(String blockData)
-    {
+    public String filter(String blockData) {
   		if ( logEntryPtrn.matcher(blockData).find() ) //finding match of current blockData
   		{
   			if (!isBlockMatched)
   			{
   				isBlockMatched = true;
-  				if (log.isTraceEnabled()) log.trace("appending");
+  				if (LOGGER.isTraceEnabled()) LOGGER.trace("appending");
   				appendCurBlock(blockData);
   			}
   			else if (isBlockMatched)
   			{
-  				if (log.isTraceEnabled()) log.trace("returning block");
-  				return true;
+  				if (LOGGER.isTraceEnabled()) LOGGER.trace("returning block");
+				String passingVal = curBlock.toString();
+        		startNewBlock(blockData);
+  				return passingVal;
   			}
   		}
   		else if (isBlockMatched)
   		{
-  			if (log.isTraceEnabled()) log.trace("appending");
+  			if (LOGGER.isTraceEnabled()) LOGGER.trace("appending");
   			appendCurBlock(blockData);
   		}
-  		return false;
+  		return null;
     }
 
 	/**
@@ -102,76 +158,41 @@ final class LogEntryFilter extends FilterBase<String> {
 
 	private void startNewBlock(String line)
     {
-        clearBuffer();
+        flush();
         if (line != null)
         {
-            if (log.isTraceEnabled()) log.trace("appending end, since it is the start of new block");
+            if (LOGGER.isTraceEnabled()) LOGGER.trace("appending end, since it is the start of new block");
             appendCurBlock(line);
         }
-    }
-
-	/**
-	 * Clears data from current buffer.
-	 * 
-	 */
-
-	private void clearBuffer()
-    {
-        curBlock.setLength(0);
     }
 
 	/**
 	 * Flushes all state
 	 * 
 	 */
-
-	private void flush()
-    {
-        clearBuffer();
-        passingVal = null;
-    }
-
-	/**
-	 * Overrided passNext, which passes accumulated block instead of recieved by
-	 * filter method. <br>
-	 * Also it clears current buffer data, and starts new block accumulating.
-	 * 
-	 * @return <code>super.passNext</code> result
-	 */
-
 	@Override
-    protected void beforePassing(String blockData)
-    {
-        passingVal = curBlock.toString();
-        startNewBlock(blockData);
+	public void flush() {
+        curBlock.setLength(0);
     }
 
 	/**
 	 * 
-	 * Listens for FILE_ENDED event to flush current accumulated block, and
-	 * CONFIG_REFRESHED to refresh params
-	 * @throws TimeToIsOverduedException 
-	 * @throws ParseException 
+	 * Listens for CHUNK_ENDED event to return current accumulated block
 	 */
 
 	@Override
-	protected StringBuilder gatherPrintableState(Event event, StringBuilder agg) {
+	protected String processEventInternal(Event event) {
         switch (event)
         {
-            case FILE_ENDED:
-            	try {
-            		appendNotNull(agg, (passNext(curBlock.toString())));
-            	}
-            	catch (FilteringIsInterruptedException e) {
-            		log.error("Filtering interrupted by", e);
-            	}
-            	break;
-            case FLUSH:
-                flush();
-                break;
-            default:
-                break;
+            case CHUNK_ENDED: {
+				String passingVal = curBlock.toString();
+        		flush();
+  				return passingVal;
+            }
+            default: {
+            	return null;
+            }
         }
-        return super.gatherPrintableState(event, agg);
     }
+
 }
