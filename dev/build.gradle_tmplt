@@ -1,9 +1,0 @@
-project.ext {
-	targetDir = new File(rootDir.getAbsolutePath() + '/dev')
-	includeOptional = false //whether to include optional sh scripts
-	params = ['#WIN_DIR#' : targetDir.getAbsolutePath(),	//specify Windows home
-				'#NIX_DIR#' : '', //specify Nix home
-				'#USER#' : '', //specify user
-				'#BOXES#' : '', //specify box names which will be used for ssh connection separated by space and enclosed in parenthesis. I.e. (hostname1 hostname2 hostname3)
-			] 
-}

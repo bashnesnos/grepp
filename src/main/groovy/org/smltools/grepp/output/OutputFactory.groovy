@@ -8,26 +8,26 @@ import groovy.util.logging.Slf4j;
 @Slf4j
 class OutputFactory {
 			
-	public static GreppOutput<?,?> getOutputInstance(ParamHolder paramsHolder) {
+	public static GreppOutput<?> getOutputInstance(ConfigHolder configHolder, boolean parse, boolean spool) {
 		PrintWriter printer = null;
-		if (!paramsHolder.checkParamIsEmpty(Param.PARSE_PROPERTIES)) {
+		if (parse) {
 			log.info("Creating config output")
-			return new ConfigOutput(paramsHolder)
+			return new ConfigOutput(configHolder)
 		}
-		if (!paramsHolder.checkParamIsEmpty(Param.SPOOLING)) {
+		else if (spool) {
 			log.info("Creating file output")
-			printer = getFilePrinter(paramsHolder)
-			return new SimpleOutput(paramsHolder, printer)
+			printer = getFilePrinter(configHolder)
+			return new SimpleOutput(configHolder, printer)
 		}
 		else
 		{
 			log.info("Creating console output")
 			printer = getConsolePrinter()
-			return new SimpleOutput(paramsHolder, printer)
+			return new SimpleOutput(configHolder, printer)
 		}
 	}
 	
-	private static getConsolePrinter() {
+	private static PrintWriter getConsolePrinter() {
 		def console = System.console()
 		if (console != null) {
 			return console.writer()
@@ -38,7 +38,7 @@ class OutputFactory {
 		}
 	}
 	
-	private static PrintWriter getFilePrinter(ParamHolder paramsHolder) {
+	private static PrintWriter getFilePrinter(ConfigHolder configHolder) {
 		def outputDir = new File(new File(paramsHolder.get(Param.HOME_DIR)), paramsHolder.get(Param.RESULTS_DIR))
 		if (!outputDir.exists()) outputDir.mkdir()
 		def out_file = new File(outputDir, paramsHolder.getSpoolFileName())
