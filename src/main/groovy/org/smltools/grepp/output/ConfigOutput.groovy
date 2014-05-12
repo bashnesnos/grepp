@@ -1,12 +1,7 @@
 package org.smltools.grepp.output;
 
 import groovy.util.logging.Slf4j
-
-import org.smltools.grepp.config.ParamHolder
-import org.smltools.grepp.config.Param
-import org.smltools.grepp.filters.enums.Event
-import org.smltools.grepp.filters.FilterBase
-import org.smltools.grepp.filters.FilterChainFactory;
+import org.smltools.grepp.filters.FilterChain
 import org.smltools.grepp.config.ConfigHolder
 import groovy.util.ConfigSlurper
 /**
@@ -18,26 +13,20 @@ import groovy.util.ConfigSlurper
  */
 
 @Slf4j
-final class ConfigOutput extends SimpleOutput {
-	
-	private ConfigHolder config;
-	
-	public ConfigOutput(ParamHolder paramsHolder) {
-    	super(paramsHolder, null)
-    	config = paramsHolder.get(Param.CONFIG)
-    	if (config == null) {
-			throw new IllegalArgumentException("ConfigHolder is null")
-    	}
+final class ConfigOutput extends SimpleOutput<String> {
+		
+	public ConfigOutput(ConfigHolder config, FilterChain<String> filterChain) {
+            super(paramsHolder, filterChain)
    	}
 
 
 	@Override
-	protected void printNotFiltered(Object data) {
-		if (data instanceof String || data instanceof StringBuilder) {
-			config.mergeAndSave(new ConfigSlurper().parse(data.toString()))
+	protected void printNotFiltered(String data) {
+		if (data != null) {
+                    config.mergeAndSave(new ConfigSlurper().parse(data.toString()))
 		}
 		else {
-			log.debug("No custom config found")
+                    log.debug("No custom config found")
 		}
 	}
 

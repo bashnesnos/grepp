@@ -17,8 +17,6 @@ import org.smltools.grepp.filters.FilterBase
  */
 
 public class FileDateFilter extends FilterBase<List<File>> {
-    public final static String LOG_THRESHOLD_KEY = "logThreshold";
-
     //Checking dates everywhere
 
     protected SimpleDateFormat fileDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")

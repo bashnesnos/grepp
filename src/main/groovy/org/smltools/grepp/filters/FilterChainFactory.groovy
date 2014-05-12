@@ -28,7 +28,7 @@ class FilterChainFactory {
 	 *
 	 * <br> By current requirements filter pattern should be supplied via options, or defined automatically so optional are 1,2 and 4.
 	 *
-	 * @param config Initialized WgrepConfig instance.
+	 * @param config Initialized ParamHolder instance.
 	 * @return appropriate to supplied config entry filter chain
 	 */
 
@@ -64,11 +64,10 @@ class FilterChainFactory {
 	 * Creates filter chain for log files depending on fulfilled parameters in the  <br>
 	 * <li> 0. {@link FileSortFilter} is always instantiated as last in chain. </li>
 	 * <li> 1. {@link FileDateFilter} </li>
-	 * <li> 2. {@link FileNameFilter} </li>
 	 *
 	 * <br> Only #1 is optional, if date time filtering is not configured.
 	 *
-	 * @param config Initialized WgrepConfig instance.
+	 * @param config Initialized ParamHolder instance.
 	 * @return appropriate to supplied config entry filter chain
 	 */
 

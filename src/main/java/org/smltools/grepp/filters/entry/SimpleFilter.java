@@ -5,7 +5,6 @@ import java.util.regex.*;
 
 import org.smltools.grepp.filters.FilterBase;
 import org.smltools.grepp.filters.enums.*;
-import org.smltools.grepp.util.GreppUtil;
 
 
 
@@ -18,16 +17,16 @@ import org.smltools.grepp.util.GreppUtil;
  *
  */
 
-final class SimpleFilter extends FilterBase<String> {
+public class SimpleFilter extends FilterBase<String> {
 	public final static String FILTERS_CONFIG_KEY = "filterAliases";
 
 	protected String filterPattern;	
 
 	//Complex pattern processing and stuff
 	protected Pattern currentPattern;
-	private StringBuilder patternBuilder = new StringBuilder("(?ms)"); //for multiline support
-	private List<String> patternParts = new ArrayList<String>();
-	private Map<String, Qualifier> patternPartQualifierMap = new HashMap<String, Qualifier>();
+	protected StringBuilder patternBuilder = new StringBuilder("(?ms)"); //for multiline support
+	protected List<String> patternParts = new ArrayList<String>();
+	protected Map<String, Qualifier> patternPartQualifierMap = new HashMap<String, Qualifier>();
 	/**
 	 * Creates non-refreshable and non-publicly modifiable, standalone and maybe stateless SimpleFilter
 	 * @param filterPattern
@@ -42,14 +41,14 @@ final class SimpleFilter extends FilterBase<String> {
 
 	protected SimpleFilter(Class<? extends SimpleFilter> subclazz, String filterPattern)
 	{
-		super(subclazz, null);
+		super(subclazz);
 		setFilterPattern(filterPattern);
 	}
 
 
 	public void setFilterPattern(String filterPattern) {
 		this.filterPattern = filterPattern;
-		patternBuilder = = new StringBuilder("(?ms)"); 
+		patternBuilder = new StringBuilder("(?ms)"); 
 		patternParts = new ArrayList<String>();
 		patternPartQualifierMap = new HashMap<String, Qualifier>();
 		extractPatternParts(filterPattern);
@@ -61,14 +60,10 @@ final class SimpleFilter extends FilterBase<String> {
 	*
 	*/
 	public SimpleFilter(Map<?, ?> config, String configId) {
-		this(SimpleFilter.class, configm configId);
+            this(SimpleFilter.class, configId);
 	}
 
 	protected SimpleFilter(Class<? extends SimpleFilter> subclazz, Map<?, ?> config, String configId) {
-		if (subclazz == null || config == null || configId == null) {
-			throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (subclazz != null) + ";" + (config != null) + ";" + (configId != null));
-		}
-
 		super(subclazz, config);
 		fillParamsByConfigIdInternal(configId);
 	}

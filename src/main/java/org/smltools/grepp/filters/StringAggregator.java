@@ -1,19 +1,22 @@
 package org.smltools.grepp.filters;
 
 public class StringAggregator implements Aggregator<String> {
-	private StringBuilder internalAgg = new StringBuilder();
+	private final StringBuilder internalAgg = new StringBuilder();
 
 	public StringAggregator() {
 		internalAgg.setLength(0);
 	}
 
+        @Override
 	public StringAggregator add(String data) {
 		if (data != null) {
 			internalAgg.append(data);
 		}
+                return this;
 	}
 
-	public String aggregate() {
+        @Override
+        public String aggregate() {
 		try {
 			return internalAgg.length() > 0 ? internalAgg.toString() : null;
 		}

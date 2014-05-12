@@ -6,17 +6,11 @@ import org.smltools.grepp.filters.enums.Event;
  * Provides abstraction for possible output like console, file output etc. 
  * 
  * @author Alexander Semelit
+ * @param <T>
  *
  */
-public interface GreppOutput<E, V> {
-
-	/**
-	 * Refreshes filters/filtering params by some criteria.
-	 * 
-	 * @param criteria Something that can be used for config refreshing. Filename for example
-	 */
-	void refreshFilters(V criteria);
-	
+public interface GreppOutput<T> {
+        
 	/**
 	 * Ensures that event is correctly printed to output. Nothing more or less.
 	 * 
@@ -29,8 +23,10 @@ public interface GreppOutput<E, V> {
 	 * 
 	 * @param data Data to be printed
 	 */
-	void printToOutput(E data);
+	void printToOutput(T data);
 	
+        void flush();
+        
 	/**
 	 * 
 	 * Releases output resources

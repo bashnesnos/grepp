@@ -1,11 +1,11 @@
 package org.smltools.grepp.filters.entry;
 
-import java.text.ParseException;
+import java.util.Map;
 import java.util.regex.Pattern;
-
-import org.smltools.grepp.exceptions.FilteringIsInterruptedException;
-import org.smltools.grepp.exceptions.TimeToIsOverduedException;
-import org.smltools.grepp.filters.FilterBase;
+import org.smltools.grepp.config.ConfigHolder;
+import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
+import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
+import org.smltools.grepp.filters.StatefulFilterBase;
 import org.smltools.grepp.filters.enums.Event;
 
 /**
@@ -18,11 +18,6 @@ import org.smltools.grepp.filters.enums.Event;
  */
 
 final class LogEntryFilter extends StatefulFilterBase<String> {
-	public final static String SAVED_CONFIG_KEY = "savedConfigs";
-	public final static String STARTER_KEY = "starter";
-	public final static String DATE_FORMAT_KEY = "dateFormat";
-	public final static String DATE_FORMAT_REGEX_KEY = "regex";
-
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = new StringBuilder();
 	private Pattern logEntryPtrn = null;
@@ -33,10 +28,10 @@ final class LogEntryFilter extends StatefulFilterBase<String> {
 	 *            pattern to slice data for entries
 	 */
 	public LogEntryFilter(String logEntryPtrn) {
-		super(LogEntryFilter.class, null);
+		super(LogEntryFilter.class);
 		LOGGER.debug("Entry pattern :/{}/", logEntryPtrn);
 		this.logEntryPtrn = Pattern.compile(logEntryPtrn);
-        this.setChainState(null);
+        this.setState(null);
         flush();
 	}
 
@@ -45,10 +40,6 @@ final class LogEntryFilter extends StatefulFilterBase<String> {
 	*
 	*/
 	public LogEntryFilter(Map<?, ?> config, String configId) {
-		if (config == null || configId == null) {
-			throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null) + ";" + (configId != null));
-		}
-
 		super(LogEntryFilter.class, config);
 		fillParamsByConfigIdInternal(configId);
 	}
@@ -60,37 +51,37 @@ final class LogEntryFilter extends StatefulFilterBase<String> {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}
 
-    	Map<?, ?> configs = (Map<?,?>) config.get(SAVED_CONFIG_KEY);
+    	Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
     	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
 
-		String starter;
-		String dateRegex;
+		String starter = null;
+		String dateRegex = null;
 
-		if (customCfg.containsKey(STARTER_KEY))
+		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_STARTER_KEY))
 		{
-			starter = (String) customCfg.get(STARTER_KEY);
+			starter = (String) customCfg.get(ConfigHolder.SAVED_CONFIG_STARTER_KEY);
 		}
 
-		if (customCfg.containsKey(DATE_FORMAT_KEY))
+		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY))
 		{
-			dateRegex = (String) ((Map<?, ?>) customCfg.get(DATE_FORMAT_KEY)).get(DATE_FORMAT_REGEX_KEY);
+			dateRegex = (String) ((Map<?, ?>) customCfg.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY)).get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY);
 		}
 		
-		if (starter != null || dateFormat != null) 
+		if (starter != null || dateRegex != null) 
 		{
-			logEntryPtrn = Pattern.compile((starter != null ? starter : "") + (dateFormat != null ? dateFormat.regex : "" ));
+			logEntryPtrn = Pattern.compile((starter != null ? starter : "") + (dateRegex != null ? dateRegex : "" ));
 			LOGGER.debug("Entry pattern :/{}/", logEntryPtrn.pattern());
 			return true;
 		}
 		else
 		{
-			throw new PropertiesNotFoundRuntimeException("Either " + STARTER_KEY + " or " + DATE_FORMAT_KEY + "." + DATE_FORMAT_REGEX_KEY + " should be filled for config: " + configId);
+			throw new PropertiesNotFoundRuntimeException("Either " + ConfigHolder.SAVED_CONFIG_STARTER_KEY + " or " + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY + "." + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY + " should be filled for config: " + configId);
 		}
     }
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {
-		Map<?, ?> configs = (Map<?,?>) config.get(SAVED_CONFIG_KEY);
+		Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
 		if (configs != null) {
 			return configs.containsKey(configId);
 		}

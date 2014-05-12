@@ -1,13 +1,17 @@
 package org.smltools.grepp.filters.entry;
 
-import java.util.Date;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-
+import java.util.Date;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.smltools.grepp.config.ConfigHolder;
+import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
+import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.exceptions.TimeToIsOverduedException;
-import org.smltools.grepp.filters.FilterBase;
+import org.smltools.grepp.filters.OptionallyStateful;
+import org.smltools.grepp.filters.StatefulFilterBase;
 import org.smltools.grepp.filters.enums.Event;
 
 /**
@@ -18,11 +22,6 @@ import org.smltools.grepp.filters.enums.Event;
  */
 
 final class EntryDateFilter extends StatefulFilterBase<String> implements OptionallyStateful<String> {
-	public final static String SAVED_CONFIG_KEY = "savedConfigs";
-	public final static String DATE_FORMAT_KEY = "dateFormat";
-	public final static String DATE_FORMAT_REGEX_KEY = "regex";
-	public final static String DATE_FORMAT_VALUE_KEY = "value";
-
 	private final boolean isStateOptional;
 	private Date from;
 	private Date to;
@@ -36,7 +35,7 @@ final class EntryDateFilter extends StatefulFilterBase<String> implements Option
 	 *            pattern to slice data for entries
 	 */
 	public EntryDateFilter(String logDatePtrn, String logDateFormat, Date from, Date to) {
-		super(EntryDateFilter.class, null);
+		super(EntryDateFilter.class);
 		
 		if (logDatePtrn != null) {
 			this.logDatePtrn = Pattern.compile(logDatePtrn);	
@@ -63,16 +62,13 @@ final class EntryDateFilter extends StatefulFilterBase<String> implements Option
 	}
 
 	/**
-	* Creates LogEntryFilter from config
+	* Creates EntryDateFilter from config
 	*
 	*/
 	public EntryDateFilter(Map<?, ?> config, String configId) {
-		if (config == null || configId == null) {
-			throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null) + ";" + (configId != null));
-		}
-
 		super(EntryDateFilter.class, config);
 		fillParamsByConfigIdInternal(configId);
+                isStateOptional = false;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -82,34 +78,34 @@ final class EntryDateFilter extends StatefulFilterBase<String> implements Option
     		throw new ConfigNotExistsRuntimeException(configId);
     	}
 
-    	Map<?, ?> configs = (Map<?,?>) config.get(SAVED_CONFIG_KEY);
+    	Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
     	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
 
-		if (customCfg.containsKey(DATE_FORMAT_KEY))	{
-			Map<?,?> dateFormatProps = (Map<?, ?>) customCfg.get(DATE_FORMAT_KEY);
-			if (dateFormatProps.containsKey(DATE_FORMAT_REGEX_KEY)) {
-				logDatePtrn = Pattern.compile((String) dateFormatProps.get(DATE_FORMAT_REGEX_KEY));
+		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY))	{
+			Map<?,?> dateFormatProps = (Map<?, ?>) customCfg.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY);
+			if (dateFormatProps.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY)) {
+				logDatePtrn = Pattern.compile((String) dateFormatProps.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY));
 			}
 			else {
-				throw new PropertiesNotFoundRuntimeException(DATE_FORMAT_KEY + "." + DATE_FORMAT_REGEX_KEY + " is not filled for config: " + configId);
+				throw new PropertiesNotFoundRuntimeException(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY + "." + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY + " is not filled for config: " + configId);
 			}
 
-			if (dateFormatProps.containsKey(DATE_FORMAT_VALUE_KEY)) {
-				logDateFormat = new SimpleDateFormat((String) dateFormatProps.get(DATE_FORMAT_VALUE_KEY));
+			if (dateFormatProps.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_VALUE_KEY)) {
+				logDateFormat = new SimpleDateFormat((String) dateFormatProps.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_VALUE_KEY));
 			}
 			else {
-				throw new PropertiesNotFoundRuntimeException(DATE_FORMAT_KEY + "." + DATE_FORMAT_REGEX_KEY + " is not filled for config: " + configId);
+				throw new PropertiesNotFoundRuntimeException(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY + "." + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY + " is not filled for config: " + configId);
 			}
 			return true;
 		}
 		else {
-			throw new PropertiesNotFoundRuntimeException(DATE_FORMAT_KEY + " is not filled for config: " + configId);
+			throw new PropertiesNotFoundRuntimeException(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY + " is not filled for config: " + configId);
 		}
     }
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {
-		Map<?, ?> configs = (Map<?,?>) config.get(SAVED_CONFIG_KEY);
+		Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
 		if (configs != null) {
 			return configs.containsKey(configId);
 		}
@@ -148,7 +144,7 @@ final class EntryDateFilter extends StatefulFilterBase<String> implements Option
 			Date entryDate = null;
 
 			if (!isDateFromPassed || to != null) {
-				String timeString = null;
+				String timeString;
 
 				if (LOGGER.isTraceEnabled())
 					LOGGER.trace("Checking log entry {} for log date pattern |{}| and formatting to |{}|"
@@ -174,8 +170,8 @@ final class EntryDateFilter extends StatefulFilterBase<String> implements Option
 			} 
 			else {
 				if (LOGGER.isTraceEnabled())
-					LOGGER.trace("Date check was skipped, dateFromPassed={}, to={}", isDateFromPassed, to);
-				return isDateFromPassed;
+					LOGGER.trace("Date check was skipped after dateFromPassed={}, to={}", isDateFromPassed, to);
+				return blockData;
 			}
 
 			if (entryDate != null && (from == null || !entryDate.before(from))) {

@@ -4,25 +4,25 @@ import groovy.util.logging.Slf4j;
 
 import java.util.regex.Matcher
 import java.lang.StringBuilder
-import org.smltools.grepp.filters.FilterBase
+import org.smltools.grepp.filters.FilterChain
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.output.GreppOutput
 import org.smltools.grepp.processors.DataProcessor;
 import org.smltools.grepp.exceptions.*
 
 /**
- * Class which triggers and controls file processing.
+ * Class which triggers and controls text file processing.
  * 
  * @author Alexander Semelit
  *
  */
 @Slf4j
-class FileProcessor implements DataProcessor<List<File>>
+class TextFileProcessor implements DataProcessor<List<File>>
 {
    
     private boolean isMerging;
-	private GreppOutput output;
-	private FilterBase<List<File>> fileFilter;
+	private GreppOutput<String> output;
+	private FilterChain<List<File>> fileFilter;
  
 	/**
 	 * Create new instance with supplied filter chains and {@link WgrepConfig} instance.
@@ -31,7 +31,7 @@ class FileProcessor implements DataProcessor<List<File>>
 	 * @param filterChain_ FilterBase chain which will be used to filter each file line
 	 * @param filesFilterChain_ FilterBase chain which will be used to filter filename List
 	 */
-    FileProcessor(GreppOutput output_, FilterBase<List<File>> fileFilter_, boolean isMerging_) 
+    TextFileProcessor(GreppOutput<String> output_, FilterChain<List<File>> fileFilter_, boolean isMerging_) 
     {
 		output = output_
         isMerging = isMerging_
@@ -57,7 +57,7 @@ class FileProcessor implements DataProcessor<List<File>>
 	 * 
 	 * @param data a File which needs to be processed
 	 */
-    void processData(File data)
+    void processSingleFile(File data)
     {
         if (data == null) return
         def curLine = 0
@@ -71,10 +71,10 @@ class FileProcessor implements DataProcessor<List<File>>
         }
         catch(FilteringIsInterruptedException e) {
             log.trace("No point to read file further as identified by filter chain")
-            output.processEvent(Event.FLUSH)
+            output.flush()
         }
 		
-		if (!isMerging) output.processEvent(Event.FILE_ENDED)
+		if (!isMerging) output.processEvent(Event.CHUNK_ENDED)
         log.info("File ended. Lines processed: {}", curLine)
     }
 
@@ -83,9 +83,9 @@ class FileProcessor implements DataProcessor<List<File>>
         List<File> filteredData = fileFilter.filter(data)
 		if (filteredData != null) {
 			filteredData.each {
-				processData(initFile(it))
+				processSingleFile(initFile(it))
 			}
-			output.processEvent(Event.ALL_FILES_PROCESSED)
+			output.processEvent(Event.ALL_CHUNKS_PROCESSED)
 			output.closeOutput()
 		}
 	}

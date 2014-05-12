@@ -1,5 +1,8 @@
 package org.smltools.grepp.filters;
 
+import java.util.Map;
+import org.smltools.grepp.filters.enums.Event;
+
 public interface Stateful<T> {
 	void setState(Map<?,?> state);
 

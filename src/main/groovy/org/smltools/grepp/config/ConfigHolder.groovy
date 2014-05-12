@@ -22,6 +22,14 @@ import org.smltools.grepp.util.GreppUtil
  */
 
 public class ConfigHolder extends ConfigObject {
+    public final static String SAVED_CONFIG_KEY = "savedConfigs";
+    public final static String SAVED_CONFIG_FILENAME_PATTERN_KEY = "pattern";
+    public final static String SAVED_CONFIG_STARTER_KEY = "starter";
+    public final static String SAVED_CONFIG_DATE_FORMAT_KEY = "dateFormat";
+    public final static String SAVED_CONFIG_DATE_FORMAT_REGEX_KEY = "regex";
+    public final static String SAVED_CONFIG_DATE_FORMAT_VALUE_KEY = "value";
+    public final static String SAVED_CONFIG_LOG_THRESHOLD_KEY = "logThreshold";
+
     private URL configFilePath
 
     public void mergeAndSave(ConfigObject newSubConfig) {

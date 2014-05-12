@@ -22,7 +22,7 @@ fi
 ###############
 
 HISTORY_FILE="rgrepp.history"
-echo "####"$(date '+%Y-%m-%dT%H:%M:%S') "#wgrep $ALL_PARAMS" >> $HISTORY_FILE
+echo "####"$(date '+%Y-%m-%dT%H:%M:%S') "#grepp $ALL_PARAMS" >> $HISTORY_FILE
 
 for box in ${BOXES[*]}
 do

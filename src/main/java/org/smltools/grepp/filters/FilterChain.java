@@ -1,17 +1,29 @@
 package org.smltools.grepp.filters;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.smltools.grepp.exceptions.FilteringIsInterruptedException;
+import org.smltools.grepp.filters.enums.Event;
+
 public class FilterChain<T> {
-	private final List<FilterBase<T>> filters = new ArrayList<FilterBase<T>>;
+        private static final Logger LOGGER = LoggerFactory.getLogger(FilterChain.class);
+    
+	private final List<Filter<T>> filters = new ArrayList<Filter<T>>();
 	private final Aggregator<T> aggregator;
-	private Map<?, ?> state = new HashMap<?, ?>();
+	private Map<?, ?> state = new HashMap();
 
 	public FilterChain(Aggregator<T> aggregator) {
 		this.aggregator = aggregator;
 	}
 
-	public void add(FilterBase<T> filter) {
+	public void add(Filter<T> filter) {
 		if (filter != null) {
-			filters.add(filter)	
+			filters.add(filter);
 		}
 		else {
 			throw new IllegalArgumentException("Filter can't be null!");
@@ -36,10 +48,10 @@ public class FilterChain<T> {
 		return filterAfter(null, data);
 	}
 
-	@SuppressUncheked
+	@SuppressWarnings("unchecked")
 	public void flush() {
-		state = new HashMap<?, ?>();
-		for (FilterBase<?> filter: filters) {
+		state = new HashMap();
+		for (Filter<?> filter: filters) {
 			if (filter instanceof Stateful<?>) {
 				Stateful<?> statefulFilter = (Stateful<?>) filter;
 				statefulFilter.setState(state);
@@ -56,9 +68,10 @@ public class FilterChain<T> {
 	 * @return result of <code>nextFilter.gatherPrintableState</code> and true if it
 	 *         doesn't have next filter (i.e. all filters in chain has processed
 	 *         that event).
+        * @throws org.smltools.grepp.exceptions.FilteringIsInterruptedException
 	 */
 
-	public T processEvent(Event event) {
+	public T processEvent(Event event) throws FilteringIsInterruptedException {
 		if (event == null) {
 			throw new IllegalArgumentException("Event can't be null!");
 		}
@@ -66,11 +79,11 @@ public class FilterChain<T> {
 		LOGGER.trace("Processing event: {}", event);
 
 		T flushedData;
-		Iterator<T> filterIterator = filters.iterator();
+		Iterator<Filter<T>> filterIterator = filters.iterator();
 		do {
-			if (filters instanceof Stateful<T>) {
-				Stateful<T> curFilter = (Stateful<T>) filterIterator.next();
-				flushedData = curFilter.processEvent(event);
+			Filter<T> curFilter = filterIterator.next();
+                        if (curFilter instanceof Stateful<?>) {
+				flushedData = ((Stateful<T>) curFilter).processEvent(event);
 				if (flushedData != null) {
 					LOGGER.trace("Filtering flushed data from {}", curFilter.getClass());
 					flushedData = filterAfter(curFilter, flushedData);
@@ -84,13 +97,15 @@ public class FilterChain<T> {
 
 	public boolean refreshByConfigId(String configId) {
 		boolean hasChanged = false;
-		for (FilterBase<?> filter: filters) {
-			hasChanged |= filter.refreshByConfigId(configId);
+		for (Filter<?> filter: filters) {
+                        if (filter instanceof Configurable) {
+                            hasChanged |= ((Configurable) filter).refreshByConfigId(configId);
+                        }
 		}
 		return hasChanged;
 	}
 
-	private T filterAfter(FilterBase<T> filter, T data) {
+	private T filterAfter(Filter<T> filter, T data) throws FilteringIsInterruptedException {
 		if (filters.isEmpty()) {
 			throw new IllegalStateException("No filters in the filter chain!");
 		}
@@ -98,7 +113,7 @@ public class FilterChain<T> {
 		if (data != null) {
 			T filteredData = data;
 			
-			Iterator<T> filterIterator;
+			Iterator<Filter<T>> filterIterator;
 			if (filter == null) {
 				filterIterator = filters.iterator();
 			}

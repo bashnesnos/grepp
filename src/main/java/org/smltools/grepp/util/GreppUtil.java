@@ -1,18 +1,17 @@
 package org.smltools.grepp.util;
 
-import java.io.ByteArrayInputStream;
-import java.util.Map;
-import java.net.URL;
-
-import org.slf4j.LoggerFactory;
-import org.smltools.grepp.util.GreppUtil;
-
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
 import ch.qos.logback.core.util.StatusPrinter;
-
+import java.io.ByteArrayInputStream;
 import java.lang.reflect.Modifier;
+import java.net.URL;
+import java.util.Map;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.smltools.grepp.config.ConfigHolder;
 
 /**
  * 
@@ -22,9 +21,38 @@ import java.lang.reflect.Modifier;
  *
  */
 public final class GreppUtil {
-
+        private static final Logger LOGGER = LoggerFactory.getLogger(GreppUtil.class);
+        
 	private GreppUtil() { throw new AssertionError(); } //please don't instantiate the class
 
+	/**
+	 * Finds config id by specified String. Method looks up for <config> element containing matching <pattern> with "alevel" parameter equal to level.
+	 * 
+         * @param config
+	 * @param fileName String which would be matched to 'pattern' property of a savedConfig
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public static String findConfigIdByFileName(Map<?, ?> config, String fileName) {
+		if (config == null || fileName == null) {
+			throw new IllegalArgumentException("Both config and fileName shouldn't be null");
+		}
+
+		for (Map.Entry<String, Map<String,?>> savedConfig: ((Map<String, Map<String,?>>) config.get(ConfigHolder.SAVED_CONFIG_KEY)).entrySet()) { 
+			String newConfigId = savedConfig.getKey();
+                        Map<String, ?> props = savedConfig.getValue();
+                        LOGGER.trace("id: {}; props: {}", newConfigId, props);
+                        if (props.containsKey(ConfigHolder.SAVED_CONFIG_FILENAME_PATTERN_KEY)) {
+                                String currentConfigPtrn = (String) props.get(ConfigHolder.SAVED_CONFIG_FILENAME_PATTERN_KEY);
+                                LOGGER.trace("ptrn=/{}/ fileName='{}'", currentConfigPtrn, fileName);
+                                if (Pattern.compile(currentConfigPtrn).matcher(fileName).find()) {
+                                        return newConfigId;
+                                }
+                        }
+		}
+
+		return null;
+	}
 
 	/**
 	 * Kind-of a default value method for a Map.get()

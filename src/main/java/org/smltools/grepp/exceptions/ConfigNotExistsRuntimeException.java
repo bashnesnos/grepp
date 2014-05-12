@@ -10,5 +10,7 @@ package org.smltools.grepp.exceptions;
  */
 @SuppressWarnings("serial")
 public class ConfigNotExistsRuntimeException extends RuntimeException {
-
+    public ConfigNotExistsRuntimeException(String configId) {
+        super(configId);
+    }
 }

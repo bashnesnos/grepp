@@ -31,7 +31,7 @@ class DataProcessorFactory {
 		final GreppOutput<?,?> output = OutputFactory.getOutputInstance(paramsHolder)
 		
 		if (data instanceof List<File>) {
-				return new FileProcessor(output, FilterChainFactory.createFileFilterChain(paramsHolder), !paramsHolder.checkParamIsEmpty(Param.FILE_MERGING))
+				return new TextFileProcessor(output, FilterChainFactory.createFileFilterChain(paramsHolder), !paramsHolder.checkParamIsEmpty(Param.FILE_MERGING))
 		}
 		else if (data instanceof InputStream){
 			return new InputStreamProcessor(output)

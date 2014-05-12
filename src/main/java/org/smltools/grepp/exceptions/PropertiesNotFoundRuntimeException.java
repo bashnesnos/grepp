@@ -10,5 +10,7 @@ package org.smltools.grepp.exceptions;
  */
 @SuppressWarnings("serial")
 public class PropertiesNotFoundRuntimeException extends RuntimeException {
-
+    public PropertiesNotFoundRuntimeException(String propertiesMissing) {
+        super(propertiesMissing);
+    }
 }

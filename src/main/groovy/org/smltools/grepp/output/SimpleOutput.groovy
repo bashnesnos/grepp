@@ -1,12 +1,14 @@
 package org.smltools.grepp.output;
 
 import groovy.util.logging.Slf4j
+import org.smltools.grepp.config.ConfigHolder
 
 import org.smltools.grepp.config.ParamHolder
 import org.smltools.grepp.config.ParamHolderFactory
 import org.smltools.grepp.filters.enums.Event
-import org.smltools.grepp.filters.FilterBase
+import org.smltools.grepp.filters.FilterChain
 import org.smltools.grepp.output.GreppOutput;
+import org.smltools.grepp.output.Refreshable;
 import org.smltools.grepp.filters.FilterChainFactory;
 
 
@@ -19,24 +21,29 @@ import org.smltools.grepp.filters.FilterChainFactory;
  */
 
 @Slf4j
-public class SimpleOutput implements GreppOutput<Object, String> {
+public class SimpleOutput<T> implements GreppOutput<T>, Refreshable<String> {
 	
 	protected PrintWriter printer;
-	protected ParamHolder params;
-	protected FilterBase filterChain;
+        protected ConfigHolder config;
+	protected FilterChain<T> filterChain;
 	
-	SimpleOutput(ParamHolder params_) {
-		this(params_, null)
+	SimpleOutput(ConfigHolder config, FilterChain<T> filterChain) {
+		this(config, filterChain, null)
 	}
 	
-	SimpleOutput(ParamHolder params_, PrintWriter printer_) {
-		printer = printer_
-		params = params_
-		filterChain = FilterChainFactory.createFilterChain(params)
+	SimpleOutput(ConfigHolder config, FilterChain<T> filterChain, PrintWriter printer) {
+		this.printer = printer
+		this.config = config
+		this.filterChain = filterChain
 	}
 	
+        @Override
+        public void flush() {
+            filterChain.flush()
+        }
+    
 	@Override
-	public void printToOutput(Object data) {
+	public void printToOutput(T data) {
 		printNotFiltered(filterChain.filter(data))
 	}
 
@@ -48,10 +55,10 @@ public class SimpleOutput implements GreppOutput<Object, String> {
 	}
 
 	@Override
-	public void refreshFilters(String criteria) {
-		if (params.refresh(criteria))
-		{
-			filterChain = FilterChainFactory.createFilterChain(params)
+	public void refreshFilters(String fileName) {
+                String configId = GreppUtil.findConfigIdByFileName(config, fileName)
+		if (configId != null) {
+			filterChain.refreshByConfigId(configId)
 		}
 	}
 	
@@ -60,7 +67,7 @@ public class SimpleOutput implements GreppOutput<Object, String> {
 		printNotFiltered(filterChain.processEvent(event))
 	}
 
-	protected void printNotFiltered(Object data) {
+	protected void printNotFiltered(T data) {
 		if (data != null)
 		{
 			printer.println(data)

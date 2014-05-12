@@ -2,8 +2,9 @@ package org.smltools.grepp.filters.entry;
 
 import java.util.*;
 import java.util.regex.*;
-
-import org.smltools.grepp.filters.FilterBase;
+import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
+import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
+import org.smltools.grepp.filters.Stateful;
 import org.smltools.grepp.filters.enums.*;
 import org.smltools.grepp.util.GreppUtil;
 
@@ -63,11 +64,7 @@ final class ThreadFilter extends SimpleFilter implements Stateful<String> {
 	*
 	*/
 	public ThreadFilter(Map<?, ?> config, String configId) {
-		if (config == null || configId == null) {
-			throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null) + ";" + (configId != null));
-		}
-
-		super(ThreadFilter.class, config);
+		super(ThreadFilter.class, config, configId);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -85,7 +82,7 @@ final class ThreadFilter extends SimpleFilter implements Stateful<String> {
 		if (customCfg.containsKey(THREAD_EXTRACTORS_KEY)) {
 			threadStartExtractorList = (List<String>) customCfg.get(THREAD_EXTRACTORS_KEY);
 			threadStartPatternList = new ArrayList<String>();
-			threadSkipEndPatternList =  (List<String>) GreppUtil.getNotNull(customCfg, THREAD_SKIPENDS_KEY, new ArrayList<String>());
+			threadSkipEndPatternList = (List<String>) GreppUtil.getNotNull((Map<String, Object> )customCfg, THREAD_SKIPENDS_KEY, new ArrayList<String>());
 			if (customCfg.containsKey(THREAD_ENDS_KEY)) {
 				threadEndPatternList =  (List<String>) customCfg.get(THREAD_ENDS_KEY);
 			}
@@ -140,7 +137,7 @@ final class ThreadFilter extends SimpleFilter implements Stateful<String> {
 	public void flush() {
 		threadStartPatternList = new ArrayList<String>();
 		currentPattern = null;
-		patternBuilder = = new StringBuilder("(?ms)"); 
+		patternBuilder = new StringBuilder("(?ms)"); 
 		patternParts = new ArrayList<String>();
 		patternPartQualifierMap = new HashMap<String, Qualifier>();
 		setFilterPattern(filterPattern); //keeping the initial one

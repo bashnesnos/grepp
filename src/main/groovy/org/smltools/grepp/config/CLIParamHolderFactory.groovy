@@ -295,42 +295,6 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 	
 
-    /**
-    * Method for refreshing config params by a filename. Requires {@link PatternAutomationHelper} paHelper to be initialized. <br>
-    * Calls {@link PatternAutomationHelper.applySequenceByFileName}
-    * @param fileName String representing name of a file to be checked. Could be an absolute path as well.
-    */
-
-	boolean refreshParams(ParamHolder params, Object file)
-	{
-		if (file instanceof File) {
-			return refreshParamsByFile(params, file as File)
-		}
-		else if (file instanceof String) {
-			return refreshParamsByFile(params, file as String)
-		}
-		else {
-			return false
-		}
-	}
-
-	
-	boolean refreshParamsByFile(ParamHolder params, File file)
-    {
-        return refreshParamsByFile(params, file.getName())
-    }
-    
-	/**
-	 * Method for refreshing config params by a filename. Requires {@link PatternAutomationHelper} paHelper to be initialized. <br>
-	 * Calls {@link PatternAutomationHelper.applySequenceByFileName}
-	 * @param fileName String representing name of a file to be checked. Could be an absolute path as well.
-	 */
-
-	boolean refreshParamsByFile(ParamHolder paramsHolder, String fileName)
-	{
-		return loadParamsByFileName(paramsHolder.getModifiableParams(), fileName)
-	}
-
 	/**
 	*
 	* Method enforces TRACE level of logging by resetting logback config and redirects it to STDOUT.
@@ -393,7 +357,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 */
 	protected void setPredefinedConfig(Map<Param, ?> params, def val)
 	{
-		parseCustomConfig(params, val)
+
 	}
 
 
@@ -405,7 +369,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 */
 	protected void setPredefinedFilter(Map<Param, ?> params, def val)
 	{
-		parseFilterConfig(params, val)
+
 	}
 
 
@@ -417,7 +381,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 */
 	protected void setThreadPreserving(Map<Param, ?> params, def val)
 	{
-		parseExecuteThreadConfig(params, val)
+
 	}
 
 
@@ -429,253 +393,9 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 
 	protected void setPostProcessing(Map<Param, ?> params, def val)
 	{
-		parsePostFilterConfig(params, val)
+
 	}
 
-
-	/**
-	 * Gets savedConfig section with id equal to supplied configId. Depending on which elements are supplied it fills: <br>
-	 * LOG_ENTRY_PATTERN <br>
-	 * LOG_DATE_PATTERN <br>
-	 * LOG_DATE_FORMAT <br>
-	 * LOG_FILE_THRESHOLD <br>
-	 * If custom config was found and params were filled, toggles isAmmended flag.
-	 * 
-	 * @param savedConfig's id
-	 */
-
-	void parseCustomConfig(Map<Param, ?> params, String configId)
-	{
-		if (checkIfConfigExsits(configId))
-		{
-			def customCfg = config.savedConfigs."$configId"
-			def dateFormat
-			def starter
-
-			if (customCfg.containsKey('starter'))
-			{
-				starter = customCfg.starter
-			}
-
-			if (customCfg.containsKey('dateFormat'))
-			{
-				dateFormat = customCfg.dateFormat
-				params[Param.LOG_DATE_PATTERN] = dateFormat.regex
-				params[Param.LOG_DATE_FORMAT] = dateFormat.value
-				isAmmended = true				
-			}
-			
-			if (customCfg.containsKey('logThreshold'))
-			{
-				params[Param.LOG_FILE_THRESHOLD] = customCfg.logThreshold
-			}
-
-			if (starter != null || dateFormat != null) 
-			{
-				params[Param.LOG_ENTRY_PATTERN] = ((starter != null) ? starter : "") + ((dateFormat != null) ? dateFormat.regex : "" )
-				isAmmended = true
-			}
-			else
-			{
-				log.warn("Either starter or dateFormat should be filled for config: {}", configId)
-			}
-		}
-		else
-		{
-			log.trace("Entry is undefined for {}", configId)
-		}
-	}
-
-	boolean checkIfConfigExsits(String configId) {
-		return config.savedConfigs.containsKey(configId)
-	}
-
-	/**
-	 * Looks for filter with filterAliasId parameter containing supplied tag. Method fills: <br>
-	 * FILTER_PATTERN
-	 * 
-	 * @param filterAliasId
-	 */
-
-	void parseFilterConfig(Map<Param, ?> params, String filterAliasId)
-	{
-		if (checkIfFilterExsits(filterAliasId)) {
-			params[Param.FILTER_PATTERN] = config.filterAliases."$filterAliasId"
-			isAmmended = true
-		}
-		else
-		{
-			log.trace("Filter is undefined for {}", filterAliasId)
-		}
-	}
-
-	boolean checkIfFilterExsits(String filterAliasId) {
-		return config.filterAliases.containsKey(filterAliasId)
-	}
-
-	/**
-	 * Simply sets POST_PROCESSING to a supplied tag value
-	 * 
-	 * @param postProcessColumnId
-	 */
-
-	void parsePostFilterConfig(Map<Param, ?> params, String postProcessColumnId)
-	{
-		params[Param.POST_PROCESSING] = postProcessColumnId
-		params[Param.POST_PROCESS_PARAMS] = parsePostFilterParams(params, postProcessColumnId)
-	}
-
-
-	boolean checkIfPostProcessExsits(String postProcessColumnId) {
-		return config.postProcessColumns.containsKey(postProcessColumnId)
-	}
-	
-	/**
-	 * Parses PostFilter configuration from config.xml 
-	 * 
-	 * @param postProcessColumnId "tag" attribute associated with post processing config
-	 * @param params ParamHolder insides
-	 * @return Mapping of params desired by PostFilter
-	 */
-
-	Map parsePostFilterParams(Map<Param, ?> params, String postProcessColumnId){
-		def POST_PROCESS_SEP = null
-		def POST_PROCESS_DICT = new LinkedHashMap()
-		def POST_GROUPS_METHODS = []
-		def POST_PROCESS_HEADER = null
-		def PATTERN = new StringBuilder()
-		if (checkIfPostProcessExsits(postProcessColumnId)) {
-
-			//defaults come first
-			POST_PROCESS_SEP = config.defaults.postProcessSeparator.value
-			params[Param.SPOOLING_EXT] = config.defaults.postProcessSeparator.spoolFileExtension
-
-			def handlers = config.postProcessColumns."$postProcessColumnId"
-			def sortedHandlers = handlers.sort { it.value.order }
-			sortedHandlers.each { type, props ->
-				log.trace("postProcessColumn type: {}; props: {}", type, props.keySet())
-				if (type.equals('postProcessSeparator')) {
-					POST_PROCESS_SEP = props.value
-					params[Param.SPOOLING_EXT] = props.spoolFileExtension
-				}
-				else {
-					def curPtrn = props.value
-					PATTERN = PATTERN.size() == 0 ? PATTERN.append("(?ms)").append(curPtrn) : PATTERN.append(Qualifier.and.getPattern()).append(curPtrn)
-					switch (type) {
-						case "filter":
-							POST_PROCESS_DICT[curPtrn] = 'processPostFilter'
-							break
-						case "counter":
-							POST_PROCESS_DICT[curPtrn] = 'processPostCounter'
-							break
-						case "group":
-							POST_PROCESS_DICT[curPtrn] = 'processPostGroup'
-							break
-						case "avg":
-							POST_PROCESS_DICT[curPtrn] = 'processPostAverage'
-							POST_GROUPS_METHODS.add('processPostAverage')
-							break
-						default:
-							throw new IllegalArgumentException("Unknown handler type: " + type)
-					}
-
-					POST_PROCESS_HEADER = (POST_PROCESS_HEADER != null) ? POST_PROCESS_HEADER + POST_PROCESS_SEP + props.colName : props.colName
-				}
-			}
-			POST_PROCESS_HEADER += "\n"
-			isAmmended = true
-		}
-		else {
-			log.trace('POST_PROCESSING is not defined for {}', postProcessColumnId)
-		}
-
-		return ["POST_PROCESS_SEP":POST_PROCESS_SEP,
-			"POST_PROCESS_DICT":POST_PROCESS_DICT,
-			"POST_GROUPS_METHODS":POST_GROUPS_METHODS,
-			"POST_PROCESS_HEADER":POST_PROCESS_HEADER,
-			"PATTERN":PATTERN.toString()]
-	}
-
-	/**
-	 * Method simply sets PRESERVE_THREAD value to supplied processThreadId
-	 * 
-	 * @param processThreadId
-	 */
-
-	void parseExecuteThreadConfig(Map<Param, ?> params, String processThreadId)
-	{
-		if (params[Param.PRESERVE_THREAD]) {
-			params[Param.PRESERVE_THREAD_PARAMS] = parseComplexFilterParams(processThreadId)
-		}
-	}
-
-	boolean checkIfExecuteThreadExsits(String processThreadId) {
-		return config.processThreads.containsKey(processThreadId)
-	}
-
-	/**
-	 * 
-	 * Parses appropriate ComplexFilter params from config
-	 * 
-	 * @param processThreadId
-	 * @return Mapping of ComplexFilter params
-	 */
-	Map parseComplexFilterParams(String processThreadId) {
-		def cfParams = [:]
-		if (checkIfExecuteThreadExsits(processThreadId)) {
-			def threadConfig = config.processThreads."$processThreadId"
-			cfParams['THRD_START_EXTRCTRS'] = threadConfig.extractors
-			cfParams['THRD_SKIP_END_PTTRNS'] = threadConfig.skipends
-			cfParams['THRD_END_PTTRNS'] = threadConfig.ends
-			isAmmended = true
-		}
-		else {
-			log.trace('Thread preserving is undefined')
-		}
-		return cfParams
-	}
-
-
-	boolean loadParamsByFileName(Map<Param, ?> params, String filename)
-	{
-		isAmmended = false
-		if (currentConfigPtrn != null)
-		{
-			if (filename =~ currentConfigPtrn) return isAmmended
-			else currentConfigPtrn = null //since it's a different file
-		}
-		log.debug("Checking if any config exists for {}", filename)
-		currentConfigId = findConfigIdByData(filename)
-		loadParamsById(params, currentConfigId)
-
-		return isAmmended
-	}
-
-	/**
-	 * Finds config id by specified String. Method looks up for <config> element containing matching <pattern> with "alevel" parameter equal to level.
-	 * 
-	 * @param data String which would be matched to <pattern> element values which have corresponding to level "alevel" parameter.
-	 * @return
-	 */
-
-	String findConfigIdByData(String data)
-	{
-		if (data == null)
-		{
-			throw new IllegalArgumentException("Data shouldn't be null")
-		}
-
-		config.savedConfigs.findResult { configId, props ->
-			log.trace("id: {}; props: {}", configId, props.keySet())
-			if (props.containsKey('pattern')) {
-				currentConfigPtrn = props.pattern
-				log.trace("ptrn=/{}/ data='{}'", currentConfigPtrn, data)
-				if (data =~ currentConfigPtrn) {
-					return configId
-				}
-			}
-		}
-	}
 
     /**
      * Builds the following structure:
