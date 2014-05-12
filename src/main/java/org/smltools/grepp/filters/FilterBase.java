@@ -18,7 +18,7 @@ import java.util.Map;
  * @author Alexander Semelit
  */
 
-public abstract class FilterBase<T> {
+public abstract class FilterBase<T> implements Filter<T>, Configurable {
 	protected final Map<?, ?> config;
 	protected String configId;
  	protected final Logger LOGGER;
@@ -29,6 +29,10 @@ public abstract class FilterBase<T> {
 	}
 
 	public static <V extends FilterBase> V createFilterFromConfigByConfigId(Class<V> filterClass, Map<?, ?> config, String configId) {
+		if (filterClass == null || config == null || configId == null) {
+			throw new IllegalArgumentException("All the method params shouldn't be null! " + (filterClass != null) + ";" + (config != null) + ";" + (configId != null));
+		}
+
 		try {
 			Constructor<V> constructByConfigId = filterClass.getDeclaredConstructor(Map.class, String.class);
 			V newFilter = constructByConfigId.newInstance(config, configId);
@@ -45,23 +49,7 @@ public abstract class FilterBase<T> {
 		} 
 	}
 
-	/**
-	 * Main filtering method. Sequence is the following: <li>1. {@link
-	 * this.check()} is called</li> <li>2a. If check returned true, {@link
-	 * this.beforePassing()} is called</li> <li>3a. {@link this.passNext()} is
-	 * called</li> <li>2b. If check returned false, <code>null</code> is
-	 * returned</li>
-	 * 
-	 * @param blockData
-	 *            which is going to be checked
-	 * @return result of {@link this.passNext} method if check passed, null
-	 *         otherwise
-	 * @throws FilteringIsInterruptedException
-	 * @throws ParseException
-	 */
-
-	public abstract T filter(T blockData) throws FilteringIsInterruptedException;
-
+	@Override
 	public boolean refreshByConfigId(String configId) {
 		if (configId == null) {
 			throw new IllegalArgumentException("configId shoudn't be null!");

@@ -45,17 +45,21 @@ final class LogEntryFilter extends StatefulFilterBase<String> {
 	*
 	*/
 	public LogEntryFilter(Map<?, ?> config, String configId) {
+		if (config == null || configId == null) {
+			throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null) + ";" + (configId != null));
+		}
+
 		super(LogEntryFilter.class, config);
 		fillParamsByConfigIdInternal(configId);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-    private boolean fillParamsByConfigIdInternal(String configId) {
+    protected boolean fillParamsByConfigIdInternal(String configId) {
     	if (!LogEntryFilter.configIdExists(config, configId)) {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}
-    	
+
     	Map<?, ?> configs = (Map<?,?>) config.get(SAVED_CONFIG_KEY);
     	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
 

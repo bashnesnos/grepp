@@ -5,7 +5,7 @@ import org.smltools.grepp.filters.FilterBase
 import org.smltools.grepp.util.GreppUtil
 import groovy.util.ConfigObject
 
-final class PropertiesFilter extends FilterBase<String> {
+final class PropertiesFilter implements Filter<String> {
 	//CW stands for Conversion Word
 	private static String CW_STARTER = "%"
 	private static String CW_OPTION_START = "\\{"
@@ -272,21 +272,12 @@ final class PropertiesFilter extends FilterBase<String> {
 	}
 
 	@Override
-    public boolean check(String blockData)
-    {
-    	result = null //invalidating result first
-    	result = parseConfig(blockData)
-    	return result != null
+    public String filter(String blockData) {
+    	return parseConfig(blockData)
     }
 
-	@Override
-    public void beforePassing(String blockData)
-    {
-    	passingVal = result
-    }
-
-	public PropertiesFilter(FilterBase<String> nextFilter_){
-        super(nextFilter_, PropertiesFilter.class)
+	public PropertiesFilter(){
+        super(PropertiesFilter.class, null)
 	}
 
 	class SavedConfigBuilder {

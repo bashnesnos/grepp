@@ -18,39 +18,29 @@ import org.smltools.grepp.util.GreppUtil;
  *
  */
 
-final class ComplexFilter extends StatefulFilterBase<String> implements OptionallyStateful<String> {
+final class ThreadFilter extends SimpleFilter implements Stateful<String> {
 	public final static String THREADS_CONFIG_KEY = "processThreads";
 	public final static String THREAD_EXTRACTORS_KEY = "extractors";
 	public final static String THREAD_SKIPENDS_KEY = "skipends";
 	public final static String THREAD_ENDS_KEY = "ends";
 
-	public final static String FILTERS_CONFIG_KEY = "filterAliases";
-
-	private String filterPattern;	
-
-	//Simple stateless mode
-	private Pattern fixedPattern;
-	
 	//Complex pattern processing and stuff
-	private Pattern currentPattern = null;
-	private StringBuilder patternBuilder = new StringBuilder("(?ms)"); //for multiline support
-	private List<String> patternParts = new ArrayList<String>();
-	private Map<String, Qualifier> patternPartQualifierMap = new HashMap<String, Qualifier>();
 	private List<String> threadStartExtractorList;
 	private List<String> threadStartPatternList;
 	private List<String> threadSkipEndPatternList;
 	private List<String> threadEndPatternList;
 
+	private Map<?,?> state = new HashMap<Object, Object>();
 	/**
-	 * Creates non-refreshable and non-publicly modifiable, standalone and maybe stateless ComplexFilter
+	 * Creates non-refreshable and non-publicly modifiable, standalone and maybe stateless ThreadFilter
 	 * @param filterPattern
 	 *            pattern to filter data
 	 */
 
-	public ComplexFilter(String filterPattern, List<String> threadStartExtractorList, 
+	public ThreadFilter(String filterPattern, List<String> threadStartExtractorList, 
 		List<String> threadSkipEndPatternList, List<String> threadEndPatternList)
 	{
-		super(ComplexFilter.class, null);
+		super(ThreadFilter.class, filterPattern);
 		if (threadStartExtractorList != null) {
 			this.threadStartExtractorList = threadStartExtractorList;
 			this.threadStartPatternList = new ArrayList<String>();
@@ -62,22 +52,9 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 				throw new IllegalArgumentException("Thread end patterns should be supplied, if thread starts were");
 			}
 
-			if (log.isTraceEnabled()) {
-				log.trace("{}\n{}\n{}\n{}", threadStartExtractorList, threadStartPatternList, threadSkipEndPatternList, threadEndPatternList);
+			if (LOGGER.isTraceEnabled()) {
+				LOGGER.trace("{}\n{}\n{}\n{}", threadStartExtractorList, threadStartPatternList, threadSkipEndPatternList, threadEndPatternList);
 			}
-		}
-		setFilterPattern(filterPattern);
-	}
-
-	public void setFilterPattern(String filterPattern) {
-		this.filterPattern = filterPattern;
-		extractPatternParts(filterPattern);
-
-		if (threadStartExtractorList == null) {
-			fixedPattern = Pattern.compile(patternBuilder.toString());
-		}
-		else {
-			fixedPattern = null;
 		}
 	}
 
@@ -85,19 +62,22 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 	* Creates LogEntryFilter from config
 	*
 	*/
-	public ComplexFilter(Map<?, ?> config, String configId) {
-		super(ComplexFilter.class, config);
-		fillParamsByConfigIdInternal(configId);
+	public ThreadFilter(Map<?, ?> config, String configId) {
+		if (config == null || configId == null) {
+			throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null) + ";" + (configId != null));
+		}
+
+		super(ThreadFilter.class, config);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-    private boolean fillParamsByConfigIdInternal(String configId) {
-    	if (!ComplexFilter.configIdExists(config, configId)) {
+    protected boolean fillParamsByConfigIdInternal(String configId) {
+    	if (!ThreadFilter.configIdExists(config, configId)) {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}
 
-    	boolean result = false;
+    	boolean result = super.fillParamsByConfigIdInternal(configId);
 
     	Map<?, ?> configs = (Map<?,?>) config.get(THREADS_CONFIG_KEY);
     	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
@@ -113,39 +93,25 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 				throw new PropertiesNotFoundRuntimeException(THREADS_CONFIG_KEY + "." + THREAD_ENDS_KEY + " is not filled for config: " + configId);
 			}
 
-			if (log.isTraceEnabled()) {
-				log.trace("{}\n{}\n{}\n{}", threadStartExtractorList, threadStartPatternList, threadSkipEndPatternList, threadEndPatternList);
+			if (LOGGER.isTraceEnabled()) {
+				LOGGER.trace("{}\n{}\n{}\n{}", threadStartExtractorList, threadStartPatternList, threadSkipEndPatternList, threadEndPatternList);
 			}
 
 			result |= true;
 		}
 		else {
-			LOGGER.debug(THREADS_CONFIG_KEY + "." + THREAD_EXTRACTORS_KEY + " is not filled for config: " + configId);
+			throw new PropertiesNotFoundRuntimeException(THREADS_CONFIG_KEY + "." + THREAD_EXTRACTORS_KEY + " is not filled for config: " + configId);
 		}
 
-		configs = (Map<?,?>) config.get(FILTERS_CONFIG_KEY);
-    	String customFilter = (String) configs.get(configId);
-    	if (customFilter != null) {
-    		setFilterPattern(customFilter);
-    		result |= true;
-    	}
-    	else {
-    		LOGGER.debug(FILTERS_CONFIG_KEY + " is not filled for config: " + configId);
-    	}
-    	
 		return result;
     }
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {
 		Map<?, ?> threadConfigs = (Map<?,?>) config.get(THREADS_CONFIG_KEY);
-		Map<?, ?> filterConfigs = (Map<?,?>) config.get(FILTERS_CONFIG_KEY);
 		
 		if (threadConfigs != null) {
 			return threadConfigs.containsKey(configId);
-		}
-		else if (filterConfigs != null) {
-			return filterConfigs.containsKey(configId);
 		}
 		else {
 			return false;
@@ -153,47 +119,17 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 	}	
 
 	/**
-	 * Checks is data matches current pattern 
+	 * Checks if data matches current pattern 
 	 * @throws IllegalArgumentException if blockData is not String
 	 */
 
 	@Override
 	public String filter(String blockData) {
-		if (isStateful()) {
-			String newPtrn = patternBuilder.toString();
-			if(log.isTraceEnabled()) {
-				log.trace("Current pattern: {}", newPtrn);
-			}
-		
-			if (currentPattern == null || currentPattern.toString() != newPtrn) {
-				currentPattern = Pattern.compile(newPtrn);
-			}
+		String passedData = super.filter(blockData);
+		if (passedData != null) {
+			extractThreadPatterns(passedData);
 		}
-		else {
-			currentPattern = fixedPattern;
-		}
-		
-		Matcher blockMtchr = currentPattern.matcher(blockData);
-		if (blockMtchr.find()) {
-			if (isStateful()) {
-				extractThreadPatterns(blockData);
-			}
-			return blockData;
-		}
-		else {
-			return null;
-		}
-
-	}
-
-	/**
-	 * Checks is thread preserving is enabled.
-	 * 
-	 * @return true if it is
-	 */
-	private boolean isStateful()
-	{
-		return fixedPattern == null;
+		return passedData;
 	}
 
 	/**
@@ -210,11 +146,6 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 		setFilterPattern(filterPattern); //keeping the initial one
     }
 
-    @Override
-	public boolean isStateful() {
-		return isStateOptional;
-	}
-
 	/**
 	 * Extracts thread patterns, and adds/keeps them if thread is not yet ended in the logs, or removes them is it has ended.
 	 * 
@@ -230,12 +161,20 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 		}
 		else
 		{
-			if (log.isTraceEnabled()) log.trace("Thread continues. Keeping starts");
+			if (LOGGER.isTraceEnabled()) LOGGER.trace("Thread continues. Keeping starts");
 			for (Map.Entry<String, String> extractedStart: extractThreadStarts(data).entrySet()) {
 				addThreadStart(extractedStart.getKey(), extractedStart.getValue());
 			}
 
 		}
+		
+		String newPtrn = patternBuilder.toString();
+		if(LOGGER.isTraceEnabled()) LOGGER.trace("New pattern: {}", newPtrn);
+	
+		if (currentPattern == null || !currentPattern.toString().equals(newPtrn)) {
+			currentPattern = Pattern.compile(newPtrn);
+		}
+
 	}
 
 	/**
@@ -249,14 +188,14 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 	{
 		HashMap<String, String> extractedStarts = new HashMap<String, String>();
 		for (String extractorPattern : threadStartExtractorList) {
-			if (log.isTraceEnabled())
-				log.trace(extractorPattern);
+			if (LOGGER.isTraceEnabled())
+				LOGGER.trace(extractorPattern);
 			Matcher extractorMatcher = Pattern.compile(extractorPattern).matcher(data);
 			if (extractorMatcher.find())
 			{
 				String start = extractorMatcher.group();
-				if (log.isTraceEnabled())
-					log.trace("extracted; {}", start);
+				if (LOGGER.isTraceEnabled())
+					LOGGER.trace("extracted; {}", start);
 				extractedStarts.put(start, Qualifier.or.toString()); //adding extractor as or, since any could be a thread start
 			}
 		}
@@ -278,7 +217,7 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 			Iterator<String> endIter = threadEndPatternList.iterator();
 			while (!decision && endIter.hasNext()) {
 				String thrend = endIter.next();
-				log.trace("thrend ptrn: {}", thrend);
+				LOGGER.trace("thrend ptrn: {}", thrend);
 				decision = Pattern.compile(thrend).matcher(data).find();
 			}
 			return decision;
@@ -299,7 +238,7 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 		Iterator<String> skipEndIter = threadSkipEndPatternList.iterator();
 		while (!decision && skipEndIter.hasNext()) {
 			String thrend = skipEndIter.next();
-			log.trace("thrend ptrn: {}", thrend);
+			LOGGER.trace("thrend ptrn: {}", thrend);
 			decision = Pattern.compile(thrend).matcher(data).find();
 		}
 		return decision;
@@ -313,13 +252,13 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 	 */
 	private void addThreadStart(String start, String qlfr)
 	{
-		log.trace("adding thread start: {}", start);
+		LOGGER.trace("adding thread start: {}", start);
 		if (!threadStartPatternList.contains(start))
 		{
 			threadStartPatternList.add(start);
 			addExtendedFilterPattern(start, qlfr);
 		}
-		else log.trace("Start exists");
+		else LOGGER.trace("Start exists");
 	}
 
 	/**
@@ -330,96 +269,25 @@ final class ComplexFilter extends StatefulFilterBase<String> implements Optional
 	 */
 	private void removeThreadStart(String start, String qlfr)
 	{
-		log.trace("removing thread start: {}", start);
+		LOGGER.trace("removing thread start: {}", start);
 		threadStartPatternList.remove(start);
 		removeExtendedFilterPattern(start);
 	}
 
-	/**
-	 * Appends to current pattern new part which is could be a thread coupling pattern or just a different thing to look up in the data.
-	 * 
-	 * @param val pattern to be added
-	 * @param qualifier identifies how to conjunct it with previous patterns
-	 */
+	
+    @Override
+    public void setState(Map<?,?> state) {
+    	this.state = state;
+    }
 
-	private void addExtendedFilterPattern(String val, String qualifier)
-	{
-		if (log.isTraceEnabled()) log.trace("adding complex pattern: val={} qual={}", val, qualifier);
-
-		if (qualifier != null) patternBuilder = patternBuilder.append(Qualifier.valueOf(qualifier).getPattern());
-		patternBuilder = patternBuilder.append(val);
-
-		patternParts.add(val);
-		patternPartQualifierMap.put(val, qualifier != null ? Qualifier.valueOf(qualifier) : null);
-
-		if (log.isTraceEnabled()) {
-			log.trace(patternParts.toString());
-			log.trace(patternPartQualifierMap.toString());
+    @Override
+    public String processEvent(Event event) {
+		if (event == null) {
+			throw new IllegalArgumentException("Event shouldn't be null!");
 		}
-	}
-
-	/**
-	 * Removes supplied pattern with it's qualifier if any.
-	 * 
-	 * @param val pattern for removal
-	 */
-	private void removeExtendedFilterPattern(String val)
-	{
-		Qualifier qlfr = patternPartQualifierMap.get(val);
-		String ptrn = (qlfr != null ? qlfr.getPattern() : "") + val;
-		int ptrnIndex = patternBuilder.indexOf(ptrn);
-		if (log.isTraceEnabled()) log.trace("to delete:/{}/ index:{}", ptrn, ptrnIndex);
-		if (ptrnIndex != -1)
-		{
-			patternBuilder = patternBuilder.delete(ptrnIndex, ptrnIndex + ptrn.length());
-			patternParts.remove(val);
-			patternPartQualifierMap.remove(val);
+		else {
+			return null;
 		}
-	}
+    }
 
-	/**
-	 * Parses supplied filterPattern. If it contains any qualifiers like %and&|%or% parses them into valid regex representation.
-	 * 
-	 * @param val pattern String
-	 */
-	private void extractPatternParts(String val)
-	{
-		String qRegex = "";
-		for (Qualifier it: Qualifier.values()) {
-			qRegex += qRegex.length() > 0 ? "|%" + it + "%" : "%" + it + "%";
-		}
-
-		if (log.isTraceEnabled()) log.trace("Trying to match supplied pattern /{}/ if it contains /{}/", val, qRegex);
-		Matcher qualifierMatcher = Pattern.compile(qRegex).matcher(val); //matching any qualifiers with % signs
-		if (qualifierMatcher.find())
-		{
-			if (log.isTraceEnabled()) log.trace("Processing complex pattern");
-			String[] tokens = val.split("%");
-			String nextQualifier = null;
-			if (tokens != null)
-			{
-				qRegex = qRegex.replaceAll("%", ""); //matching only qualifier names
-				for (String grp : tokens)
-				{
-					if (log.isTraceEnabled()) log.trace("Next group in match: {}", grp);
-					qualifierMatcher = Pattern.compile(qRegex).matcher(grp);
-					if (qualifierMatcher.matches())
-					{
-						nextQualifier = qualifierMatcher.group();
-						continue;
-					}
-
-					addExtendedFilterPattern(grp, nextQualifier);
-					nextQualifier = null;
-
-				}
-			}
-			else throw new IllegalArgumentException("Check your complex pattern:/" + val + "/");
-		}
-		else
-		{
-			if (log.isTraceEnabled()) log.trace("No extended pattern supplied, might be a preserve thread");
-			addExtendedFilterPattern(val, null);
-		}
-	}
 }

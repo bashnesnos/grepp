@@ -67,13 +67,17 @@ final class EntryDateFilter extends StatefulFilterBase<String> implements Option
 	*
 	*/
 	public EntryDateFilter(Map<?, ?> config, String configId) {
+		if (config == null || configId == null) {
+			throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null) + ";" + (configId != null));
+		}
+
 		super(EntryDateFilter.class, config);
 		fillParamsByConfigIdInternal(configId);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-    private boolean fillParamsByConfigIdInternal(String configId) {
+    protected boolean fillParamsByConfigIdInternal(String configId) {
     	if (!EntryDateFilter.configIdExists(config, configId)) {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}

@@ -18,37 +18,134 @@ import org.smltools.grepp.filters.FilterBase
  * @author Alexander Semelit 
  */
 
-final class PostFilter extends FilterBase<String> {
+final class PostFilter extends StatefulFilterBase<String> {
+    public static final String SEPARATOR_KEY = 'postProcessSeparator'
+    public static final String SPOOL_EXTENSION_KEY = 'spoolFileExtension'
+    public static final String VALUE_KEY = 'value'
+    public static final String COLUMNS_KEY = 'postProcessColumns'
+    public static final String COLUMN_NAME_KEY = 'colName'
 
     //Postprocessing stuff
     private Pattern postFilterPattern = null
-    private def POST_PROCESS_SEP = null
-    private Map<?,?> POST_PROCESS_DICT = new LinkedHashMap()
-    private def POST_PROCESS_HEADER = null
-    private Map<?,?> POST_GROUPS = [:]
+    private String columnSeparator = null
+    private Map<?,?> postProcessingDictionary = new LinkedHashMap()
+    private String reportHeader = null
+    private Map<?,?> groupMap = [:]
     private def currentGroup = null
     private def groupMethod = null
-    private List<?> POST_GROUPS_METHODS = []
-    private boolean HEADER_PRINTED = false
-    private def result = null
+    private List<?> groupMethodsList = []
+    private boolean isHeaderPrinted = false
+    private StringBuilder result = new StringBuilder()
+    private String spoolFileExtension
 
     /**
     * Creates new PostFilter on top of supplied filter chain and fills in params from supplied config. <br>
     * Also it parses from config.xml post filter pattern configuration basing on fulfilled POST_PROCESSING parameter.
     *
     */
-    PostFilter(FilterBase<String> nextFilter_, Map postFilterParams)
+    PostFilter(String postFilterPattern, String columnSeparator, Map<?,?> postProcessingDictionary, String reportHeader, List<?> groupMethodsList)
     {
-        super(nextFilter_, PostFilter.class)
-		POST_PROCESS_SEP = postFilterParams["POST_PROCESS_SEP"] //nulls allowed here, will be validated
-		GreppUtil.throwIllegalAEifNull(POST_PROCESS_SEP, "Post separator shouldn't be null")
-		POST_PROCESS_DICT = postFilterParams["POST_PROCESS_DICT"]
-		POST_PROCESS_HEADER = postFilterParams["POST_PROCESS_HEADER"]
-		POST_GROUPS_METHODS = postFilterParams["POST_GROUPS_METHODS"]
-        postFilterPattern = Pattern.compile(postFilterParams["PATTERN"])
-        log.trace("postFilterPattern: {}", postFilterPattern)
+        super(PostFilter.class, null)
+        GreppUtil.throwIllegalAEifNull(columnSeparator, "Column separator shouldn't be null")
+		this.columnSeparator = columnSeparator
+		
+        GreppUtil.throwIllegalAEifNull(postProcessingDictionary, "postProcessingDictionary shouldn't be null")
+		this.postProcessingDictionary = postProcessingDictionary
+
+		this.reportHeader = reportHeader
+
+        GreppUtil.throwIllegalAEifNull(groupMethodsList, "groupMethodsList shouldn't be null")
+		this.groupMethodsList = groupMethodsList
+
+        GreppUtil.throwIllegalAEifNull(postFilterPattern, "postFilterPattern shouldn't be null")
+        this.postFilterPattern = Pattern.compile(postFilterPattern)
+        LOGGER.trace("postFilterPattern: {}", postFilterPattern)
     }
 
+
+    /**
+    * Creates PostFilter from config
+    *
+    */
+    public PostFilter(Map<?, ?> config, String configId) {
+        if (config == null || configId == null) {
+            throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null) + ";" + (configId != null));
+        }
+
+        super(PostFilter.class, config);
+        fillParamsByConfigIdInternal(configId);
+    }
+
+    public String getSpoolFileExtension() {
+        return spoolFileExtension
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected boolean fillParamsByConfigIdInternal(String configId) {
+        if (!PostFilter.configIdExists(config, configId)) {
+            throw new ConfigNotExistsRuntimeException(configId);
+        }
+
+        StringBuilder postFilterPatternBuilder = new StringBuilder()
+        //defaults come first
+        columnSeparator = config.defaults.postProcessSeparator.value
+        spoolFileExtension = config.defaults.postProcessSeparator.spoolFileExtension
+
+        def handlers = config.postProcessColumns."$postProcessColumnId"
+        def sortedHandlers = handlers.sort { it.value.order }
+        def separatorProps = sortedHandlers.find { type, props -> type.equals(SEPARATOR_KEY) }
+        if (separatorProps != null) {
+            columnSeparator = separatorProps.value
+            spoolFileExtension = separatorProps.spoolFileExtension
+        }
+
+        if (columnSeparator == null || spoolFileExtension == null || columnSeparator.size() < 1 || spoolFileExtension.size() < 1) {
+            throw new PropertiesNotFoundRuntimeException("Both " + VALUE_KEY + " and " + SPOOL_EXTENSION_KEY + " should be filled either in defaults." + SEPARATOR_KEY + " or " + COLUMNS_KEY "." + configId + "." + SEPARATOR_KEY);
+        }
+
+        sortedHandlers.each { type, props -> 
+            if (!type.equals(SEPARATOR_KEY)) {
+                LOGGER.trace("postProcessColumn type: {}; props: {}", type, props.keySet())
+
+                if (!props.containsKey(VALUE_KEY)) {
+                    throw new PropertiesNotFoundRuntimeException(COLUMNS_KEY "." + configId + "." + type + "." + VALUE_KEY + " should be filled");
+                }
+
+                def curPtrn = props.value
+                postFilterPatternBuilder = postFilterPatternBuilder.size() == 0 ? postFilterPatternBuilder.append("(?ms)").append(curPtrn) : postFilterPatternBuilder.append(Qualifier.and.getPattern()).append(curPtrn)
+                switch (type) {
+                    case "filter":
+                        postProcessingDictionary[curPtrn] = 'processPostFilter'
+                        break
+                    case "counter":
+                        postProcessingDictionary[curPtrn] = 'processPostCounter'
+                        break
+                    case "group":
+                        postProcessingDictionary[curPtrn] = 'processPostGroup'
+                        break
+                    case "avg":
+                        postProcessingDictionary[curPtrn] = 'processPostAverage'
+                        groupMethodsList.add('processPostAverage')
+                        break
+                    default:
+                        throw new IllegalArgumentException("Unknown handler type: " + type + " at config: " + COLUMNS_KEY + "." + configId)
+                }
+                
+                if (props.containsKey(COLUMN_NAME_KEY)) {
+                    reportHeader = (reportHeader != null) ? reportHeader + columnSeparator + props.colName : props.colName
+                }
+            }
+        }
+        if (reportHeader != null) reportHeader += "\n"
+
+        return true
+    }
+
+    @SuppressWarnings("unchecked")
+    public static boolean configIdExists(Map<?, ?> config, String configId) {
+        return config.postProcessColumns.containsKey(postProcessColumnId)
+    }
 
     /**
     * Tries to match all post processing patterns at the same time to received block data. <br>
@@ -61,38 +158,21 @@ final class PostFilter extends FilterBase<String> {
     * @return true if it has accumulated result to pass
     */
     @Override
-    public boolean check(String blockData)
-    {
-         result = null //invalidating result first
+    public String filter(String blockData) {
+         result.setLength(0) //invalidating result first
          Matcher postPPatternMatcher = postFilterPattern.matcher(blockData)
-         if (postPPatternMatcher.find()) //bulk matching all patterns. If any of them won't be matched nothing will be returned
-         {
-            result = new StringBuilder("")
+         if (postPPatternMatcher.find()) {//bulk matching all patterns. If any of them won't be matched nothing will be returned
+            if (reportHeader != null && !isHeaderPrinted) {   
+                isHeaderPrinted = true
+                result.append(reportHeader)
+            }
             int ptrnIndex = 1
-            POST_PROCESS_DICT.each { ptrn, handler -> aggregatePostProcess(postPPatternMatcher, result, POST_PROCESS_SEP, handler, ptrnIndex++)} //TODO: new handlers model is needed
+            postProcessingDictionary.each { ptrn, handler -> aggregatePostProcess(postPPatternMatcher, result, columnSeparator, handler, ptrnIndex++)} //TODO: new handlers model is needed
          }
-         return result != null && result.size() > 0
+        
+        return (result != null && result.size() > 0) ? result.toString() : null
     }
 
-    /**
-    * Passes further accumulated matched substrings instead of blockData received by <code>this.filter()</code> method.
-    * @param blockData A String to be post processed. 
-    * @return <code>super.passNext</code> result
-    */
-
-    @Override
-    public void beforePassing(String blockData)
-    {
-        if (!HEADER_PRINTED) 
-        {   
-            HEADER_PRINTED = true
-            passingVal = new StringBuilder(POST_PROCESS_HEADER).append(result).toString()
-        }
-		else
-		{
-			passingVal = result.toString()
-		}
-    }
 	
 	/**
 	 * This method is used to extract and process matched groups from supplied data. <br>
@@ -107,9 +187,9 @@ final class PostFilter extends FilterBase<String> {
 	 * @return accumulator with appended substring for current group
 	 */
 
-    StringBuilder aggregatePostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
+    private StringBuilder aggregatePostProcess(Matcher mtchr, StringBuilder agg, String sep, String method, Integer groupIdx)
     {
-		log.trace("Aggregating post processing, agg={} method={} groupIdx={} \nmtch found", agg, method, groupIdx)
+		LOGGER.trace("Aggregating post processing, agg={} method={} groupIdx={} \nmtch found", agg, method, groupIdx)
         def mtchResult = this."$method"(mtchr, groupIdx)
         if (agg != null && mtchResult != null) //omitting printing since one of the results was null. Might be a grouping
         {
@@ -130,7 +210,7 @@ final class PostFilter extends FilterBase<String> {
 	 * @return accumulator object containing appended value
 	 */
 	
-    StringBuilder aggregatorAppend(StringBuilder agg, String sep, def val)
+    private StringBuilder aggregatorAppend(StringBuilder agg, String sep, def val)
     {
         return (agg.size() > 0) ? agg.append(sep).append(val):agg.append(val)
     }
@@ -143,7 +223,7 @@ final class PostFilter extends FilterBase<String> {
 	 * @return group value
 	 */
 	
-    def processPostFilter(Matcher mtchResults, def groupIdx)
+    private def processPostFilter(Matcher mtchResults, def groupIdx)
     {
         return mtchResults.group(groupIdx)
     }
@@ -156,7 +236,7 @@ final class PostFilter extends FilterBase<String> {
 	 * @return count of substrings matched by pattern
 	 */
 	
-    def processPostCounter(Matcher mtchResults, def groupIdx)
+    private def processPostCounter(Matcher mtchResults, def groupIdx)
     {
         String currentPattern = mtchResults.group(groupIdx)
         Matcher countableMatcher = mtchResults.group() =~ currentPattern
@@ -179,14 +259,14 @@ final class PostFilter extends FilterBase<String> {
 	 * @return always returns null, as during grouping results will be returned when all the files will be processed.
 	 */
 	
-    def processPostGroup(Matcher mtchResults, def groupIdx)
+    private def processPostGroup(Matcher mtchResults, def groupIdx)
     {
         String newGroup = mtchResults.group(groupIdx)
-        Map existingGroup = POST_GROUPS[newGroup]
+        Map existingGroup = groupMap[newGroup]
         if (existingGroup == null)
         {
-            POST_GROUPS[newGroup] = [:]
-            existingGroup = POST_GROUPS[newGroup]
+            groupMap[newGroup] = [:]
+            existingGroup = groupMap[newGroup]
         }
         currentGroup = existingGroup
         return null
@@ -201,14 +281,14 @@ final class PostFilter extends FilterBase<String> {
 	 * @return always returns null, as during grouping results will be returned when all the files will be processed.
 	 */
 	
-    def processPostAverage(Matcher mtchResults, def groupIdx)
+    private def processPostAverage(Matcher mtchResults, def groupIdx)
     {
         Integer newIntVal = 0
         try {
             newIntVal = Integer.valueOf(mtchResults.group(groupIdx))            
         }
         catch(NumberFormatException e) {
-            log.trace("attempting to count current group")
+            LOGGER.trace("attempting to count current group")
             newIntVal = processPostCounter(mtchResults, groupIdx)
         }
 
@@ -221,7 +301,7 @@ final class PostFilter extends FilterBase<String> {
         {
             currentGroup["averageAgg"] = [newIntVal]
         }
-        log.trace ("added new val: {}", newIntVal)
+        LOGGER.trace ("added new val: {}", newIntVal)
         return null
     }
 
@@ -232,9 +312,8 @@ final class PostFilter extends FilterBase<String> {
 	 * @param group Map containing accumulated numbers to calculate average from
 	 * @return average value
 	 */
-    def processPostAverage(Map group)
-    {
-        log.trace ("average group: {}", group)
+    private def processPostAverage(Map group) {
+        LOGGER.trace ("average group: {}", group)
         List<Integer> averageAgg = group["averageAgg"]
         if (averageAgg == null || averageAgg.size() == 0) return 0
         Integer sum = 0
@@ -251,40 +330,31 @@ final class PostFilter extends FilterBase<String> {
 	 * When all groups are processed it passes result to next filter.
 	 * 
 	 */
-    def processGroups()
-    {
-        passingVal = null //invalidating passingVal
-        StringBuilder rslt = new StringBuilder( !HEADER_PRINTED ? POST_PROCESS_HEADER : "");
-		POST_GROUPS.each { group ->
+    private String processGroups() {
+        StringBuilder rslt = new StringBuilder( reportHeader != null && !isHeaderPrinted ? reportHeader : "");
+		groupMap.each { group ->
             rslt.append(group.getKey())
-            POST_GROUPS_METHODS.each { method ->
-                aggregatorAppend(rslt, POST_PROCESS_SEP, this."$method"(group.getValue()))
+            groupMethodsList.each { method ->
+                aggregatorAppend(rslt, columnSeparator, this."$method"(group.getValue()))
             }
 			rslt.append("\n")
         }
-		return passNext(rslt.toString())
+		return rslt.toString()
     }
 
 	/**
-	 * Listens for ALL_FILES_PROCESSED event to trigger all groups processing.
+	 * Listens for ALL_CHUNKS_PROCESSED event to trigger all groups processing.
 	 * 
 	 */
 	@Override
-	protected StringBuilder gatherPrintableState(Event event, StringBuilder agg) {
+	protected String processEventInternal(Event event) {
         switch (event)
         {
-            case Event.ALL_FILES_PROCESSED:
-                try {
-					appendNotNull(agg, processGroups())
-                }
-            	catch (FilteringIsInterruptedException e) {
-            		log.error("Filtering interrupted by", e);
-            	}
-				break;
+            case Event.ALL_CHUNKS_PROCESSED:
+				return processGroups()
             default:
-                break
+                return null
         }
-        return super.gatherPrintableState(event, agg)
     }
 
 }
