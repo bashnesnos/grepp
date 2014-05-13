@@ -16,7 +16,7 @@ import groovy.util.ConfigSlurper
 final class ConfigOutput extends SimpleOutput<String> {
 		
 	public ConfigOutput(ConfigHolder config, FilterChain<String> filterChain) {
-            super(paramsHolder, filterChain)
+            super(config, filterChain)
    	}
 
 

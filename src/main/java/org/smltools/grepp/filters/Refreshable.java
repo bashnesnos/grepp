@@ -1,6 +1,6 @@
 package org.smltools.grepp.filters;
 
 public interface Refreshable {
-	void lock()
+	void lock();
 	boolean refreshByConfigId(String configId);
 }

@@ -30,6 +30,29 @@ public class ConfigHolder extends ConfigObject {
     public final static String SAVED_CONFIG_DATE_FORMAT_VALUE_KEY = "value";
     public final static String SAVED_CONFIG_LOG_THRESHOLD_KEY = "logThreshold";
 
+    /**
+     * Finds config id by specified String. Method looks up for <config> element containing matching <pattern> with "alevel" parameter equal to level.
+     * 
+     * @param config
+     * @param fileName String which would be matched to 'pattern' property of a savedConfig
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    public static String findConfigIdByFileName(ConfigHolder config, String fileName) {
+            if (config == null || fileName == null) {
+                    throw new IllegalArgumentException("Both config and fileName shouldn't be null");
+            }
+
+            return config.saveConfigs.findResult { configId, props ->
+                    if (props.containsKey(SAVED_CONFIG_FILENAME_PATTERN_KEY)) {
+                            String currentConfigPtrn = props.pattern
+                            if (fileName =~ currentConfigPtrn) {
+                                return configId;
+                            }
+                    }
+            }
+    } 
+    
     private URL configFilePath
 
     public void mergeAndSave(ConfigObject newSubConfig) {

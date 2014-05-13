@@ -3,6 +3,7 @@ package org.smltools.grepp.filters.entry;
 import java.util.*;
 import java.util.regex.*;
 
+import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.FilterBase;
 import org.smltools.grepp.filters.enums.*;
 
@@ -70,7 +71,7 @@ public class SimpleFilter extends FilterBase<String> {
 	protected SimpleFilter(Class<? extends SimpleFilter> subclazz, Map<?, ?> config, String configId) {
 		super(subclazz, config);
 		if (!fillParamsByConfigIdInternal(configId)) {
-			throw new PropertiesNotFoundRuntimeException(FILTERS_CONFIG_KEY + "." configId + "doesn't exist!");
+			throw new PropertiesNotFoundRuntimeException(FILTERS_CONFIG_KEY + "." + configId + "doesn't exist!");
 		}
 	}
 

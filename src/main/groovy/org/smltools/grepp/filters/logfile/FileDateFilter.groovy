@@ -6,7 +6,7 @@ import java.util.regex.Matcher
 import groovy.util.logging.Slf4j
 import groovy.xml.dom.DOMCategory
 import org.smltools.grepp.filters.enums.Event
-import org.smltools.grepp.filters.FilterBase
+import org.smltools.grepp.filters.RefreshableFilterBase
 
 /**
  * Provides filtering of supplied files by last modified date. <br>
@@ -59,10 +59,6 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     *
     */
     public FileDateFilter(Map<?, ?> config, String configId) {
-        if (config == null || configId == null) {
-            throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null) + ";" + (configId != null));
-        }
-
         super(FileDateFilter.class, config);
         fillParamsByConfigIdInternal(configId);
     }
@@ -94,7 +90,7 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     * @throws IllegalArgumentException if supplied argument is not instanceof List<Files>
     */
     @Override
-    public List<File> filter(String files) {
+    public List<File> filter(List<File> files) {
         if (from == null && to == null) {
             throw new IllegalStateException("Either 'from' or 'to' should be supplied to the filter");
         }

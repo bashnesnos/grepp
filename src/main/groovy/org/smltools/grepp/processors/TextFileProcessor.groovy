@@ -71,11 +71,11 @@ class TextFileProcessor implements DataProcessor<List<File>>
         }
         catch(FilteringIsInterruptedException e) {
             log.trace("No point to read file further as identified by filter chain")
-            output.flush()
         }
-		
-		if (!isMerging) output.processEvent(Event.CHUNK_ENDED)
-        log.info("File ended. Lines processed: {}", curLine)
+        finally {
+            if (!isMerging) output.processEvent(Event.CHUNK_ENDED)
+            log.info("File ended. Lines processed: {}", curLine)
+        }
     }
 
 	@Override

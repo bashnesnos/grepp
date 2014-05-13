@@ -1,10 +1,8 @@
 import org.smltools.grepp.*
 import org.smltools.grepp.filters.entry.PropertiesFilter
-import org.smltools.grepp.config.ParamHolderFactory
-import org.smltools.grepp.config.CLIParamHolderFactory
+import org.smltools.grepp.config.CLIFacade
 import org.smltools.grepp.config.XMLConfigHolder
 import org.smltools.grepp.config.ConfigHolder
-import org.smltools.grepp.config.Param
 import org.smltools.grepp.util.GreppUtil
 import java.net.URL
 import groovy.xml.DOMBuilder
@@ -15,7 +13,7 @@ import java.text.SimpleDateFormat
 class GreppTest extends GroovyTestCase {
 
 	ConfigHolder config
-	ParamHolderFactory paramFactory
+	CLIFacade facade
 	def BASE_HOME = System.getProperty("grepp.home")
 	def HOME = BASE_HOME + "\\build\\resources\\test"
 	def GREPP_CONFIG = BASE_HOME + "\\build\\resources\\main\\config\\" + System.getProperty("grepp.config")
@@ -30,7 +28,7 @@ class GreppTest extends GroovyTestCase {
 				config = new XMLConfigHolder(GREPP_CONFIG, GREPP_CONFIG_XSD)			
 				break
 		}
-		paramFactory = new CLIParamHolderFactory(config);
+		facade = new CLIFacade(config);
 	}
 
 	public static String getOutput(Closure operation) {

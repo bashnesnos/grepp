@@ -17,7 +17,7 @@ import org.smltools.grepp.filters.enums.Event;
  * @author Alexander Semelit
  */
 
-final class LogEntryFilter extends StatefulFilterBase<String> {
+public final class LogEntryFilter extends StatefulFilterBase<String> {
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = new StringBuilder();
 	private Pattern logEntryPtrn = null;

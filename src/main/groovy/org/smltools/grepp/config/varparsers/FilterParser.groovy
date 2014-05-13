@@ -5,7 +5,6 @@ import java.util.Map;
 import groovy.util.logging.Slf4j;
 
 import org.smltools.grepp.config.ConfigHolder;
-import org.smltools.grepp.config.Param
 
 /**
  * 

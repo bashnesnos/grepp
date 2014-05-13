@@ -1,6 +1,7 @@
 package org.smltools.grepp.filters;
 
 import java.util.Map;
+import org.smltools.grepp.exceptions.FilteringIsInterruptedException;
 import org.smltools.grepp.filters.enums.Event;
 
 public interface Stateful<T> {
@@ -16,5 +17,5 @@ public interface Stateful<T> {
 	 * @return whatever filter has to return as reaction to that event
 	 */
 
-	public T processEvent(Event event);
+	public T processEvent(Event event) throws FilteringIsInterruptedException;
 }

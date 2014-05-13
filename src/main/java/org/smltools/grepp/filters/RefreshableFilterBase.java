@@ -1,8 +1,8 @@
 package org.smltools.grepp.filters;
 
-import java.util.HashMap;
 import java.util.Map;
-import org.smltools.grepp.filters.enums.*;
+import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
+import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 
 /**
  * Super class for all filters. Provides filtering process template with hooking
@@ -14,6 +14,15 @@ import org.smltools.grepp.filters.enums.*;
 public abstract class RefreshableFilterBase<T> extends FilterBase<T> implements Refreshable {
     protected boolean isLocked = false;
 
+    public RefreshableFilterBase(Class<?> subclazz) {
+            super(subclazz);
+    }
+
+    
+    public RefreshableFilterBase(Class<?> subclazz, Map<?, ?> config) {
+            super(subclazz, config);
+    }
+    
     @Override
     public void lock() {
         isLocked = true;
@@ -26,7 +35,7 @@ public abstract class RefreshableFilterBase<T> extends FilterBase<T> implements 
         }
 
         if (isLocked) {
-            LOGGER.debug("{} refresh is locked", this.getClass().getName())
+            LOGGER.debug("{} refresh is locked", this.getClass().getName());
             return false;
         }
 

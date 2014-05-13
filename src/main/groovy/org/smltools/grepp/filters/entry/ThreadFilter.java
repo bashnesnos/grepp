@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.regex.*;
 import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
+import org.smltools.grepp.filters.Refreshable;
 import org.smltools.grepp.filters.Stateful;
 import org.smltools.grepp.filters.enums.*;
 import org.smltools.grepp.util.GreppUtil;
@@ -19,7 +20,7 @@ import org.smltools.grepp.util.GreppUtil;
  *
  */
 
-final class ThreadFilter extends SimpleFilter implements Stateful<String>, Refreshable {
+public final class ThreadFilter extends SimpleFilter implements Stateful<String>, Refreshable {
 	public final static String THREADS_CONFIG_KEY = "processThreads";
 	public final static String THREAD_EXTRACTORS_KEY = "extractors";
 	public final static String THREAD_SKIPENDS_KEY = "skipends";
@@ -302,7 +303,7 @@ final class ThreadFilter extends SimpleFilter implements Stateful<String>, Refre
         }
 
         if (isLocked) {
-            LOGGER.debug("{} refresh is locked", this.getClass().getName())
+            LOGGER.debug("{} refresh is locked", this.getClass().getName());
             return false;
         }
 

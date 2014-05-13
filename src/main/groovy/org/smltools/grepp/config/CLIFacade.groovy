@@ -4,8 +4,23 @@ import groovy.util.logging.Slf4j
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
 import org.smltools.grepp.config.varparsers.*
+import org.smltools.grepp.filters.FilterChain
+import org.smltools.grepp.filters.entry.EntryDateFilter
+import org.smltools.grepp.filters.entry.LogEntryFilter
+import org.smltools.grepp.filters.entry.SimpleFilter
+import org.smltools.grepp.filters.entry.ThreadFilter
+import org.smltools.grepp.filters.entry.PropertiesFilter
+import org.smltools.grepp.filters.entry.PostFilter
 import org.smltools.grepp.util.GreppUtil
 import org.smltools.grepp.filters.enums.*
+import org.smltools.grepp.filters.logfile.FileDateFilter
+import org.smltools.grepp.filters.logfile.FileSortFilter
+import org.smltools.grepp.output.ConfigOutput
+import org.smltools.grepp.output.GreppOutput
+import org.smltools.grepp.output.SimpleOutput
+import org.smltools.grepp.processors.DataProcessor
+import org.smltools.grepp.processors.InputStreamProcessor
+import org.smltools.grepp.processors.TextFileProcessor
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 
@@ -30,7 +45,21 @@ public class CLIFacade {
 	boolean isAmmended = false
 
 	protected File curWorkDir //allows to restrict access to a supplied working dir only
+        
 
+        static { //filter order and other meta-data init here
+            FilterChain.setFilterOrder(
+                [FileDateFilter.class, 
+                    FileSortFilter.class,
+                    LogEntryFilter.class,
+                    PropertiesFilter.class,
+                    ThreadFilter.class,
+                    SimpleFilter.class,
+                    EntryDateFilter.class,
+                    PostFilter.class]
+                )
+        }
+    
 	public CLIFacade(ConfigHolder config) {
 		this.config = config
 	}
@@ -41,6 +70,10 @@ public class CLIFacade {
 	 */
 	protected void loadDefaults()
 	{
+            
+                config.runtime.spoolFileExtension = config.defaults.spoolFileExtension
+                config.runtime.resultsDir = config.defaults.resultsDir
+                
 		if (curWorkDir != null) {
 			config.runtime.cwd = curWorkDir
 		}
@@ -204,7 +237,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 			log.debug("next arg: {}", arg);
 			if (!this.processOptions(arg)) {
 				ParamParser<?> paramParser = varParsers.pop() 
-				if (!paramParser.parseVar(config, arg)) { //pushing back since this parser has more to parse
+				if (!paramParser.parseVar(config, entryFilterChain, arg)) { //pushing back since this parser has more to parse
 					varParsers.push(paramParser)
 				}
 			} 
@@ -254,16 +287,16 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>0</code> otherwise.
 	 */
 
-	protected boolean processOptions(String arg)
+	protected boolean processOptions(FilterChain filterChain, String arg)
 	{
 		if (arg =~/^-(?![-0-9])/) //option should be a char and not a number
 		{
-			this.processSimpleArg(arg.substring(1)) //skipping '-' itself
+			this.processSimpleArg(filterChain, arg.substring(1)) //skipping '-' itself
 			return true
 		}
 		else if (arg =~ /^--/)
 		{
-			this.processComlpexArg(arg.substring(2)) //skipping '--' itself
+			this.processComlpexArg(filterChain, arg.substring(2)) //skipping '--' itself
 			return true
 		}
 		return false
@@ -277,7 +310,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 *
 	 * @param arg An argument to be parsed
 	 */
-	protected void processSimpleArg(String arg)
+	protected void processSimpleArg(FilterChain filterChain, String arg)
 	{
 		throw new IllegalArgumentException("Invalid flag: " + arg)
 	}
@@ -289,13 +322,13 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @param arg An argument to be parsed
 	 */
 
-	protected void processComlpexArg(String arg)
+	protected void processComlpexArg(FilterChain filterChain, String arg)
 	{
-		(arg =~ /.*/).each{opt -> if(opt) this.processOption(opt)}
+		(arg =~ /.*/).each{opt -> if(opt) this.loadParamsById(filterChain, opt)}
 	}
 
 	/**
-	 * Method which performs actual option lookup in the config.xml.
+	 * Method which performs actual option lookup in the config
 	 * <p>
 	 * It fetches handler function (from <code>handler</code> attribute), and calls it from {@link WgrepFacade} class.
 	 * <p> It passes to the handler function <code>field</code> attribute and value of matching option from config.xml.
@@ -303,43 +336,9 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @param opt An argument to be looked up
 	 * @throws IllegalArgumentException If the supplied <code>arg</code> is not configured, i.e. cannot be found in the config.xml.
 	 */
-
-	protected void processOption(String opt)
-	{
-		loadParamsById(opt)
-	}
-
-	protected void loadParamsById(String id) {
-		boolean matchedAny = false
-		//applying all that matches, i.e. greedy
-
-		if (checkIfConfigExsits(id)) { //checking if  there exists a config with such id and applying it if so
-			log.debug("Applying savedConfig for {}", id)
-			matchedAny = true
-			setPredefinedConfig(id)
-		}
-
-		if (checkIfFilterExsits(id)) { //checking filter wasn't supplied explicitly and there exists a filter with such id and applying it if so
-			log.debug("Applying filterAlias for {}", id)
-			matchedAny = true
-			setPredefinedFilter(id)
-			varParsers.remove(filterParser)			
-		}
-
-		if (checkIfExecuteThreadExsits(id)) { //checking if there exists a thread preserving patterns with such id and applying it if so
-			log.debug("Applying processThread for {}", id)
-			matchedAny = true
-			setThreadPreserving(id)
-		}
-
-		if (checkIfPostProcessExsits(id)) { //checking if there exists a post_processing config with such id and applying it if so
-			log.debug("Applying postProcessColumns for {}", id)
-			matchedAny = true
-			setPostProcessing(id)
-		}
-
-		if (id != null && !matchedAny) {
-			throw new IllegalArgumentException("Invalid id, doesn't match any pre-configured: " + id)
+	protected void loadParamsById(FilterChain filterChain, String id) {
+                if (id != null && !filterChain.addByConfigAndConfigId(config, id)) {
+                    throw new IllegalArgumentException("Invalid id, doesn't match any pre-configured: " + id)
 		}
 	}
 	
@@ -398,55 +397,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		GreppUtil.resetLogging(infoConfig)
 	}
 
-
-	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. If pattern automation.
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-	 */
-	protected void setPredefinedConfig(def val)
-	{
-
-	}
-
-
-	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
-	 * Calls {@link PatternAutomation.parseFilterConfig}
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-	 */
-	protected void setPredefinedFilter(def val)
-	{
-
-	}
-
-
-	/**
-	 * Sets <code>FILTER_PATTERN</code> according to on supplied <code>tag</code> from <code>filters</code> section of config.xml. Requires pattern automation to operate. <br>
-	 * Calls {@link PatternAutomation.parseFilterConfig}
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
-	 */
-	protected void setThreadPreserving(def val)
-	{
-
-	}
-
-
-	/**
-	 * Enables post processing.
-	 * @param field Field to be set
-	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
-	 */
-
-	protected void setPostProcessing(def val)
-	{
-
-	}
-
-
-	public static PrintWriter getConsolePrinter() {
+       	public static PrintWriter getConsolePrinter() {
 		def console = System.console()
 		if (console != null) {
 			return console.writer()
@@ -458,9 +409,9 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 	
 	public static PrintWriter getFilePrinter(ConfigHolder config) {
-		def outputDir = new File(new File(config.runtime.home), config.defaults.resultsDir)
+		def outputDir = new File(new File(config.runtime.home), config.runtime.resultsDir)
 		if (!outputDir.exists()) outputDir.mkdir()
-		def out_file = new File(outputDir, paramsHolder.getSpoolFileName())
+		def out_file = new File(outputDir, config.runtime.spoolExtension)
 		log.trace("Creating new file: {}", out_file.getCanonicalPath())
 		out_file.createNewFile()
 		return new PrintWriter(new FileWriter(out_file), true) //autoflushing PrintWriter

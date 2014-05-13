@@ -1,11 +1,11 @@
 package org.smltools.grepp.filters.entry
 
 import java.util.regex.*
-import org.smltools.grepp.filters.FilterBase
+import org.smltools.grepp.filters.Filter
 import org.smltools.grepp.util.GreppUtil
 import groovy.util.ConfigObject
 
-final class PropertiesFilter implements Filter<String> {
+public final class PropertiesFilter implements Filter<String> {
 	//CW stands for Conversion Word
 	private static String CW_STARTER = "%"
 	private static String CW_OPTION_START = "\\{"

@@ -21,7 +21,7 @@ import org.smltools.grepp.filters.enums.Event;
  * 
  */
 
-final class EntryDateFilter extends StatefulFilterBase<String> implements OptionallyStateful<String> {
+public final class EntryDateFilter extends StatefulFilterBase<String> implements OptionallyStateful<String> {
 	private final boolean isStateOptional;
 	private Date from;
 	private Date to;

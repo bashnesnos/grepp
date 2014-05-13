@@ -3,13 +3,10 @@ package org.smltools.grepp.output;
 import groovy.util.logging.Slf4j
 import org.smltools.grepp.config.ConfigHolder
 
-import org.smltools.grepp.config.ParamHolder
-import org.smltools.grepp.config.ParamHolderFactory
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.FilterChain
 import org.smltools.grepp.output.GreppOutput;
 import org.smltools.grepp.output.RefreshableOutput;
-import org.smltools.grepp.filters.FilterChainFactory;
 
 
 /**
@@ -56,7 +53,7 @@ public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String
 
 	@Override
 	public void refreshFilters(String fileName) {
-                String configId = GreppUtil.findConfigIdByFileName(config, fileName)
+                String configId = ConfigHolder.findConfigIdByFileName(config, fileName)
 		if (configId != null) {
 			filterChain.refreshByConfigId(configId)
 		}

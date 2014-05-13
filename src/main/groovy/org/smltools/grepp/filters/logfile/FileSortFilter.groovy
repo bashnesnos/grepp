@@ -1,6 +1,7 @@
 package org.smltools.grepp.filters.logfile
 
-import org.smltools.grepp.filters.FilterBase
+import org.slf4j.Logger
+import org.smltools.grepp.filters.Filter
 
 /**
  * Provides file sorting. Sorts files ascending by last modified time. <br>
@@ -9,7 +10,7 @@ import org.smltools.grepp.filters.FilterBase
  * @author Alexander Semelit 
  */
 
-public class FileSortFilter extends Filter<List<File>> {
+public class FileSortFilter implements Filter<List<File>> {
 	protected final Logger LOGGER = LoggerFactory.getLogger(FileSortFilter.class);
 
 	/**
@@ -17,7 +18,7 @@ public class FileSortFilter extends Filter<List<File>> {
 	* Passes sorted collection to next filter.
 	*/
 	@Override
-	public List<File> filter(String files) {
+	public List<File> filter(List<File> files) {
 		if (files == null) return files
 		if (files.size() < 2) return files
 

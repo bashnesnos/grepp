@@ -8,12 +8,9 @@ package org.smltools.grepp
 * 
 * @author Alexander Semelit
 */
-import org.smltools.grepp.processors.DataProcessorFactory
 import org.smltools.grepp.config.ConfigHolder
 import org.smltools.grepp.config.XMLConfigHolder
-import org.smltools.grepp.config.ParamHolderFactory
-import org.smltools.grepp.config.CLIParamHolderFactory
-import org.smltools.grepp.config.ParamHolder
+import org.smltools.grepp.config.CLIFacade
 import org.smltools.grepp.util.GreppUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -45,9 +42,8 @@ class Grepp
 		}
 
 		try {
-			ParamHolderFactory<List<String>> paramFactory = new CLIParamHolderFactory(configHolder)
-			ParamHolder paramHolder = paramFactory.getParamHolder(Arrays.asList(args))
-			DataProcessorFactory.process(paramHolder)
+			CLIFacade facade = new CLIFacade(configHolder)
+			facade.process(Arrays.asList(args))
 		}
 		catch(Exception e)
 		{

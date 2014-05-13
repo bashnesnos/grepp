@@ -4,10 +4,13 @@ import groovy.xml.dom.DOMCategory
 import org.smltools.grepp.util.GreppUtil;
 import java.util.regex.Matcher
 import java.util.regex.Pattern
+import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException
 import org.smltools.grepp.exceptions.FilteringIsInterruptedException;
+import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException
+import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.enums.Qualifier
-import org.smltools.grepp.filters.FilterBase
+import org.smltools.grepp.filters.StatefulFilterBase
 
 /**
  * Class which provide post filtering of passed entries <br>
@@ -18,7 +21,7 @@ import org.smltools.grepp.filters.FilterBase
  * @author Alexander Semelit 
  */
 
-final class PostFilter extends StatefulFilterBase<String> {
+public final class PostFilter extends StatefulFilterBase<String> {
     public static final String SEPARATOR_KEY = 'postProcessSeparator'
     public static final String SPOOL_EXTENSION_KEY = 'spoolFileExtension'
     public static final String VALUE_KEY = 'value'
@@ -68,10 +71,6 @@ final class PostFilter extends StatefulFilterBase<String> {
     *
     */
     public PostFilter(Map<?, ?> config, String configId) {
-        if (config == null || configId == null) {
-            throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null) + ";" + (configId != null));
-        }
-
         super(PostFilter.class, config);
         fillParamsByConfigIdInternal(configId);
     }
@@ -98,10 +97,11 @@ final class PostFilter extends StatefulFilterBase<String> {
         if (separatorProps != null) {
             columnSeparator = separatorProps.value
             spoolFileExtension = separatorProps.spoolFileExtension
+            config.runtime.spoolFileExtension = spoolFileExtension
         }
 
         if (columnSeparator == null || spoolFileExtension == null || columnSeparator.size() < 1 || spoolFileExtension.size() < 1) {
-            throw new PropertiesNotFoundRuntimeException("Both " + VALUE_KEY + " and " + SPOOL_EXTENSION_KEY + " should be filled either in defaults." + SEPARATOR_KEY + " or " + COLUMNS_KEY "." + configId + "." + SEPARATOR_KEY);
+            throw new PropertiesNotFoundRuntimeException("Both " + VALUE_KEY + " and " + SPOOL_EXTENSION_KEY + " should be filled either in defaults." + SEPARATOR_KEY + " or " + COLUMNS_KEY + "." + configId + "." + SEPARATOR_KEY);
         }
 
         sortedHandlers.each { type, props -> 
@@ -109,7 +109,7 @@ final class PostFilter extends StatefulFilterBase<String> {
                 LOGGER.trace("postProcessColumn type: {}; props: {}", type, props.keySet())
 
                 if (!props.containsKey(VALUE_KEY)) {
-                    throw new PropertiesNotFoundRuntimeException(COLUMNS_KEY "." + configId + "." + type + "." + VALUE_KEY + " should be filled");
+                    throw new PropertiesNotFoundRuntimeException(COLUMNS_KEY + "." + configId + "." + type + "." + VALUE_KEY + " should be filled")
                 }
 
                 def curPtrn = props.value
@@ -144,7 +144,7 @@ final class PostFilter extends StatefulFilterBase<String> {
 
     @SuppressWarnings("unchecked")
     public static boolean configIdExists(Map<?, ?> config, String configId) {
-        return config.postProcessColumns.containsKey(postProcessColumnId)
+        return config.postProcessColumns.containsKey(configId)
     }
 
     /**
@@ -173,7 +173,12 @@ final class PostFilter extends StatefulFilterBase<String> {
         return (result != null && result.size() > 0) ? result.toString() : null
     }
 
-	
+    
+    @Override
+    public void flush() {
+        isHeaderPrinted = false
+        groupMap.clear()
+    }
 	/**
 	 * This method is used to extract and process matched groups from supplied data. <br>
 	 * It is considered that actual matching is done prior to calling this method, and it's purpose is just to call appropriate handler method for appropriate group in Matcher <br>

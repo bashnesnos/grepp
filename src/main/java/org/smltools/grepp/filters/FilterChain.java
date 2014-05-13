@@ -1,10 +1,17 @@
 package org.smltools.grepp.filters;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smltools.grepp.exceptions.FilteringIsInterruptedException;
@@ -12,23 +19,14 @@ import org.smltools.grepp.filters.enums.Event;
 
 public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
     private static final Logger LOGGER = LoggerFactory.getLogger(FilterChain.class);
-    private static final List<Class<? extends Filter>> FILTER_ORDER = new ArrayList<Class<? extends Filter>>();
+    private static List<Class<? extends Filter>> FILTER_ORDER = new ArrayList<Class<? extends Filter>>();
     private static final Comparator<Filter<?>> BY_ORDER_FIELD = new Comparator<Filter<?>>() {
-    	public int compareTo(Filter<?> a, Filter<?> b) {
-    		return FILTER_ORDER.indexOf(a.getClass()).compareTo(FILTER_ORDER.indexOf(b.getClass()));
-    	}
-    }
-
-    static { //filter order and other meta-data init here
-    	FILTER_ORDER.add(FileDateFilter.class);
-    	FILTER_ORDER.add(FileSortFilter.class);
-    	FILTER_ORDER.add(LogEntryFilter.class);
-    	FILTER_ORDER.add(PropertiesFilter.class);
-    	FILTER_ORDER.add(ThreadFilter.class);
-    	FILTER_ORDER.add(SimpleFilter.class);
-    	FILTER_ORDER.add(EntryDateFilter.class);
-    	FILTER_ORDER.add(PostFilter.class);
-    }
+        @Override
+        public int compare(Filter<?> o1, Filter<?> o2) {
+            int diff = FILTER_ORDER.indexOf(o1.getClass()) - FILTER_ORDER.indexOf(o2.getClass());
+            return diff < 0 ? -1 : diff > 0 ? 1 : 0;
+        }
+    };
 
 	public static <V extends FilterBase> V createFilterFromConfigByConfigId(Class<V> filterClass, Map<?, ?> config, String configId) {
 		if (filterClass == null || config == null || configId == null) {
@@ -55,7 +53,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 	private final Aggregator<T> aggregator;
 	private Map<?, ?> state = new HashMap();
 
-	private Set<Class<? extends Filter>> disabledFilters = new HashSet<Class<? extends Filter>>;
+	private Set<Class<? extends Filter>> disabledFilters = new HashSet<Class<? extends Filter>>();
 
 	public FilterChain(Aggregator<T> aggregator) {
 		this.aggregator = aggregator;
@@ -70,23 +68,46 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 	public void add(Filter<T> filter) {
 		if (filter != null) {
 			filters.add(filter);
-			Collection.sort(filter, BY_ORDER_FIELD);
+			Collections.sort(filters, BY_ORDER_FIELD);
 		}
 		else {
 			throw new IllegalArgumentException("Filter can't be null!");
 		}
 	}
 
-	public void addByConfigAndConfigId(Map<?, ?> config, String configId) {
-		for (Class<? extends Filter> filterClass: FILTER_ORDER) {
-			if (!disabledFilters.contains(filterClass)) {
-				if (filterClass.configIdExists(config, configId)) {
-					add(createFilterFromConfigByConfigId(filterClass, config, configId));
-				}
-			}
+	public boolean addByConfigAndConfigId(Map<?, ?> config, String configId) {
+                boolean wasAdded = false;
+                for (Class<? extends Filter> filterClass: FILTER_ORDER) {
+			if (FilterBase.class.isAssignableFrom(filterClass)) {
+                            if (!disabledFilters.contains(filterClass)) {
+                                try {
+                                    Method configIdExistsMethod = filterClass.getMethod("configIdExists", Map.class, String.class);
+                                    if ((Boolean) configIdExistsMethod.invoke(null, config, configId)) {
+                                        add(createFilterFromConfigByConfigId((Class<? extends FilterBase>) filterClass, config, configId));
+                                        wasAdded = true;
+                                    }
+                                } catch (NoSuchMethodException nsme) {
+                                    throw new RuntimeException(nsme);
+                                } catch (SecurityException se) {
+                                    throw new RuntimeException(se);
+                                } catch (IllegalAccessException iae) {
+                                    throw new RuntimeException(iae);
+                                } catch (IllegalArgumentException iare) {
+                                    throw new RuntimeException(iare);
+                                } catch (InvocationTargetException ite) {
+                                    throw new RuntimeException(ite);
+                                }
+                            }
+                        }
 		}
+                return wasAdded;
 	}
 
+        @Deprecated
+        public static void setFilterOrder(List<Class<? extends Filter>> filterOrderList) {
+            FILTER_ORDER = filterOrderList;
+        }
+        
 	public void disableFilter(Class<? extends Filter> filterClass) {
 		disabledFilters.add(filterClass);
 	}
@@ -194,4 +215,9 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 			return null;
 		}
 	}
+
+    @Override
+    public void lock() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }
