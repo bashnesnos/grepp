@@ -40,16 +40,16 @@ final class EntryDateFilter extends StatefulFilterBase<String> implements Option
 		if (logDatePtrn != null) {
 			this.logDatePtrn = Pattern.compile(logDatePtrn);	
 		}
-		else {
-			throw new IllegalArgumentException("logDatePtrn was not supplied");
-		}
+		// else {
+		// 	throw new IllegalArgumentException("logDatePtrn was not supplied");
+		// }
 		
 		if (logDateFormat != null) {
 			this.logDateFormat = new SimpleDateFormat(logDateFormat);
 		}	
-		else {
-			throw new IllegalArgumentException("logDateFormat was not supplied");
-		}
+		// else {
+		// 	throw new IllegalArgumentException("logDateFormat was not supplied");
+		// }
 
 		if (from != null || to != null) {
 			this.from = from;
@@ -58,7 +58,7 @@ final class EntryDateFilter extends StatefulFilterBase<String> implements Option
 		else {
 			throw new IllegalArgumentException("Either 'from' or 'to' date should be supplied");	
 		}
-		isStateOptional = true;
+		isStateOptional = false;
 	}
 
 	/**

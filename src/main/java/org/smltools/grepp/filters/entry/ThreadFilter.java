@@ -19,7 +19,7 @@ import org.smltools.grepp.util.GreppUtil;
  *
  */
 
-final class ThreadFilter extends SimpleFilter implements Stateful<String> {
+final class ThreadFilter extends SimpleFilter implements Stateful<String>, Refreshable {
 	public final static String THREADS_CONFIG_KEY = "processThreads";
 	public final static String THREAD_EXTRACTORS_KEY = "extractors";
 	public final static String THREAD_SKIPENDS_KEY = "skipends";
@@ -285,6 +285,47 @@ final class ThreadFilter extends SimpleFilter implements Stateful<String> {
 		else {
 			return null;
 		}
+    }
+
+
+    protected boolean isLocked = false;
+
+    @Override
+    public void lock() {
+        isLocked = true;
+    }
+
+    @Override
+    public boolean refreshByConfigId(String configId) {
+        if (configId == null) {
+            throw new IllegalArgumentException("configId shoudn't be null!");
+        }
+
+        if (isLocked) {
+            LOGGER.debug("{} refresh is locked", this.getClass().getName())
+            return false;
+        }
+
+        if (this.configId.equals(configId)) {
+            return false; //same configId, no need refreshing
+        }
+
+        try {
+            if (fillParamsByConfigIdInternal(configId)) {
+                this.configId = configId;
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        catch(ConfigNotExistsRuntimeException cnere) {
+            LOGGER.debug("Not refreshing due to: ", cnere);
+        }
+        catch(PropertiesNotFoundRuntimeException pnfre) {
+            LOGGER.debug("Not refreshing due to: ", pnfre);
+        }
+        return false;
     }
 
 }

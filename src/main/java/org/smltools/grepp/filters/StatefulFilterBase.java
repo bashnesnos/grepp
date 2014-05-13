@@ -11,7 +11,7 @@ import org.smltools.grepp.filters.enums.*;
  * @author Alexander Semelit
  * @param <T>
  */
-public abstract class StatefulFilterBase<T> extends FilterBase<T> implements Stateful<T> {
+public abstract class StatefulFilterBase<T> extends RefreshableFilterBase<T> implements Stateful<T> {
 	
     protected Map<?,?> state = new HashMap<Object, Object>();
 

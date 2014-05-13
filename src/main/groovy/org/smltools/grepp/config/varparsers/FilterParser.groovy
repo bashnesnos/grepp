@@ -16,17 +16,13 @@ import org.smltools.grepp.config.Param
  *
  */
 @Slf4j
-class FilterParser implements ParamParser<String>
-{
+class FilterParser implements ParamParser<String> {
+	private final static String FILTER_PATTERN_KEY = "filterPattern"
 
 	@Override
-	public boolean parseVar(ConfigHolder config, Map params, String arg) {
-		return parseVar(params, arg)
-	}
-
-	public boolean parseVar(Map params, String arg) {
+	public boolean parseVar(ConfigHolder config, String arg) {
         log.trace("Parsing var: {}", arg)
-        params[Param.FILTER_PATTERN] = arg
+        config.runtime."$FILTER_PATTERN_KEY" = arg
         return true
 	}
 

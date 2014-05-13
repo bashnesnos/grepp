@@ -25,7 +25,7 @@ public interface GreppOutput<T> {
 	 */
 	void printToOutput(T data);
 	
-        void flush();
+    void flush();
         
 	/**
 	 * 

@@ -16,7 +16,7 @@ import org.w3c.dom.Element
  *
  */
 @Slf4j
-public class CLIParamHolderFactory implements ParamHolderFactory<List<String>> {
+public class CLIFacade {
 	
 	protected ConfigHolder config;
 
@@ -31,31 +31,26 @@ public class CLIParamHolderFactory implements ParamHolderFactory<List<String>> {
 
 	protected File curWorkDir //allows to restrict access to a supplied working dir only
 
-	public CLIParamHolderFactory(ConfigHolder pConfig) {
-		config = pConfig
+	public CLIFacade(ConfigHolder config) {
+		this.config = config
 	}
 	
 	/**
 	 *  Method loads defaults and spooling extension as configured in config.xml's <code>global</code> section.
 	 *  Loads some values set via System properties as well.
 	 */
-	protected void loadDefaults(Map<Param, ?> params)
+	protected void loadDefaults()
 	{
-		params[Param.CONFIG] = config
-		
-		params[Param.SPOOLING_EXT] = config.defaults.spoolingFileExtension
-		params[Param.RESULTS_DIR] = config.defaults.resultsDir
-
 		if (curWorkDir != null) {
-			params.set(Param.CWD, curWorkDir)
+			config.runtime.cwd = curWorkDir
 		}
 		
 		def systemSep = System.getProperty("file.separator")
-		params[Param.HOME_DIR] = System.getProperty("grepp.home") + systemSep
+		config.runtime.home = System.getProperty("grepp.home") + systemSep
 		if ("\\".equals(systemSep)) {
 			systemSep += "\\"
 		}
-		params[Param.FOLDER_SEPARATOR] = systemSep
+		config.runtime.folderSeparator = systemSep
 	}
 
 	// INITIALIZATION
@@ -87,7 +82,7 @@ public class CLIParamHolderFactory implements ParamHolderFactory<List<String>> {
 	 * @param args Array of strings containing arguments for parsing.
 	 */
 
-	public ParamHolder getParamHolder(List<String> args)
+	public void processCliArgs(List<String> args)
 	{
 		if (args == null || args.size() == 0) throw new IllegalArgumentException("Invalid arguments")
 		
@@ -117,14 +112,14 @@ grepp --dtime 2009-09-09T09:00;+ 'RecordShouldContainThis%and%ShouldContainThisA
 grepp -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
 cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 """)
-        cli.v(Param.VERBOSE.getDescription())
-        cli.t(Param.TRACE.getDescription())
-        cli.s(Param.SPOOLING.getDescription())
-        cli.m(Param.FILE_MERGING.getDescription())
+        cli.v("Enforce info to stdout")
+        cli.t("Enforce trace to stdout")
+        cli.s("Toggles spooling to configured results dir and with configured spooling extension")
+        cli.m("Toggles non-stop file traversing")
         cli.h("Print this message")
         cli.L(args:1, argName:"entry_regex", "Tells grepp to split the input in blocks, treating <entry_regex> as a start of the next block (so it's a block end at the same time).\n<entry_regex> - a string which will be used to \"split\" the input. Is optinal, as by default it will be looked up by the filename in config. Anyway, if not found input would be processed by line.")
-        cli.p(longOpt:"parse", Param.PARSE_PROPERTIES.getDescription())
-        cli.e(Param.PRESERVE_THREAD.getDescription())
+        cli.p(longOpt:"parse", "Toggles logging .properties file to grepp config parsing")
+        cli.e("Toggles thread ID preserving, i.e. all the records for a thread will be fetched")
         cli.d(longOpt:"dtime", args:2, valueSeparator:";", argName:"from;to", """Tells grepp to include files/log entries within the supplied timeframe.
             <from to> - string representing date constraints for current search. 
                         Default format is yyyy-mm-ddTHH:MM:ss (could be reduced till yyyy). If <from> or <to> is not known (or is indefinite) '+' can be passed as argument.
@@ -147,53 +142,109 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
         	enforceTrace()
         }
 		
-		ParamHolder params = new ParamHolder(this);
+        FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>()
+        fileFilterChain.add(new FileSortFilter())
+        fileFilterChain.disableFilter(FileSortFilter.class)
+        fileFilterChain.disableFilter(LogEntryFilter.class)
+        fileFilterChain.disableFilter(PropertiesFilter.class)
+        fileFilterChain.disableFilter(ThreadFilter.class)
+        fileFilterChain.disableFilter(SimpleFilter.class)
+        fileFilterChain.disableFilter(EntryDateFilter.class)
+        fileFilterChain.disableFilter(PostFilter.class)
+
+        FilterChain<String> entryFilterChain = new FilterChain<String>()
+        entryFilterChain.disableFilter(FileSortFilter.class)
+        entryFilterChain.disableFilter(FileDateFilter.class)
+
 		filterParser = new FilterParser()
 		fileNameParser = new FileNameParser()
 		varParsers.addAll([filterParser, fileNameParser])
 
-		if (options.s) {
-			params.set(Param.SPOOLING, true)
-		}
-		if (options.m) {
-			params.set(Param.FILE_MERGING, true)
-		}
 		if (options.L) {
-			params.set(Param.USER_ENTRY_PATTERN, true)
-			params.set(Param.LOG_ENTRY_PATTERN, options.L)
+			//params.set(Param.USER_ENTRY_PATTERN, true)
+			//params.set(Param.LOG_ENTRY_PATTERN, options.L)
+			def logEntryFilter = new LogEntryFilter(options.L)
+			logEntryFilter.lock()
+			entryFilterChain.add(logEntryFilter)
 		}
+
 		if (options.p) {
-			params.set(Param.PARSE_PROPERTIES, true)
 			varParsers.remove(filterParser)
+			entryFilterChain.disableFilter(ThreadFilter.class)
+			entryFilterChain.disableFilter(SimpleFilter.class)
+			entryFilterChain.disableFilter(EntryDateFilter.class)
+			entryFilterChain.disableFilter(PostFilter.class)
 		}
+		else {
+			entryFilterChain.disableFilter(PropetiesFilter.class)
+		}
+
 		if (options.e) {
-			params.set(Param.PRESERVE_THREAD, true)
+			entryFilterChain.disableFilter(SimpleFilter.class)
 		}
+		else {
+			entryFilterChain.disableFilter(ThreadFilter.class)
+		}
+
 		if (options.d) {
-			params.set(Param.DATE_TIME_FILTER, true)
+			//params.set(Param.DATE_TIME_FILTER, true)
 			def dtimeParser = new DateTimeParser()
-			def map = params.getModifiableParams()
 			log.trace('Got date options: {}', options.ds)
 			options.ds.each {
-				dtimeParser.parseVar(config, map, it)
+				dtimeParser.parseVar(config, it)
+			}
+
+			entryFilterChain.add(new EntryDateFilter(null, null, config.runtime.dateFilter.from, config.runtime.dateFilter.to)) //postpone file-specific filter creation
+			fileFilterChain.add(new FileDateFilter(config.runtime.dateFilter.from, config.runtime.dateFilter.to, null)) //postpone file-specific filter creation
+		}
+
+		loadDefaults()
+
+		for (arg in options.arguments()) {
+			log.debug("next arg: {}", arg);
+			if (!this.processOptions(arg)) {
+				ParamParser<?> paramParser = varParsers.pop() 
+				if (!paramParser.parseVar(config, arg)) { //pushing back since this parser has more to parse
+					varParsers.push(paramParser)
+				}
+			} 
+		}
+
+		if (config.runtime.containsKey('filterPattern')) {
+			if (options.e) {
+				entryFilterChain.add(new SimpleFilter(config.runtime.filterPattern))
+			}
+			else {
+				entryFilterChain.add(new ThreadFilter(config.runtime.filterPattern, null, null, null))	
 			}
 		}
 
-		params.withModifiableParams { map ->
-			loadDefaults(map)
-			for (arg in options.arguments())
-			{
-				log.debug("next arg: {}", arg);
-				if (!this.processOptions(map, arg)) {
-					ParamParser<?> paramParser = varParsers.pop() 
-					if (!paramParser.parseVar(config, map, arg)) { //pushing back since this parser has more to parse
-						varParsers.push(paramParser)
-					}
-				} 
-			}
+		PrintWriter printer = null
+		GreppOutput output = null
+		if (options.p) {
+			log.info("Creating config output")
+			output = new ConfigOutput(configHolder, entryFilterChain)
 		}
-		
-		return params
+		else if (options.s) {
+			log.info("Creating file output")
+			printer = getFilePrinter(configHolder)
+			output new SimpleOutput<String>(configHolder, entryFilterChain, printer)
+		}
+		else {
+			log.info("Creating console output")
+			printer = getConsolePrinter()
+			output new SimpleOutput<String>(configHolder, entryFilterChain, printer)
+		}
+
+		DataProcessor processor = null
+		if (config.runtime.data.containsKey('files')) {
+			processor = new TextFileProcessor(output, fileFilterChain, options.m != null)
+			processor.process(config.runtime.data.files)
+		}
+		else {
+			processor = new InputStreamProcessor(output)
+			processor.process(System.in)
+		}
 	}
 
 	/**
@@ -203,16 +254,16 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>0</code> otherwise.
 	 */
 
-	protected boolean processOptions(Map<Param,?> params, String arg)
+	protected boolean processOptions(String arg)
 	{
 		if (arg =~/^-(?![-0-9])/) //option should be a char and not a number
 		{
-			this.processSimpleArg(params, arg.substring(1)) //skipping '-' itself
+			this.processSimpleArg(arg.substring(1)) //skipping '-' itself
 			return true
 		}
 		else if (arg =~ /^--/)
 		{
-			this.processComlpexArg(params, arg.substring(2)) //skipping '--' itself
+			this.processComlpexArg(arg.substring(2)) //skipping '--' itself
 			return true
 		}
 		return false
@@ -226,7 +277,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 *
 	 * @param arg An argument to be parsed
 	 */
-	protected void processSimpleArg(Map<Param,?> params, String arg)
+	protected void processSimpleArg(String arg)
 	{
 		throw new IllegalArgumentException("Invalid flag: " + arg)
 	}
@@ -238,9 +289,9 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @param arg An argument to be parsed
 	 */
 
-	protected void processComlpexArg(Map<Param,?> params, String arg)
+	protected void processComlpexArg(String arg)
 	{
-		(arg =~ /.*/).each{opt -> if(opt) this.processOption(params, opt)}
+		(arg =~ /.*/).each{opt -> if(opt) this.processOption(opt)}
 	}
 
 	/**
@@ -253,40 +304,38 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @throws IllegalArgumentException If the supplied <code>arg</code> is not configured, i.e. cannot be found in the config.xml.
 	 */
 
-	protected void processOption(Map<Param,?> params, String opt)
+	protected void processOption(String opt)
 	{
-		loadParamsById(params, opt)
+		loadParamsById(opt)
 	}
 
-	protected void loadParamsById(Map<Param, ?> params, String id) {
+	protected void loadParamsById(String id) {
 		boolean matchedAny = false
 		//applying all that matches, i.e. greedy
 
 		if (checkIfConfigExsits(id)) { //checking if  there exists a config with such id and applying it if so
 			log.debug("Applying savedConfig for {}", id)
 			matchedAny = true
-			params[Param.PREDEF_TAG] = id
-			setPredefinedConfig(params, id)
+			setPredefinedConfig(id)
 		}
 
 		if (checkIfFilterExsits(id)) { //checking filter wasn't supplied explicitly and there exists a filter with such id and applying it if so
 			log.debug("Applying filterAlias for {}", id)
 			matchedAny = true
-			params[Param.PREDEF_TAG] = id
-			setPredefinedFilter(params, id)
+			setPredefinedFilter(id)
 			varParsers.remove(filterParser)			
 		}
 
 		if (checkIfExecuteThreadExsits(id)) { //checking if there exists a thread preserving patterns with such id and applying it if so
 			log.debug("Applying processThread for {}", id)
 			matchedAny = true
-			setThreadPreserving(params, id)
+			setThreadPreserving(id)
 		}
 
 		if (checkIfPostProcessExsits(id)) { //checking if there exists a post_processing config with such id and applying it if so
 			log.debug("Applying postProcessColumns for {}", id)
 			matchedAny = true
-			setPostProcessing(params, id)
+			setPostProcessing(id)
 		}
 
 		if (id != null && !matchedAny) {
@@ -355,7 +404,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
-	protected void setPredefinedConfig(Map<Param, ?> params, def val)
+	protected void setPredefinedConfig(def val)
 	{
 
 	}
@@ -367,7 +416,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
-	protected void setPredefinedFilter(Map<Param, ?> params, def val)
+	protected void setPredefinedFilter(def val)
 	{
 
 	}
@@ -379,7 +428,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @param field Field to be set
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>automation</code> section is expected here.
 	 */
-	protected void setThreadPreserving(Map<Param, ?> params, def val)
+	protected void setThreadPreserving(def val)
 	{
 
 	}
@@ -391,104 +440,30 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @param val <code>String</code> value to be set. Valid config preset tag from <code>pp_splitters</code> section is expected here.
 	 */
 
-	protected void setPostProcessing(Map<Param, ?> params, def val)
+	protected void setPostProcessing(def val)
 	{
 
 	}
 
 
-    /**
-     * Builds the following structure:
-     *  {
-     *      "-" : {
-     *              "L":"Flag to use a following pattern as current entry pattern"
-     *              ...
-     *            } 
-     *      "--" : {
-     *              "dtime":"Turn on date time filtering and accept datetime boundaries"
-     *              }
-     *  }
-     * @return Map containing all options with description including filters etc. grouped by corresponding prefix ('-' or '--')
-     */
-    public Map<String, ?> getOptions() {
-        Map<String, ?> result = [:]
-        result["-"] = [:]
-        result["--"] = [:]
-        def addFlag = { name, descr ->
-            result["-"][name] = [descr]
-        }
-        
-        def addOpt = { name, descr ->
-            def descrList = result["--"][name]
-            if (descrList == null) {
-                result["--"][name] = [descr]
-            }
-            else {
-                descrList.add(descr)
-            }
-        }
-        
-//        withRoot { root ->
-//            root.options.opt.each {
-//                String name = it.text()
-//                String descr = it.'@descr'
-//                if (descr != null) {
-//                    if (name.length() > 1) {
-//                        addOpt(name, descr)
-//                    }
-//                    else {
-//                        addFlag(name, descr)
-//                    }
-//                }
-//            }
-            //
-//            root.custom.filters.filter.each { filter ->
-//                String tags = filter.'@tags'
-//                if (tags != null) {
-//                    tags.split(", ?").each { tag ->  
-//                        addOpt(tag, "Filter. /${filter.text()}/")   
-//                    }
-//                }
-//            }
-            //
-//            root.custom.pp_splitters.splitter.each{ splitter ->
-//                String tags = splitter.'@tags'
-//                if (tags != null) {
-//                    tags.split(", ?").each { tag ->
-//                        addOpt(tag, "Post filter. Type: ${splitter.'@type'} Ptrn: /${splitter.text()}/")
-//                    }
-//                }
-//            }
-            //
-//            root.custom.thread_configs.extractors.pattern.each { extrctr -> 
-//                String tags = extrctr.'@tags'
-//                if (tags != null) {
-//                    tags.split(", ?").each { tag ->
-//                        addOpt(tag, "Thread. Start extractor. /${extrctr.text()}/")
-//                    }
-//                }
-//            }
-//
-//            root.custom.thread_configs.skipends.pattern.each { skipend ->
-//                String tags = skipend.'@tags'
-//                if (tags != null) {
-//                    tags.split(", ?").each { tag ->
-//                        addOpt(tag, "Thread. Skip ends. /${skipend.text()}/")
-//                    }
-//                }
-//            }
-//
-//            root.custom.thread_configs.ends.pattern.each { end ->
-//                String tags = end.'@tags'
-//                if (tags != null) {
-//                    tags.split(", ?").each { tag ->
-//                        addOpt(tag, "Thread. End. /${end.text()}/")
-//                    }
-//                }
-//            }
-//        }
-        
-        return result;
-    }
+	public static PrintWriter getConsolePrinter() {
+		def console = System.console()
+		if (console != null) {
+			return console.writer()
+		}
+		else {
+			log.debug("There is no associated console to use with this output! Defaulting to System.out.");
+			return new PrintWriter(System.out, true)
+		}
+	}
+	
+	public static PrintWriter getFilePrinter(ConfigHolder config) {
+		def outputDir = new File(new File(config.runtime.home), config.defaults.resultsDir)
+		if (!outputDir.exists()) outputDir.mkdir()
+		def out_file = new File(outputDir, paramsHolder.getSpoolFileName())
+		log.trace("Creating new file: {}", out_file.getCanonicalPath())
+		out_file.createNewFile()
+		return new PrintWriter(new FileWriter(out_file), true) //autoflushing PrintWriter
+	}
 
 }

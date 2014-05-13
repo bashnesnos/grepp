@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.smltools.grepp.config.ConfigHolder;
-import org.smltools.grepp.config.Param;
-
 import groovy.util.logging.Slf4j;
 
 /**
@@ -18,17 +16,17 @@ import groovy.util.logging.Slf4j;
  */
 @Slf4j
 class FileNameParser implements ParamParser<String> {
-	
+	private static final String FOLDER_SEPARATOR_KEY = "folderSeparator"
+	private static final String FILES_KEY = "files"
 	@Override
-	public boolean parseVar(ConfigHolder config, Map<Param, ?> params,
-			String fileName) {
-		return parseVar_(params, fileName)
+	public boolean parseVar(ConfigHolder config, String fileName) {
+		return parseVarInternal(config, fileName)
 	}
 
-	private boolean parseVar_(Map<Param, ?> params, String fileName) {
+	private boolean parseVarInternal(ConfigHolder config, String fileName) {
 		List<File> fileList = []
-		def fSeparator = params[Param.FOLDER_SEPARATOR]
-		def curDir = params[Param.CWD]
+		def fSeparator = config.runtime."$FOLDER_SEPARATOR_KEY"
+		def curDir = config.runtime.cwd
 
 		log.trace("analyzing supplied file: {}", fileName)
 		if (fileName =~ /\*/) {
@@ -66,12 +64,12 @@ class FileNameParser implements ParamParser<String> {
 			fileList.add(new File(fileName))
 		}
 		
-		List<File> files = params[Param.FILES] 
+		List<File> files = config.runtime.data.containsKey(FILES_KEY) ? config.runtime.data.files : null
 		if (files != null) {
 			files.addAll(fileList)
 		}
 		else {
-			params[Param.FILES] = fileList
+			config.runtime.data.files = fileList
 		}
 		
 		// Never unsubscribes, since there could be supplied more than one filename.

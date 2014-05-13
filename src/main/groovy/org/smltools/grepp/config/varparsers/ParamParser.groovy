@@ -14,5 +14,5 @@ import groovy.util.logging.Slf4j
 
 interface ParamParser<T>
 {
-	boolean parseVar(ConfigHolder config, Map<Param, ?> params, T arg);
+	boolean parseVar(ConfigHolder config, T arg);
 }

@@ -16,7 +16,7 @@ import org.smltools.grepp.filters.FilterBase
  *
  */
 
-public class FileDateFilter extends FilterBase<List<File>> {
+public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     //Checking dates everywhere
 
     protected SimpleDateFormat fileDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
@@ -43,6 +43,15 @@ public class FileDateFilter extends FilterBase<List<File>> {
 	
     public void setFileDateOutputFormat(String fileDateFormat) {
         this.fileDateFormat = new SimpleDateFormat(fileDateFormat)
+    }
+
+
+    public void setFrom(Date from) {
+        this.from = from;
+    }
+
+    public void setTo(Date to) {
+        this.to = to;
     }
 
     /**
@@ -86,6 +95,10 @@ public class FileDateFilter extends FilterBase<List<File>> {
     */
     @Override
     public List<File> filter(String files) {
+        if (from == null && to == null) {
+            throw new IllegalStateException("Either 'from' or 'to' should be supplied to the filter");
+        }
+
         LOGGER.trace("total files: {}", files.size())
         return files.findAll { file -> checkFileTime(file) }
     }

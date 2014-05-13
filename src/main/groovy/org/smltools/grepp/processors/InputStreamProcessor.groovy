@@ -49,17 +49,17 @@ class InputStreamProcessor implements DataProcessor<InputStream> {
         }
         catch(FilteringIsInterruptedException e) {
             log.trace("No point to read file further as identified by filter chain")
-            output.processEvent(Event.FLUSH)
+            output.flush()
         }
 		
-		output.processEvent(Event.FILE_ENDED)
+		output.processEvent(Event.CHUNK_ENDED)
         log.info("Stream ended. Lines processed: {}", curLine)
     }
 
 	@Override
 	public void process(InputStream data) {
 			processData(data)
-			output.processEvent(Event.ALL_FILES_PROCESSED)
+			output.processEvent(Event.ALL_CHUNKS_PROCESSED)
 			output.closeOutput()
 	}
 }

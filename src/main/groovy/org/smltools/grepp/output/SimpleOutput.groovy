@@ -8,7 +8,7 @@ import org.smltools.grepp.config.ParamHolderFactory
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.FilterChain
 import org.smltools.grepp.output.GreppOutput;
-import org.smltools.grepp.output.Refreshable;
+import org.smltools.grepp.output.RefreshableOutput;
 import org.smltools.grepp.filters.FilterChainFactory;
 
 
@@ -21,7 +21,7 @@ import org.smltools.grepp.filters.FilterChainFactory;
  */
 
 @Slf4j
-public class SimpleOutput<T> implements GreppOutput<T>, Refreshable<String> {
+public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String> {
 	
 	protected PrintWriter printer;
         protected ConfigHolder config;

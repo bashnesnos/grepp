@@ -55,17 +55,23 @@ public class SimpleFilter extends FilterBase<String> {
 		currentPattern = Pattern.compile(patternBuilder.toString());
 	}
 
+	public String getFilterPattern() {
+		return filterPattern;
+	}
+
 	/**
 	* Creates SimpleFilter from config
 	*
 	*/
 	public SimpleFilter(Map<?, ?> config, String configId) {
-            this(SimpleFilter.class, configId);
+            this(SimpleFilter.class, config, configId);
 	}
 
 	protected SimpleFilter(Class<? extends SimpleFilter> subclazz, Map<?, ?> config, String configId) {
 		super(subclazz, config);
-		fillParamsByConfigIdInternal(configId);
+		if (!fillParamsByConfigIdInternal(configId)) {
+			throw new PropertiesNotFoundRuntimeException(FILTERS_CONFIG_KEY + "." configId + "doesn't exist!");
+		}
 	}
 
 	@SuppressWarnings("unchecked")

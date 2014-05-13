@@ -11,7 +11,7 @@ package org.smltools.grepp.output;
  * @author asemelit
  * @param <T>
  */
-public interface Refreshable<T> {
+public interface RefreshableOutput<T> {
     /**
      * Refreshes filters/filtering params by some criteria.
      * 
