@@ -43,7 +43,7 @@ class Grepp
 
 		try {
 			CLIFacade facade = new CLIFacade(configHolder)
-			facade.process(Arrays.asList(args))
+			facade.process(args)
 		}
 		catch(Exception e)
 		{

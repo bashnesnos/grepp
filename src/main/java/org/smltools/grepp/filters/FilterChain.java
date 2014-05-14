@@ -75,38 +75,39 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public boolean addByConfigAndConfigId(Map<?, ?> config, String configId) {
-                boolean wasAdded = false;
-                for (Class<? extends Filter> filterClass: FILTER_ORDER) {
-			if (FilterBase.class.isAssignableFrom(filterClass)) {
-                            if (!disabledFilters.contains(filterClass)) {
-                                try {
-                                    Method configIdExistsMethod = filterClass.getMethod("configIdExists", Map.class, String.class);
-                                    if ((Boolean) configIdExistsMethod.invoke(null, config, configId)) {
-                                        add(createFilterFromConfigByConfigId((Class<? extends FilterBase>) filterClass, config, configId));
-                                        wasAdded = true;
-                                    }
-                                } catch (NoSuchMethodException nsme) {
-                                    throw new RuntimeException(nsme);
-                                } catch (SecurityException se) {
-                                    throw new RuntimeException(se);
-                                } catch (IllegalAccessException iae) {
-                                    throw new RuntimeException(iae);
-                                } catch (IllegalArgumentException iare) {
-                                    throw new RuntimeException(iare);
-                                } catch (InvocationTargetException ite) {
-                                    throw new RuntimeException(ite);
-                                }
-                            }
-                        }
-		}
-                return wasAdded;
+            boolean wasAdded = false;
+            for (Class<? extends Filter> filterClass: FILTER_ORDER) {
+				if (FilterBase.class.isAssignableFrom(filterClass)) {
+	                if (!disabledFilters.contains(filterClass)) {
+	                    try {
+	                        Method configIdExistsMethod = filterClass.getMethod("configIdExists", Map.class, String.class);
+	                        if ((Boolean) configIdExistsMethod.invoke(null, config, configId)) {
+	                            add(createFilterFromConfigByConfigId((Class<? extends FilterBase>) filterClass, config, configId));
+	                            wasAdded = true;
+	                        }
+	                    } catch (NoSuchMethodException nsme) {
+	                        throw new RuntimeException(nsme);
+	                    } catch (SecurityException se) {
+	                        throw new RuntimeException(se);
+	                    } catch (IllegalAccessException iae) {
+	                        throw new RuntimeException(iae);
+	                    } catch (IllegalArgumentException iare) {
+	                        throw new RuntimeException(iare);
+	                    } catch (InvocationTargetException ite) {
+	                        throw new RuntimeException(ite);
+	                    }
+	                }
+    	        }
+			}
+            return wasAdded;
 	}
 
-        @Deprecated
-        public static void setFilterOrder(List<Class<? extends Filter>> filterOrderList) {
-            FILTER_ORDER = filterOrderList;
-        }
+    @Deprecated
+    public static void setFilterOrder(List<Class<? extends Filter>> filterOrderList) {
+        FILTER_ORDER = filterOrderList;
+    }
         
 	public void disableFilter(Class<? extends Filter> filterClass) {
 		disabledFilters.add(filterClass);
@@ -154,6 +155,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 	 *         that event).
         * @throws org.smltools.grepp.exceptions.FilteringIsInterruptedException
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	public T processEvent(Event event) throws FilteringIsInterruptedException {
 		if (event == null) {
@@ -166,7 +168,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 		Iterator<Filter<T>> filterIterator = filters.iterator();
 		do {
 			Filter<T> curFilter = filterIterator.next();
-                        if (curFilter instanceof Stateful<?>) {
+            if (curFilter instanceof Stateful<?>) {
 				flushedData = ((Stateful<T>) curFilter).processEvent(event);
 				if (flushedData != null) {
 					LOGGER.trace("Filtering flushed data from {}", curFilter.getClass());
@@ -179,13 +181,14 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 		return aggregator.aggregate();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean refreshByConfigId(String configId) {
 		boolean hasChanged = false;
 		for (Filter<?> filter: filters) {
-                        if (filter instanceof Refreshable) {
-                            hasChanged |= ((Refreshable) filter).refreshByConfigId(configId);
-                        }
+            if (filter instanceof Refreshable) {
+                hasChanged |= ((Refreshable) filter).refreshByConfigId(configId);
+            }
 		}
 		return hasChanged;
 	}
