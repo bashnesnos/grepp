@@ -52,6 +52,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 	private final List<Filter<T>> filters = new ArrayList<Filter<T>>();
 	private final Aggregator<T> aggregator;
 	private Map<?, ?> state = new HashMap();
+	private boolean isLocked = false;
 
 	private Set<Class<? extends Filter>> disabledFilters = new HashSet<Class<? extends Filter>>();
 
@@ -66,6 +67,8 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
     }
 
 	public void add(Filter<T> filter) {
+		if (isLocked) return;
+
 		if (filter != null) {
 			filters.add(filter);
 			Collections.sort(filters, BY_ORDER_FIELD);
@@ -77,6 +80,8 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 
 	@SuppressWarnings("unchecked")
 	public boolean addByConfigAndConfigId(Map<?, ?> config, String configId) {
+			if (isLocked) return false;
+
             boolean wasAdded = false;
             for (Class<? extends Filter> filterClass: FILTER_ORDER) {
 				if (FilterBase.class.isAssignableFrom(filterClass)) {
@@ -157,7 +162,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
-	public T processEvent(Event event) throws FilteringIsInterruptedException {
+	public T processEvent(Event event) {
 		if (event == null) {
 			throw new IllegalArgumentException("Event can't be null!");
 		}
@@ -172,8 +177,13 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 				flushedData = ((Stateful<T>) curFilter).processEvent(event);
 				if (flushedData != null) {
 					LOGGER.trace("Filtering flushed data from {}", curFilter.getClass());
-					flushedData = filterAfter(curFilter, flushedData);
-					aggregator.add(flushedData);
+					try {
+						flushedData = filterAfter(curFilter, flushedData);
+						aggregator.add(flushedData);
+					}
+					catch (FilteringIsInterruptedException fiie) {
+						LOGGER.debug("Filtering interrupted during event " + event + " processing", fiie);
+					}
 				}
 			}
 		}
@@ -184,6 +194,8 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean refreshByConfigId(String configId) {
+		if (isLocked) return false;
+
 		boolean hasChanged = false;
 		for (Filter<?> filter: filters) {
             if (filter instanceof Refreshable) {
@@ -221,6 +233,6 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 
     @Override
     public void lock() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        isLocked = true;
     }
 }

@@ -75,13 +75,15 @@ class GreppTest extends GroovyTestCase {
 //	}
 	
 	void testMainVarsProcessing() {
-		def params = paramFactory.getParamHolder("-L test test $HOME\\fpTest*".tokenize(" "))
-		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "test" )
-		assertTrue( params.get(Param.FILTER_PATTERN) == "test" )
-		assertTrue( params.get(Param.FILES) == [
+		def options = facade.parseOptions("-l test test $HOME\\fpTest*".split())
+		assertTrue("User entry pattern option not recognized: " + options.l, "test".equals(options.l))
+		def runtimeConfig = facade.makeRuntimeConfig()
+		def entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
+		assertTrue("Filter pattern not recognized", "test".equals(runtimeConfig.runtime.filterPattern))
+		assertTrue("Files pattern not recognized", runtimeConfig.runtime.data == [
 			new File(HOME+"\\fpTest_test.log")]
 		)
-		assertTrue( params.get(Param.FOLDER_SEPARATOR) != null )
+		assertTrue("Folder separator not initialized", runtimeConfig.runtime.folderSeparator != null )
 	}
 	
 	void testFileMTimeFiltering() {

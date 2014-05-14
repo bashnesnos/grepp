@@ -1,8 +1,8 @@
 package org.smltools.grepp.config
 
 import groovy.util.logging.Slf4j
-import groovy.xml.DOMBuilder
-import groovy.xml.dom.DOMCategory
+import groovy.util.ConfigObject
+import groovy.util.OptionAccessor
 import org.smltools.grepp.config.varparsers.*
 import org.smltools.grepp.filters.FilterChain
 import org.smltools.grepp.filters.entry.EntryDateFilter
@@ -21,9 +21,6 @@ import org.smltools.grepp.output.SimpleOutput
 import org.smltools.grepp.processors.DataProcessor
 import org.smltools.grepp.processors.InputStreamProcessor
 import org.smltools.grepp.processors.TextFileProcessor
-import groovy.util.OptionAccessor
-import org.w3c.dom.Document
-import org.w3c.dom.Element
 
 /**
  * Class represents wgrep config, which will be used to parse incoming arguments, config.xml and would be a source for processing, filtering etc. 
@@ -87,7 +84,7 @@ public class CLIFacade {
 	 * @param args Array of strings containing arguments for parsing.
 	 */
 
-	public OptionAccessor getOptions(String[] args)
+	public OptionAccessor parseOptions(String[] args)
 	{
 		if (args == null || args.length == 0) throw new IllegalArgumentException("Invalid arguments")
 		
@@ -105,7 +102,7 @@ Using in Windows
 grepp -s \"Something_I#Need ToFind\" \"D:\\myfolder\\LOGS\\myapp\\node*.log*\"
 grepp -s \"SomethingINeed To Find\" D:\\myfolder\\LOGS\\myapp\\node*.log
 grepp -s SomethingINeedToFind D:\\myfolder\\LOGS\\myapp\\node*.log
-grepp -L \"RecordStart\" \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log*
+grepp -l \"RecordStart\" \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log*
 ---------------------------
 Using on NIX 
 grepp --my_predefined_config --dtime 2011-11-11T11:10;2011-11-11T11:11 myapp.log 
@@ -122,7 +119,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.s("Toggles spooling to configured results dir and with configured spooling extension")
         cli.m("Toggles non-stop file traversing")
         cli.h("Print this message")
-        cli.L(args:1, argName:"entry_regex", "Tells grepp to split the input in blocks, treating <entry_regex> as a start of the next block (so it's a block end at the same time).\n<entry_regex> - a string which will be used to \"split\" the input. Is optinal, as by default it will be looked up by the filename in config. Anyway, if not found input would be processed by line.")
+        cli.l(args:1, argName:"entry_regex", "Tells grepp to split the input in blocks, treating <entry_regex> as a start of the next block (so it's a block end at the same time).\n<entry_regex> - a string which will be used to \"split\" the input. Is optinal, as by default it will be looked up by the filename in config. Anyway, if not found input would be processed by line.")
         cli.p(longOpt:"parse", "Toggles logging .properties file to grepp config parsing")
         cli.e("Toggles thread ID preserving, i.e. all the records for a thread will be fetched")
         cli.d(longOpt:"dtime", args:2, valueSeparator:";", argName:"from;to", """Tells grepp to include files/log entries within the supplied timeframe.
@@ -179,7 +176,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 
 
-	public FilterChain getFileFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
+	public FilterChain makeFileFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
         FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>()
         fileFilterChain.add(new FileSortFilter())
         fileFilterChain.disableFilter(FileSortFilter.class)
@@ -204,7 +201,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		return fileFilterChain
 	}
 
-    public FilterChain getEntryFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
+    public FilterChain makeEntryFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
         FilterChain<String> entryFilterChain = new FilterChain<String>()
         entryFilterChain.disableFilter(FileSortFilter.class)
         entryFilterChain.disableFilter(FileDateFilter.class)
@@ -215,8 +212,8 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		FileNameParser fileNameParser = new FileNameParser()
 		varParsers.addAll([filterParser, fileNameParser])
 
-		if (options.L) {
-			def logEntryFilter = new LogEntryFilter(options.L)
+		if (options.l) {
+			def logEntryFilter = new LogEntryFilter(options.l)
 			logEntryFilter.lock()
 			entryFilterChain.add(logEntryFilter)
 		}
@@ -271,7 +268,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		return entryFilterChain
 	}
 
-	public GreppOutput getOutput(ConfigObject runtimeConfig, FilterChain entryFilterChain) {
+	public GreppOutput makeOutput(ConfigObject runtimeConfig, FilterChain entryFilterChain) {
 		PrintWriter printer = null
 		GreppOutput output = null
 		if (options.p) {
@@ -291,7 +288,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		return output
 	}
 
-	public DataProcessor getProcessor(ConfigObject runtimeConfig, FilterChain fileFilterChain) {
+	public DataProcessor makeProcessor(ConfigObject runtimeConfig, FilterChain fileFilterChain) {
 		DataProcessor processor = null
 		if (runtimeConfig.runtime.data.containsKey('files')) {
 			processor = new TextFileProcessor(output, fileFilterChain, options.m != null)
@@ -306,12 +303,12 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 
 	public void process(String[] args) {
-		def options = getOptions(args)
+		def options = parseOptions(args)
 		def runtimeConfig = makeRuntimeConfig()
-		def entryFilterChain = getEntryFilterChain(runtimeConfig, options)
-		def fileFilterChain = getFileFilterChain(runtimeConfig, options)
-		def output = getOutput(runtimeConfig, entryFilterChain)
-		def processor = getProcessor(runtimeConfig, fileFilterChain)
+		def entryFilterChain = makeEntryFilterChain(runtimeConfig, options)
+		def fileFilterChain = makeFileFilterChain(runtimeConfig, options)
+		def output = makeOutput(runtimeConfig, entryFilterChain)
+		def processor = makeProcessor(runtimeConfig, fileFilterChain)
 		processor.process(runtimeConfig.runtime.data)
 	}
 
