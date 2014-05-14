@@ -34,8 +34,8 @@ public abstract class RefreshableFilterBase<T> extends FilterBase<T> implements 
             throw new IllegalArgumentException("configId shoudn't be null!");
         }
 
-        if (isLocked) {
-            LOGGER.debug("{} refresh is locked", this.getClass().getName());
+        if (this.config == null || isLocked) {
+            LOGGER.debug("{} refresh is locked; config is null? {}", this.getClass().getName(), this.config == null);
             return false;
         }
 

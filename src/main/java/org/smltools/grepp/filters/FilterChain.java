@@ -19,8 +19,7 @@ import org.smltools.grepp.filters.enums.Event;
 
 public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
     private static final Logger LOGGER = LoggerFactory.getLogger(FilterChain.class);
-    private List<Class<? extends Filter>> filterOrderList = new ArrayList<Class<? extends Filter>>();
-    private Comparator<Class<? extends Filter>> NATURAL_BY_ORDER_FIELD = new Comparator<Class<? extends Filter>>() {
+    private static final Comparator<Class<? extends Filter>> NATURAL_BY_ORDER_FIELD = new Comparator<Class<? extends Filter>>() {
         @Override
         public int compare(Class<? extends Filter> c1, Class<? extends Filter> c2) {
         	FilterParams params1 = c1.getAnnotation(FilterParams.class);
@@ -40,14 +39,6 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
         	else {
         		return 0;
         	}
-        }
-    };
-
-    private Comparator<Filter<?>> naturalByOrderedList = new Comparator<Filter<?>>() {
-        @Override
-        public int compare(Filter<?> o1, Filter<?> o2) {
-            int diff = filterOrderList.indexOf(o1.getClass()) - filterOrderList.indexOf(o2.getClass());
-            return diff > 0 ? -1 : diff < 0 ? 1 : 0;
         }
     };
 
@@ -72,12 +63,23 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 		} 
 	}
 
+    private List<Class<? extends Filter>> filterOrderList = new ArrayList<Class<? extends Filter>>();
+    private Comparator<Filter<?>> naturalByOrderedList = new Comparator<Filter<?>>() {
+        @Override
+        public int compare(Filter<?> o1, Filter<?> o2) {
+            int diff = filterOrderList.indexOf(o1.getClass()) - filterOrderList.indexOf(o2.getClass());
+            return diff > 0 ? -1 : diff < 0 ? 1 : 0;
+        }
+    };
+
 	private final List<Filter<T>> filters = new ArrayList<Filter<T>>();
 	private final Aggregator<T> aggregator;
+	private final Map<?, ?> config;
 	private Map<?, ?> state = new HashMap();
 	private boolean isLocked = false;
 
-	public FilterChain(Aggregator<T> aggregator) {
+	public FilterChain(Map<?, ?> config, Aggregator<T> aggregator) {
+		this.config = config;
 		this.aggregator = aggregator;
 	}
 
@@ -85,6 +87,15 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
     public void setState(Map<?,?> state) {
     	this.state = state;
     	//currently thinking should we really store all state outside, or have it just for something global
+    }
+
+    public boolean has(Class<? extends Filter> filterClass) {
+    	for (Filter<T> filter: filters) {
+    		if (filter.getClass().equals(filterClass)) {
+    			return true;
+    		}
+    	}
+    	return false;
     }
 
 	public void add(Filter<T> filter) {
@@ -101,12 +112,12 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public boolean addByConfigAndConfigId(Map<?, ?> config, String configId) {
+	public boolean addByConfigId(String configId) {
 			if (isLocked) return false;
 
             boolean wasAdded = false;
             for (Class<? extends Filter> filterClass: filterOrderList) {
-				if (FilterBase.class.isAssignableFrom(filterClass)) {
+				if (!has(filterClass) && FilterBase.class.isAssignableFrom(filterClass)) {
                     try {
                         Method configIdExistsMethod = filterClass.getMethod("configIdExists", Map.class, String.class);
                         if ((Boolean) configIdExistsMethod.invoke(null, config, configId)) {
@@ -131,16 +142,18 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 
     @Deprecated
     public void enableFilter(Class<? extends Filter> filterClass) {
-    	if (filterClass != null && !filterOrderList.contains(filterClass)) {
-        	filterOrderList.add(filterClass);
-        	FilterParams params = filterClass.getAnnotation(FilterParams.class);
-        	if (params != null) {
-        		Class<? extends Filter> replaceClass = params.replaces();
-        		if (replaceClass != null && replaceClass != NoOpFilter.class) {
-        			filterOrderList.remove(replaceClass);
-        		}
+    	if (filterClass != null) {
+    		if (!filterOrderList.contains(filterClass)) {
+	        	filterOrderList.add(filterClass);
+	        	FilterParams params = filterClass.getAnnotation(FilterParams.class);
+	        	if (params != null) {
+	        		Class<? extends Filter> replaceClass = params.replaces();
+	        		if (replaceClass != null && replaceClass != NoOpFilter.class) {
+	        			filterOrderList.remove(replaceClass);
+	        		}
+	        	}
+	        	Collections.sort(filterOrderList, NATURAL_BY_ORDER_FIELD);
         	}
-        	Collections.sort(filterOrderList, NATURAL_BY_ORDER_FIELD);
         }
         else {
         	throw new IllegalArgumentException("Filter class shouldn't be null!");
@@ -240,6 +253,9 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
                 hasChanged |= ((Refreshable) filter).refreshByConfigId(configId);
             }
 		}
+
+		hasChanged |= addByConfigId(configId);
+
 		return hasChanged;
 	}
 

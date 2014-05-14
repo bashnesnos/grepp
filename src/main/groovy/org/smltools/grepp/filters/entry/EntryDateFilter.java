@@ -39,19 +39,8 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 	public EntryDateFilter(String logDatePtrn, String logDateFormat, Date from, Date to) {
 		super(EntryDateFilter.class);
 		
-		if (logDatePtrn != null) {
-			this.logDatePtrn = Pattern.compile(logDatePtrn);	
-		}
-		// else {
-		// 	throw new IllegalArgumentException("logDatePtrn was not supplied");
-		// }
-		
-		if (logDateFormat != null) {
-			this.logDateFormat = new SimpleDateFormat(logDateFormat);
-		}	
-		// else {
-		// 	throw new IllegalArgumentException("logDateFormat was not supplied");
-		// }
+		setLogDatePattern(logDatePtrn);
+		setLogDateFormat(logDateFormat);
 
 		if (from != null || to != null) {
 			this.from = from;
@@ -60,7 +49,38 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 		else {
 			throw new IllegalArgumentException("Either 'from' or 'to' date should be supplied");	
 		}
+		isStateOptional = true;
+	}
+
+	public EntryDateFilter(Map<?, ?> config) {
+		super(EntryDateFilter.class, config);
 		isStateOptional = false;
+	}
+
+    public void setFrom(Date from) {
+    	this.from = from;
+    }
+
+    public void setTo(Date to) {
+    	this.to = to;
+    }
+
+	public void setLogDatePattern(String logDatePtrn) {
+		if (logDatePtrn != null) {
+			this.logDatePtrn = Pattern.compile(logDatePtrn);	
+		}
+		else {
+			throw new IllegalArgumentException("logDatePtrn was not supplied");
+		}
+	}
+
+	public void setLogDateFormat(String logDateFormat) {
+		if (logDateFormat != null) {
+			this.logDateFormat = new SimpleDateFormat(logDateFormat);
+		}	
+		else {
+			throw new IllegalArgumentException("logDateFormat was not supplied");
+		}
 	}
 
 	/**
@@ -107,6 +127,10 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {
+	if (config == null) {
+			throw new IllegalArgumentException("Config can't be null!");
+		}
+
 		Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
 		if (configs != null) {
 			return configs.containsKey(configId);
@@ -115,14 +139,6 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 			return false;
 		}
 	}
-
-    public void setFrom(Date from) {
-    	this.from = from;
-    }
-
-    public void setTo(Date to) {
-    	this.to = to;
-    }
 
 	/**
 	 * Checks if supplied entry suits desired from and to date and time.

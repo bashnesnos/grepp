@@ -50,9 +50,8 @@ class InputStreamProcessor implements DataProcessor<InputStream> {
         catch(FilteringIsInterruptedException e) {
             log.trace("No point to read file further as identified by filter chain")
         }
-	finally {
-            output.processEvent(Event.CHUNK_ENDED)
-        }
+
+        output.processEvent(Event.CHUNK_ENDED)
         log.info("Stream ended. Lines processed: {}", curLine)
     }
 

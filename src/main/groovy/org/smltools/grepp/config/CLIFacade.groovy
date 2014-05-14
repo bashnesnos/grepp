@@ -5,6 +5,7 @@ import groovy.util.ConfigObject
 import groovy.util.OptionAccessor
 import org.smltools.grepp.config.varparsers.*
 import org.smltools.grepp.filters.FilterChain
+import org.smltools.grepp.filters.StringAggregator
 import org.smltools.grepp.filters.entry.EntryDateFilter
 import org.smltools.grepp.filters.entry.LogEntryFilter
 import org.smltools.grepp.filters.entry.SimpleFilter
@@ -142,8 +143,6 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	public ConfigObject makeRuntimeConfig() {
 
         ConfigObject runtimeConfig = new ConfigObject()
-        runtimeConfig.putAll(config)
-
         runtimeConfig.runtime.spoolFileExtension = config.defaults.spoolFileExtension
         runtimeConfig.runtime.resultsDir = config.defaults.resultsDir
                 
@@ -163,11 +162,11 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 
 
 	public FilterChain makeFileFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
-        FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>()
+        FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>(config, new StringAggregator())
         fileFilterChain.add(new FileSortFilter())
 
 		if (options.d) {
-			if (runtimeConfig.runtime.containskey('dateFilter')) {
+			if (runtimeConfig.runtime.containsKey('dateFilter')) {
 				fileFilterChain.add(new FileDateFilter(runtimeConfig.runtime.dateFilter.from, runtimeConfig.runtime.dateFilter.to, null)) //postpone file-specific filter creation
 			}
 			else {
@@ -181,7 +180,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 
     public FilterChain makeEntryFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
-        FilterChain<String> entryFilterChain = new FilterChain<String>()
+        FilterChain<String> entryFilterChain = new FilterChain<String>(config, new StringAggregator())
         entryFilterChain.enableFilter(LogEntryFilter.class)
 
 		Deque<ParamParser> varParsers = new ArrayDeque<ParamParser>();
@@ -198,10 +197,10 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.p) {
 			varParsers.remove(filterParser)
-			entryFilterChain.enableFilter(PropetiesFilter.class)
+			entryFilterChain.add(new PropertiesFilter())
 		}
 		else {
-			entryFilterChain.enableFilter(EntryDateFilter.class)
+			entryFilterChain.enableFilter(LogEntryFilter.class)
 			entryFilterChain.enableFilter(PostFilter.class)
 			entryFilterChain.enableFilter(SimpleFilter.class)
 		}
@@ -216,14 +215,21 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 			options.ds.each {
 				dtimeParser.parseVar(runtimeConfig, it)
 			}
-
-			entryFilterChain.add(new EntryDateFilter(null, null, runtimeConfig.runtime.dateFilter.from, runtimeConfig.runtime.dateFilter.to)) //postpone file-specific filter creation
+			def entryDateFilter = new EntryDateFilter(config)
+			entryDateFilter.setFrom(runtimeConfig.runtime.dateFilter.from)
+			entryDateFilter.setTo(runtimeConfig.runtime.dateFilter.to)
+			entryFilterChain.add(entryDateFilter) //postpone file-specific filter creation
 		}
 
 		for (arg in options.arguments()) {
 			log.debug("next arg: {}", arg);
 			if (!this.processOptions(entryFilterChain, arg)) {
-				ParamParser<?> paramParser = varParsers.pop() 
+				ParamParser<?> paramParser = varParsers.pop()
+				if (paramParser instanceof FilterParser) {
+					if (entryFilterChain.has(SimpleFilter.class) || entryFilterChain.has(ThreadFilter.class)) {
+						paramParser = varParsers.pop() //i.e. skipping filterParser
+					}
+				}
 				if (!paramParser.parseVar(runtimeConfig, arg)) { //pushing back since this parser has more to parse
 					varParsers.push(paramParser)
 				}
@@ -232,17 +238,19 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (runtimeConfig.runtime.containsKey('filterPattern')) {
 			if (options.e) {
-				entryFilterChain.add(new SimpleFilter(runtimeConfig.runtime.filterPattern))
+				def threadFilter = new ThreadFilter(config)
+				threadFilter.setFilterPattern(runtimeConfig.runtime.filterPattern)
+				entryFilterChain.add(threadFilter)	
 			}
 			else {
-				entryFilterChain.add(new ThreadFilter(runtimeConfig.runtime.filterPattern, null, null, null))	
+				entryFilterChain.add(new SimpleFilter(runtimeConfig.runtime.filterPattern))
 			}
 		}
 
 		return entryFilterChain
 	}
 
-	public GreppOutput makeOutput(ConfigObject runtimeConfig, FilterChain entryFilterChain) {
+	public GreppOutput makeOutput(ConfigObject runtimeConfig, FilterChain entryFilterChain, OptionAccessor options) {
 		PrintWriter printer = null
 		GreppOutput output = null
 		if (options.p) {
@@ -262,10 +270,10 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		return output
 	}
 
-	public DataProcessor makeProcessor(ConfigObject runtimeConfig, FilterChain fileFilterChain) {
+	public DataProcessor makeProcessor(ConfigObject runtimeConfig, GreppOutput output, FilterChain fileFilterChain, OptionAccessor options) {
 		DataProcessor processor = null
 		if (runtimeConfig.runtime.data.containsKey('files')) {
-			processor = new TextFileProcessor(output, fileFilterChain, options.m != null)
+			processor = new TextFileProcessor(output, fileFilterChain, options.m)
 			runtimeConfig.runtime.data = runtimeConfig.runtime.data.files
 			
 		}
@@ -281,8 +289,8 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		def runtimeConfig = makeRuntimeConfig()
 		def entryFilterChain = makeEntryFilterChain(runtimeConfig, options)
 		def fileFilterChain = makeFileFilterChain(runtimeConfig, options)
-		def output = makeOutput(runtimeConfig, entryFilterChain)
-		def processor = makeProcessor(runtimeConfig, fileFilterChain)
+		def output = makeOutput(runtimeConfig, entryFilterChain, options)
+		def processor = makeProcessor(runtimeConfig, output, fileFilterChain, options)
 		processor.process(runtimeConfig.runtime.data)
 	}
 
@@ -343,7 +351,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @throws IllegalArgumentException If the supplied <code>arg</code> is not configured, i.e. cannot be found in the config.xml.
 	 */
 	protected void loadParamsById(FilterChain filterChain, String id) {
-                if (id != null && !filterChain.addByConfigAndConfigId(config, id)) {
+                if (id != null && !filterChain.addByConfigId(id)) {
                     throw new IllegalArgumentException("Invalid id, doesn't match any pre-configured: " + id)
 		}
 	}

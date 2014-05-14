@@ -31,7 +31,7 @@ public abstract class FilterBase<T> implements Filter<T>, Configurable {
         }
         
 	public FilterBase(Class<?> subclazz, Map<?, ?> config) {
-                if (subclazz == null || config == null) {
+        if (subclazz == null || config == null) {
 			throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (subclazz != null) + ";" + (config != null));
 		}
 		this.config = config;

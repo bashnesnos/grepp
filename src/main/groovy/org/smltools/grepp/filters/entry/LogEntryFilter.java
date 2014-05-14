@@ -31,11 +31,20 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	 */
 	public LogEntryFilter(String logEntryPtrn) {
 		super(LogEntryFilter.class);
+		setLogEntryPattern(logEntryPtrn);
+	}
+
+	public void setLogEntryPattern(String logEntryPtrn) {
 		LOGGER.debug("Entry pattern :/{}/", logEntryPtrn);
 		this.logEntryPtrn = Pattern.compile(logEntryPtrn);
         this.setState(null);
         flush();
 	}
+
+	public LogEntryFilter(Map<?, ?> config) {
+		super(LogEntryFilter.class, config);
+	}
+
 
 	/**
 	* Creates LogEntryFilter from config
@@ -83,6 +92,10 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {
+		if (config == null) {
+			throw new IllegalArgumentException("Config can't be null!");
+		}
+
 		Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
 		if (configs != null) {
 			return configs.containsKey(configId);

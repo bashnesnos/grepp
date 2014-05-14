@@ -43,7 +43,7 @@ public class ConfigHolder extends ConfigObject {
                     throw new IllegalArgumentException("Both config and fileName shouldn't be null");
             }
 
-            return config.saveConfigs.findResult { configId, props ->
+            return config.savedConfigs.findResult { configId, props ->
                     if (props.containsKey(SAVED_CONFIG_FILENAME_PATTERN_KEY)) {
                             String currentConfigPtrn = props.pattern
                             if (fileName =~ currentConfigPtrn) {

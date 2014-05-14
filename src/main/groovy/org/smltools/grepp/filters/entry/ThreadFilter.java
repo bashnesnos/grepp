@@ -30,8 +30,8 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 
 	//Complex pattern processing and stuff
 	private List<String> threadStartExtractorList;
-	private List<String> threadStartPatternList;
-	private List<String> threadSkipEndPatternList;
+	private List<String> threadStartPatternList = new ArrayList<String>();
+	private List<String> threadSkipEndPatternList = new ArrayList<String>();
 	private List<String> threadEndPatternList;
 
 	private Map<?,?> state = new HashMap<Object, Object>();
@@ -42,13 +42,14 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 	 */
 
 	public ThreadFilter(String filterPattern, List<String> threadStartExtractorList, 
-		List<String> threadSkipEndPatternList, List<String> threadEndPatternList)
-	{
+		List<String> threadSkipEndPatternList, List<String> threadEndPatternList) {
 		super(ThreadFilter.class, filterPattern);
 		if (threadStartExtractorList != null) {
 			this.threadStartExtractorList = threadStartExtractorList;
-			this.threadStartPatternList = new ArrayList<String>();
-			this.threadSkipEndPatternList = threadSkipEndPatternList != null ? threadSkipEndPatternList : new ArrayList<String>();
+			if (threadSkipEndPatternList != null) {
+				this.threadSkipEndPatternList = threadSkipEndPatternList;
+			}
+
 			if (threadEndPatternList != null) {
 				this.threadEndPatternList = threadEndPatternList;
 			}
@@ -60,6 +61,23 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 				LOGGER.trace("{}\n{}\n{}\n{}", threadStartExtractorList, threadStartPatternList, threadSkipEndPatternList, threadEndPatternList);
 			}
 		}
+	}
+
+	public ThreadFilter(Map<?, ?> config) {
+		super(ThreadFilter.class, config);
+	}
+
+	public void setThreadExtractorList(List<String> threadStartExtractorList) {
+		this.threadStartExtractorList = threadStartExtractorList;
+		this.threadStartPatternList = new ArrayList<String>();
+	}
+
+	public void setThreadSkipEndPatternList(List<String> threadSkipEndPatternList) {
+		this.threadSkipEndPatternList = threadSkipEndPatternList;
+	}
+
+	public void setThreadEndPatternList(List<String> threadEndPatternList) {
+		this.threadEndPatternList = threadEndPatternList;
 	}
 
 	/**
@@ -108,6 +126,10 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {
+		if (config == null) {
+			throw new IllegalArgumentException("Config can't be null!");
+		}
+
 		Map<?, ?> threadConfigs = (Map<?,?>) config.get(THREADS_CONFIG_KEY);
 		
 		if (threadConfigs != null) {
@@ -125,6 +147,10 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 
 	@Override
 	public String filter(String blockData) {
+		if (threadStartExtractorList == null || threadEndPatternList == null) {
+			throw new IllegalStateException("Extractors and ends should be supplied either via configId or explicitly!");
+		}
+
 		String passedData = super.filter(blockData);
 		if (passedData != null) {
 			extractThreadPatterns(passedData);
@@ -169,12 +195,11 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 		}
 		
 		String newPtrn = patternBuilder.toString();
-		if(LOGGER.isTraceEnabled()) LOGGER.trace("New pattern: {}", newPtrn);
-	
 		if (currentPattern == null || !currentPattern.toString().equals(newPtrn)) {
 			currentPattern = Pattern.compile(newPtrn);
 		}
-
+		
+		if(LOGGER.isTraceEnabled()) LOGGER.trace("New pattern: {}", currentPattern);
 	}
 
 	/**
@@ -304,12 +329,12 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
             throw new IllegalArgumentException("configId shoudn't be null!");
         }
 
-        if (isLocked) {
-            LOGGER.debug("{} refresh is locked", this.getClass().getName());
+        if (this.config == null || isLocked) {
+            LOGGER.debug("{} refresh is locked; config is null? {}", this.getClass().getName(), this.config == null);
             return false;
         }
 
-        if (this.configId.equals(configId)) {
+        if (this.configId != null && this.configId.equals(configId)) {
             return false; //same configId, no need refreshing
         }
 

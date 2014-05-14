@@ -29,7 +29,7 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
 
     public FileDateFilter(Date from, Date to, Long logFileThreshold)
     {
-        super(FileDateFilter.class, null)
+        super(FileDateFilter.class)
 
         if (from == null && to == null) {
             throw new IllegalArgumentException("Either 'from' or 'to' should be supplied")

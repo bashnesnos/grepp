@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-import org.smltools.grepp.config.ConfigHolder;
+import groovy.util.ConfigObject;
 import groovy.util.logging.Slf4j;
 
 /**
@@ -19,14 +19,14 @@ class FileNameParser implements ParamParser<String> {
 	private static final String FOLDER_SEPARATOR_KEY = "folderSeparator"
 	private static final String FILES_KEY = "files"
 	@Override
-	public boolean parseVar(ConfigHolder config, String fileName) {
+	public boolean parseVar(ConfigObject config, String fileName) {
 		return parseVarInternal(config, fileName)
 	}
 
-	private boolean parseVarInternal(ConfigHolder config, String fileName) {
+	private boolean parseVarInternal(ConfigObject config, String fileName) {
 		List<File> fileList = []
 		def fSeparator = config.runtime."$FOLDER_SEPARATOR_KEY"
-		def curDir = config.runtime.cwd
+		def curDir = config.runtime.containsKey('cwd') ? config.runtime.cwd : null
 
 		log.trace("analyzing supplied file: {}", fileName)
 		if (fileName =~ /\*/) {

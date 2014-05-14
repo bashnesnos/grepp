@@ -53,7 +53,7 @@ public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String
 
 	@Override
 	public void refreshFilters(String fileName) {
-                String configId = ConfigHolder.findConfigIdByFileName(config, fileName)
+        String configId = ConfigHolder.findConfigIdByFileName(config, fileName)
 		if (configId != null) {
 			filterChain.refreshByConfigId(configId)
 		}

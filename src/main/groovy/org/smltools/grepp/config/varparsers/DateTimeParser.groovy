@@ -3,7 +3,7 @@ package org.smltools.grepp.config.varparsers
 import java.text.SimpleDateFormat
 import java.util.Map;
 
-import org.smltools.grepp.config.ConfigHolder
+import groovy.util.ConfigObject
 import groovy.util.logging.Slf4j;
 import groovy.xml.dom.DOMCategory
 
@@ -24,14 +24,14 @@ class DateTimeParser implements ParamParser<String>
 	private boolean initialized = false
     private boolean isFromParsed = false
     private boolean isToParsed = false
-	private ConfigHolder config
+	private ConfigObject config
     private SimpleDateFormat defaultDateFormat = null
     private Map<String, String> offsetParamMap = [:]
 	
 	/**
 	 * Fetches needed params from config and parses patterns from config.xml by identified <config> id.
 	 * 
-	 * @param config initialized instance of ConfigHolder
+	 * @param config initialized instance of ConfigObject
 	 */
     public DateTimeParser()
     {
@@ -116,7 +116,7 @@ class DateTimeParser implements ParamParser<String>
             log.trace("Total minutes: {}", minutesMatcher.group(1))
             def minutes = Integer.valueOf(minutesMatcher.group(1))*60*1000
             def curDate = config.runtime.dateFilter."$paramName"
-			if (curDate == null || curDate.isEmpty()) curDate = new Date()
+			if (curDate == null || !curDate instanceof Date) curDate = new Date()
 			
             date = curDate
             switch(offsetStr) {
@@ -170,7 +170,7 @@ class DateTimeParser implements ParamParser<String>
     }
 
 	@Override
-	public boolean parseVar(ConfigHolder config, String arg) {
+	public boolean parseVar(ConfigObject config, String arg) {
         this.config = config
 
 		log.trace("Parsing var: {}", arg)

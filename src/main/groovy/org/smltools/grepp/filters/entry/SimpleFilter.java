@@ -38,7 +38,7 @@ public class SimpleFilter extends FilterBase<String> {
 
 	public SimpleFilter(String filterPattern)
 	{
-		super(SimpleFilter.class, null);
+		super(SimpleFilter.class);
 		setFilterPattern(filterPattern);
 	}
 
@@ -60,6 +60,10 @@ public class SimpleFilter extends FilterBase<String> {
 
 	public String getFilterPattern() {
 		return filterPattern;
+	}
+
+	public SimpleFilter(Class<?> subclazz, Map<?, ?> config) {
+		super(subclazz, config);
 	}
 
 	/**
@@ -97,6 +101,10 @@ public class SimpleFilter extends FilterBase<String> {
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {
+		if (config == null) {
+			throw new IllegalArgumentException("Config can't be null!");
+		}
+
 		Map<?, ?> filterConfigs = (Map<?,?>) config.get(FILTERS_CONFIG_KEY);
 		
 		if (filterConfigs != null) {

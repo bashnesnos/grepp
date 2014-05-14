@@ -1,6 +1,6 @@
 package org.smltools.grepp.config.varparsers
 
-import org.smltools.grepp.config.ConfigHolder
+import groovy.util.ConfigObject
 import groovy.util.logging.Slf4j
 
 /**
@@ -13,5 +13,5 @@ import groovy.util.logging.Slf4j
 
 interface ParamParser<T>
 {
-	boolean parseVar(ConfigHolder config, T arg);
+	boolean parseVar(ConfigObject config, T arg);
 }

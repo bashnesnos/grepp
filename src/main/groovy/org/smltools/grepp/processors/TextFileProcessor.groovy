@@ -35,6 +35,7 @@ class TextFileProcessor implements DataProcessor<List<File>>
     {
 		output = output_
         isMerging = isMerging_
+        log.trace("Is merging? {}", isMerging_)
 		fileFilter = fileFilter_
     }
 
@@ -60,6 +61,7 @@ class TextFileProcessor implements DataProcessor<List<File>>
     void processSingleFile(File data)
     {
         if (data == null) return
+        log.info("File {} started", data.name)
         def curLine = 0
         GreppOutput output = output //shadowing to get rid of GetEffectivePogo in the loop
         try {
@@ -72,10 +74,12 @@ class TextFileProcessor implements DataProcessor<List<File>>
         catch(FilteringIsInterruptedException e) {
             log.trace("No point to read file further as identified by filter chain")
         }
-        finally {
-            if (!isMerging) output.processEvent(Event.CHUNK_ENDED)
-            log.info("File ended. Lines processed: {}", curLine)
+
+        if (!isMerging) { 
+        	output.processEvent(Event.CHUNK_ENDED)
         }
+
+        log.info("File {} ended. Lines processed: {}", data.name, curLine)
     }
 
 	@Override

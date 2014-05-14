@@ -47,25 +47,43 @@ public final class PostFilter extends StatefulFilterBase<String> {
     * Also it parses from config.xml post filter pattern configuration basing on fulfilled POST_PROCESSING parameter.
     *
     */
-    PostFilter(String postFilterPattern, String columnSeparator, Map<?,?> postProcessingDictionary, String reportHeader, List<?> groupMethodsList)
-    {
-        super(PostFilter.class, null)
-        GreppUtil.throwIllegalAEifNull(columnSeparator, "Column separator shouldn't be null")
-		this.columnSeparator = columnSeparator
-		
-        GreppUtil.throwIllegalAEifNull(postProcessingDictionary, "postProcessingDictionary shouldn't be null")
-		this.postProcessingDictionary = postProcessingDictionary
+    public PostFilter(String postFilterPattern, String columnSeparator, Map<?,?> postProcessingDictionary, String reportHeader, List<?> groupMethodsList) {
+        super(PostFilter.class)
+		setPostFilterPattern(postFilterPattern)
+        setColumnSeparator(columnSeparator)
+        setPostProcessingDictionary(postProcessingDictionary)
+        setReportHeader(reportHeader)
+		setGroupMethodsList(groupMethodsList)
+    }
 
-		this.reportHeader = reportHeader
+    public PostFilter(Map<?, ?> config) {
+        super(PostFilter.class, config);
+    }
 
-        GreppUtil.throwIllegalAEifNull(groupMethodsList, "groupMethodsList shouldn't be null")
-		this.groupMethodsList = groupMethodsList
-
+    public void setPostFilterPattern(String postFilterPattern) {
         GreppUtil.throwIllegalAEifNull(postFilterPattern, "postFilterPattern shouldn't be null")
         this.postFilterPattern = Pattern.compile(postFilterPattern)
         LOGGER.trace("postFilterPattern: {}", postFilterPattern)
     }
 
+    public void setColumnSeparator(String columnSeparator) {
+        GreppUtil.throwIllegalAEifNull(columnSeparator, "Column separator shouldn't be null")
+        this.columnSeparator = columnSeparator
+    }
+
+    public void setPostProcessingDictionary(Map<?,?> postProcessingDictionary) {
+        GreppUtil.throwIllegalAEifNull(postProcessingDictionary, "postProcessingDictionary shouldn't be null")
+        this.postProcessingDictionary = postProcessingDictionary
+    }
+
+    public void setReportHeader(String reportHeader) {
+        this.reportHeader = reportHeader        
+    }
+
+    public void setGroupMethodsList(List<String> groupMethodsList) {
+        GreppUtil.throwIllegalAEifNull(groupMethodsList, "groupMethodsList shouldn't be null")
+        this.groupMethodsList = groupMethodsList
+    }
 
     /**
     * Creates PostFilter from config
@@ -92,7 +110,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
         columnSeparator = config.defaults.postProcessSeparator.value
         spoolFileExtension = config.defaults.postProcessSeparator.spoolFileExtension
 
-        def handlers = config.postProcessColumns."$postProcessColumnId"
+        def handlers = config.postProcessColumns."$configId"
         def sortedHandlers = handlers.sort { it.value.order }
         def separatorProps = sortedHandlers.find { type, props -> type.equals(SEPARATOR_KEY) }
         if (separatorProps != null) {
@@ -138,13 +156,16 @@ public final class PostFilter extends StatefulFilterBase<String> {
                 }
             }
         }
-        if (reportHeader != null) reportHeader += "\n"
-
+        postFilterPattern = Pattern.compile(postFilterPatternBuilder.toString())
         return true
     }
 
     @SuppressWarnings("unchecked")
     public static boolean configIdExists(Map<?, ?> config, String configId) {
+        if (config == null) {
+            throw new IllegalArgumentException("Config can't be null!");
+        }
+
         return config.postProcessColumns.containsKey(configId)
     }
 
@@ -160,15 +181,19 @@ public final class PostFilter extends StatefulFilterBase<String> {
     */
     @Override
     public String filter(String blockData) {
+        if (postFilterPattern == null) {
+            throw new IllegalStateException("postFilterPattern should be supplied via configId or explicitly!")
+        }
+
          result.setLength(0) //invalidating result first
          Matcher postPPatternMatcher = postFilterPattern.matcher(blockData)
          if (postPPatternMatcher.find()) {//bulk matching all patterns. If any of them won't be matched nothing will be returned
-            if (reportHeader != null && !isHeaderPrinted) {   
-                isHeaderPrinted = true
-                result.append(reportHeader)
-            }
             int ptrnIndex = 1
             postProcessingDictionary.each { ptrn, handler -> aggregatePostProcess(postPPatternMatcher, result, columnSeparator, handler, ptrnIndex++)} //TODO: new handlers model is needed
+            if (reportHeader != null && !isHeaderPrinted && groupMethodsList.isEmpty()) {   
+                isHeaderPrinted = true
+                result.insert(0, reportHeader + "\n")
+            }
          }
         
         return (result != null && result.size() > 0) ? result.toString() : null
@@ -218,7 +243,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
 	
     private StringBuilder aggregatorAppend(StringBuilder agg, String sep, def val)
     {
-        return (agg.size() > 0) ? agg.append(sep).append(val):agg.append(val)
+        return (agg.size() > 0) ? agg.append(sep).append(val) : agg.append(val)
     }
 
 	/**
@@ -337,7 +362,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
 	 * 
 	 */
     private String processGroups() {
-        StringBuilder rslt = new StringBuilder( reportHeader != null && !isHeaderPrinted ? reportHeader : "");
+        StringBuilder rslt = new StringBuilder( reportHeader != null && !isHeaderPrinted ? reportHeader + "\n" : "");
 		groupMap.each { group ->
             rslt.append(group.getKey())
             groupMethodsList.each { method ->

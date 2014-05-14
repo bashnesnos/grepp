@@ -4,7 +4,9 @@ import java.util.regex.*
 import org.smltools.grepp.filters.Filter
 import org.smltools.grepp.util.GreppUtil
 import groovy.util.ConfigObject
+import groovy.util.logging.Slf4j
 
+@Slf4j
 public final class PropertiesFilter implements Filter<String> {
 	//CW stands for Conversion Word
 	private static String CW_STARTER = "%"
@@ -277,7 +279,7 @@ public final class PropertiesFilter implements Filter<String> {
     }
 
 	public PropertiesFilter(){
-        super(PropertiesFilter.class, null)
+
 	}
 
 	class SavedConfigBuilder {
