@@ -36,20 +36,6 @@ public class CLIFacade {
 	//OPTIONS
 	protected File curWorkDir //allows to restrict access to a supplied working dir only
         
-
-    static { //filter order and other meta-data init here
-        FilterChain.setFilterOrder(
-            [FileDateFilter.class, 
-                FileSortFilter.class,
-                LogEntryFilter.class,
-                PropertiesFilter.class,
-                ThreadFilter.class,
-                SimpleFilter.class,
-                EntryDateFilter.class,
-                PostFilter.class]
-            )
-    }
-    
 	public CLIFacade(ConfigHolder config) {
 		this.config = config
 	}
@@ -179,13 +165,6 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 	public FilterChain makeFileFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
         FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>()
         fileFilterChain.add(new FileSortFilter())
-        fileFilterChain.disableFilter(FileSortFilter.class)
-        fileFilterChain.disableFilter(LogEntryFilter.class)
-        fileFilterChain.disableFilter(PropertiesFilter.class)
-        fileFilterChain.disableFilter(ThreadFilter.class)
-        fileFilterChain.disableFilter(SimpleFilter.class)
-        fileFilterChain.disableFilter(EntryDateFilter.class)
-        fileFilterChain.disableFilter(PostFilter.class)
 
 		if (options.d) {
 			if (runtimeConfig.runtime.containskey('dateFilter')) {
@@ -203,8 +182,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 
     public FilterChain makeEntryFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
         FilterChain<String> entryFilterChain = new FilterChain<String>()
-        entryFilterChain.disableFilter(FileSortFilter.class)
-        entryFilterChain.disableFilter(FileDateFilter.class)
+        entryFilterChain.enableFilter(LogEntryFilter.class)
 
 		Deque<ParamParser> varParsers = new ArrayDeque<ParamParser>();
 
@@ -220,20 +198,16 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.p) {
 			varParsers.remove(filterParser)
-			entryFilterChain.disableFilter(ThreadFilter.class)
-			entryFilterChain.disableFilter(SimpleFilter.class)
-			entryFilterChain.disableFilter(EntryDateFilter.class)
-			entryFilterChain.disableFilter(PostFilter.class)
+			entryFilterChain.enableFilter(PropetiesFilter.class)
 		}
 		else {
-			entryFilterChain.disableFilter(PropetiesFilter.class)
+			entryFilterChain.enableFilter(EntryDateFilter.class)
+			entryFilterChain.enableFilter(PostFilter.class)
+			entryFilterChain.enableFilter(SimpleFilter.class)
 		}
 
 		if (options.e) {
-			entryFilterChain.disableFilter(SimpleFilter.class)
-		}
-		else {
-			entryFilterChain.disableFilter(ThreadFilter.class)
+			entryFilterChain.enableFilter(ThreadFilter.class)			
 		}
 
 		if (options.d) {

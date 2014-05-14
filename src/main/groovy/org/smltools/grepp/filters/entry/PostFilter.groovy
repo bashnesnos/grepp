@@ -11,6 +11,7 @@ import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.enums.Qualifier
 import org.smltools.grepp.filters.StatefulFilterBase
+import org.smltools.grepp.filters.FilterParams
 
 /**
  * Class which provide post filtering of passed entries <br>
@@ -20,7 +21,7 @@ import org.smltools.grepp.filters.StatefulFilterBase
  * 
  * @author Alexander Semelit 
  */
-
+@FilterParams(order = 20)
 public final class PostFilter extends StatefulFilterBase<String> {
     public static final String SEPARATOR_KEY = 'postProcessSeparator'
     public static final String SPOOL_EXTENSION_KEY = 'spoolFileExtension'

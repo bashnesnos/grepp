@@ -6,6 +6,7 @@ import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.Refreshable;
 import org.smltools.grepp.filters.Stateful;
+import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.*;
 import org.smltools.grepp.util.GreppUtil;
 
@@ -20,6 +21,7 @@ import org.smltools.grepp.util.GreppUtil;
  *
  */
 
+@FilterParams(order = 5, replaces = SimpleFilter.class)
 public final class ThreadFilter extends SimpleFilter implements Stateful<String>, Refreshable {
 	public final static String THREADS_CONFIG_KEY = "processThreads";
 	public final static String THREAD_EXTRACTORS_KEY = "extractors";

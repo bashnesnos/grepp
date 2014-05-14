@@ -5,6 +5,7 @@ import java.util.regex.*;
 
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.FilterBase;
+import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.*;
 
 
@@ -18,6 +19,7 @@ import org.smltools.grepp.filters.enums.*;
  *
  */
 
+@FilterParams(order = 5)
 public class SimpleFilter extends FilterBase<String> {
 	public final static String FILTERS_CONFIG_KEY = "filterAliases";
 

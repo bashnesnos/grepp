@@ -19,12 +19,35 @@ import org.smltools.grepp.filters.enums.Event;
 
 public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
     private static final Logger LOGGER = LoggerFactory.getLogger(FilterChain.class);
-    private static List<Class<? extends Filter>> FILTER_ORDER = new ArrayList<Class<? extends Filter>>();
-    private static final Comparator<Filter<?>> BY_ORDER_FIELD = new Comparator<Filter<?>>() {
+    private List<Class<? extends Filter>> filterOrderList = new ArrayList<Class<? extends Filter>>();
+    private Comparator<Class<? extends Filter>> NATURAL_BY_ORDER_FIELD = new Comparator<Class<? extends Filter>>() {
+        @Override
+        public int compare(Class<? extends Filter> c1, Class<? extends Filter> c2) {
+        	FilterParams params1 = c1.getAnnotation(FilterParams.class);
+        	FilterParams params2 = c2.getAnnotation(FilterParams.class);
+        	if (params1 != null) {
+        		if (params2 == null) {
+        			return 1;
+        		}
+        		else {
+        			int diff = params1.order() - params2.order();
+        			return diff > 0 ? -1 : diff < 0 ? 1 : 0;
+        		}
+        	}
+        	else if (params2 != null) {
+        		return -1;
+        	}
+        	else {
+        		return 0;
+        	}
+        }
+    };
+
+    private Comparator<Filter<?>> naturalByOrderedList = new Comparator<Filter<?>>() {
         @Override
         public int compare(Filter<?> o1, Filter<?> o2) {
-            int diff = FILTER_ORDER.indexOf(o1.getClass()) - FILTER_ORDER.indexOf(o2.getClass());
-            return diff < 0 ? -1 : diff > 0 ? 1 : 0;
+            int diff = filterOrderList.indexOf(o1.getClass()) - filterOrderList.indexOf(o2.getClass());
+            return diff > 0 ? -1 : diff < 0 ? 1 : 0;
         }
     };
 
@@ -54,8 +77,6 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 	private Map<?, ?> state = new HashMap();
 	private boolean isLocked = false;
 
-	private Set<Class<? extends Filter>> disabledFilters = new HashSet<Class<? extends Filter>>();
-
 	public FilterChain(Aggregator<T> aggregator) {
 		this.aggregator = aggregator;
 	}
@@ -70,8 +91,9 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 		if (isLocked) return;
 
 		if (filter != null) {
+			enableFilter(filter.getClass());
 			filters.add(filter);
-			Collections.sort(filters, BY_ORDER_FIELD);
+			Collections.sort(filters, naturalByOrderedList);
 		}
 		else {
 			throw new IllegalArgumentException("Filter can't be null!");
@@ -83,39 +105,55 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 			if (isLocked) return false;
 
             boolean wasAdded = false;
-            for (Class<? extends Filter> filterClass: FILTER_ORDER) {
+            for (Class<? extends Filter> filterClass: filterOrderList) {
 				if (FilterBase.class.isAssignableFrom(filterClass)) {
-	                if (!disabledFilters.contains(filterClass)) {
-	                    try {
-	                        Method configIdExistsMethod = filterClass.getMethod("configIdExists", Map.class, String.class);
-	                        if ((Boolean) configIdExistsMethod.invoke(null, config, configId)) {
-	                            add(createFilterFromConfigByConfigId((Class<? extends FilterBase>) filterClass, config, configId));
-	                            wasAdded = true;
-	                        }
-	                    } catch (NoSuchMethodException nsme) {
-	                        throw new RuntimeException(nsme);
-	                    } catch (SecurityException se) {
-	                        throw new RuntimeException(se);
-	                    } catch (IllegalAccessException iae) {
-	                        throw new RuntimeException(iae);
-	                    } catch (IllegalArgumentException iare) {
-	                        throw new RuntimeException(iare);
-	                    } catch (InvocationTargetException ite) {
-	                        throw new RuntimeException(ite);
-	                    }
-	                }
+                    try {
+                        Method configIdExistsMethod = filterClass.getMethod("configIdExists", Map.class, String.class);
+                        if ((Boolean) configIdExistsMethod.invoke(null, config, configId)) {
+                            add(createFilterFromConfigByConfigId((Class<? extends FilterBase>) filterClass, config, configId));
+                            wasAdded = true;
+                        }
+                    } catch (NoSuchMethodException nsme) {
+                        throw new RuntimeException(nsme);
+                    } catch (SecurityException se) {
+                        throw new RuntimeException(se);
+                    } catch (IllegalAccessException iae) {
+                        throw new RuntimeException(iae);
+                    } catch (IllegalArgumentException iare) {
+                        throw new RuntimeException(iare);
+                    } catch (InvocationTargetException ite) {
+                        throw new RuntimeException(ite);
+                    }
     	        }
 			}
             return wasAdded;
 	}
 
     @Deprecated
-    public static void setFilterOrder(List<Class<? extends Filter>> filterOrderList) {
-        FILTER_ORDER = filterOrderList;
+    public void enableFilter(Class<? extends Filter> filterClass) {
+    	if (filterClass != null && !filterOrderList.contains(filterClass)) {
+        	filterOrderList.add(filterClass);
+        	FilterParams params = filterClass.getAnnotation(FilterParams.class);
+        	if (params != null) {
+        		Class<? extends Filter> replaceClass = params.replaces();
+        		if (replaceClass != null && replaceClass != NoOpFilter.class) {
+        			filterOrderList.remove(replaceClass);
+        		}
+        	}
+        	Collections.sort(filterOrderList, NATURAL_BY_ORDER_FIELD);
+        }
+        else {
+        	throw new IllegalArgumentException("Filter class shouldn't be null!");
+        }
     }
         
 	public void disableFilter(Class<? extends Filter> filterClass) {
-		disabledFilters.add(filterClass);
+		if (filterClass != null) {
+			filterOrderList.remove(filterClass);
+		}
+        else {
+        	throw new IllegalArgumentException("Filter class shouldn't be null!");
+        }
 	}
 
 	/**

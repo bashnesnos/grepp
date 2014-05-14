@@ -6,6 +6,7 @@ import org.smltools.grepp.config.ConfigHolder;
 import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.StatefulFilterBase;
+import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.Event;
 
 /**
@@ -17,6 +18,7 @@ import org.smltools.grepp.filters.enums.Event;
  * @author Alexander Semelit
  */
 
+@FilterParams(order = 0)
 public final class LogEntryFilter extends StatefulFilterBase<String> {
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = new StringBuilder();

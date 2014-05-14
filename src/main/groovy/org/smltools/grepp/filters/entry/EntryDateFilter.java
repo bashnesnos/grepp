@@ -11,6 +11,7 @@ import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.exceptions.TimeToIsOverduedException;
 import org.smltools.grepp.filters.OptionallyStateful;
+import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.StatefulFilterBase;
 import org.smltools.grepp.filters.enums.Event;
 
@@ -21,6 +22,7 @@ import org.smltools.grepp.filters.enums.Event;
  * 
  */
 
+@FilterParams(order = 15)
 public final class EntryDateFilter extends StatefulFilterBase<String> implements OptionallyStateful<String> {
 	private final boolean isStateOptional;
 	private Date from;

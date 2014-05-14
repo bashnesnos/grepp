@@ -7,6 +7,7 @@ import groovy.util.logging.Slf4j
 import groovy.xml.dom.DOMCategory
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.RefreshableFilterBase
+import org.smltools.grepp.filters.FilterParams
 
 /**
  * Provides filtering of supplied files by last modified date. <br>
@@ -16,6 +17,7 @@ import org.smltools.grepp.filters.RefreshableFilterBase
  *
  */
 
+@FilterParams(order = 0)
 public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     //Checking dates everywhere
 
