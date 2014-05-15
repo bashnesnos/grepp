@@ -3,7 +3,7 @@ package org.smltools.grepp.filters.entry;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import groovy.util.ConfigObject;
 import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.Refreshable;
@@ -70,15 +70,19 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 	}
 
 	public void setThreadExtractorList(List<String> threadStartExtractorList) {
+		GreppUtil.throwIllegalAEifNull(threadStartExtractorList, "Thread strat extractors shouldn't be null");
 		this.threadStartExtractorList = threadStartExtractorList;
 		this.threadStartPatternList = new ArrayList<String>();
 	}
 
 	public void setThreadSkipEndPatternList(List<String> threadSkipEndPatternList) {
-		this.threadSkipEndPatternList = threadSkipEndPatternList;
+		if (threadSkipEndPatternList != null) {
+			this.threadSkipEndPatternList = threadSkipEndPatternList;
+		}
 	}
 
 	public void setThreadEndPatternList(List<String> threadEndPatternList) {
+		GreppUtil.throwIllegalAEifNull(threadEndPatternList, "Thread ends shouldn't be null");
 		this.threadEndPatternList = threadEndPatternList;
 	}
 
@@ -127,7 +131,7 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
     }
 
     @Override
-    public Map getAsConfig(String configId) {
+    public ConfigObject getAsConfig(String configId) {
         if (configId == null) {
             if (this.configId == null) {
                 throw new IllegalArgumentException("Can't derive configId (none was supplied)");
@@ -137,17 +141,15 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
             }
         }
 
-    	Map result = super.getAsConfig(configId);
-    	Map<Object, Object> extractors = new HashMap<Object, Object>();
-    	extractors.put(THREAD_EXTRACTORS_KEY, threadStartExtractorList);
+        ConfigObject root = super.getAsConfig(configId);
+    	ConfigObject processThreads = (ConfigObject) root.getProperty(THREADS_CONFIG_KEY);
+    	ConfigObject config = (ConfigObject) processThreads.getProperty(configId);
+    	config.put(THREAD_EXTRACTORS_KEY, threadStartExtractorList);
     	if (!threadSkipEndPatternList.isEmpty()) {
-    		extractors.put(THREAD_SKIPENDS_KEY, threadSkipEndPatternList);
+    		config.put(THREAD_SKIPENDS_KEY, threadSkipEndPatternList);
     	}
-    	extractors.put(THREAD_ENDS_KEY, threadEndPatternList);
-    	Map<Object, Object> config = new HashMap<Object, Object>();
-    	config.put(configId, extractors);
-    	result.put(THREADS_CONFIG_KEY, config);
-    	return result;
+    	config.put(THREAD_ENDS_KEY, threadEndPatternList);
+    	return root;
 	}
 
     @SuppressWarnings("unchecked")

@@ -55,15 +55,8 @@ public class ConfigHolder extends ConfigObject {
     
     private URL configFilePath
 
-    public void mergeAndSave(ConfigObject newSubConfig) {
+    public void save() {
     	backupConfigFile()
-    	this.merge(newSubConfig)
-    	newSubConfig.each {id, props ->
-	    	this.savedConfigs."$id" = props
-	    	if (props.containsKey('dateFormat')) {
-	    		this.logDateFormats."$id" = props.dateFormat
-	    	}
-    	}
     	writeToConfigFile()
     }
 

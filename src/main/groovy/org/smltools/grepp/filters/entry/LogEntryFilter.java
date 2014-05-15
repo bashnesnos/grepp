@@ -9,6 +9,7 @@ import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.StatefulFilterBase;
 import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.Event;
+import groovy.util.ConfigObject;
 
 /**
  * Class which provide grouping lines into log entries. <br>
@@ -92,7 +93,7 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
     }
 
     @Override
-    public Map getAsConfig(String configId) {
+    public ConfigObject getAsConfig(String configId) {
         if (configId == null) {
             if (this.configId == null) {
                 throw new IllegalArgumentException("Can't derive configId (none was supplied)");
@@ -102,14 +103,10 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
             }
         }
 
-    	Map result = new HashMap<Object, Object>();
-    	Map<Object, Object> props = new HashMap<Object, Object>();
-    	props.put(ConfigHolder.SAVED_CONFIG_STARTER_KEY, logEntryPtrn.pattern());
-    	Map<Object, Object> config = new HashMap<Object, Object>();
-    	config.put(configId, props);
-    	result.put(ConfigHolder.SAVED_CONFIG_KEY, config);
-    	return result;
-
+        ConfigObject root = new ConfigObject();
+    	ConfigObject savedConfigs = (ConfigObject) root.getProperty(ConfigHolder.SAVED_CONFIG_KEY);
+    	((ConfigObject) savedConfigs.getProperty(configId)).put(ConfigHolder.SAVED_CONFIG_STARTER_KEY, logEntryPtrn.pattern());
+    	return root;
 	}
 
 

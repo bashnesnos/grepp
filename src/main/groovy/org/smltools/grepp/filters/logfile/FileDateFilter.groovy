@@ -10,6 +10,7 @@ import org.smltools.grepp.filters.RefreshableFilterBase
 import org.smltools.grepp.filters.FilterParams
 import org.smltools.grepp.filters.entry.LogEntryFilter
 import org.smltools.grepp.config.ConfigHolder
+import groovy.util.ConfigObject;
 
 /**
  * Provides filtering of supplied files by last modified date. <br>
@@ -82,16 +83,20 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
 
         if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY)) {
             logFileThreshold = customCfg.logThreshold
-            return true;
+            return true
         }
         else {
             LOGGER.debug("Log threshold is not configured for config: {}", configId)
-            return false;
+            return false
         }
     }
 
+    public static boolean configIdExists(Map<?, ?> config, String configId) {
+        return LogEntryFilter.configIdExists(config, configId)
+    }
+
     @Override
-    public Map getAsConfig(String configId) {
+    public ConfigObject getAsConfig(String configId) {
         if (configId == null) {
             if (this.configId == null) {
                 throw new IllegalArgumentException("Can't derive configId (none was supplied)");
@@ -100,9 +105,9 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
                 configId = this.configId;
             }
         }
-        def savedConfigs = [:]
-        savedConfigs[configId] = [logThreshold:this.logThreshold]
-        return [savedConfigs:savedConfigs]
+        def root = new ConfigObject()
+        root."$ConfigHolder.SAVED_CONFIG_KEY"."$configId"."$ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY" = logFileThreshold
+        return root
     }
 
 	/**

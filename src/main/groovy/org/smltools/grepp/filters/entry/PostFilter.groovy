@@ -12,6 +12,7 @@ import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.enums.Qualifier
 import org.smltools.grepp.filters.StatefulFilterBase
 import org.smltools.grepp.filters.FilterParams
+import groovy.util.ConfigObject;
 
 /**
  * Class which provide post filtering of passed entries <br>
@@ -161,7 +162,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
     }
 
     @Override
-    public Map getAsConfig(String configId) {
+    public ConfigObject getAsConfig(String configId) {
         if (configId == null) {
             if (this.configId == null) {
                 throw new IllegalArgumentException("Can't derive configId (none was supplied)");

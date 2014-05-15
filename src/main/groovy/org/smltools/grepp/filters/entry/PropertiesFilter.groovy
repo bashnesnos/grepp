@@ -328,14 +328,16 @@ public final class PropertiesFilter implements Filter<String> {
 			}
 
 			def config = new ConfigObject()
-			def props = config."$idVal"
+			def props = config.savedConfigs."$idVal"
 
 			if (dateFormatVal != null) {
 				props.dateFormat.value = dateFormatVal
+				config.logDateFormats."$idVal".value = props.dateFormat.value				
 			}
 
 			if (dateVal != null) {
 				props.dateFormat.regex = "(" + dateVal + ")"
+				config.logDateFormats."$idVal".regex = props.dateFormat.regex
 			}
 
 			if (starterVal != null && starterVal != dateVal) {

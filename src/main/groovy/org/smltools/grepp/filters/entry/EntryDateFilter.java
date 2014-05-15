@@ -15,7 +15,7 @@ import org.smltools.grepp.filters.OptionallyStateful;
 import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.StatefulFilterBase;
 import org.smltools.grepp.filters.enums.Event;
-
+import groovy.util.ConfigObject;
 /**
  * Class provides entry date filtering for supplied FROM and TO dates.
  * 
@@ -128,8 +128,9 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 		}
     }
 
+	@SuppressWarnings("unchecked")
     @Override
-    public Map getAsConfig(String configId) {
+    public ConfigObject getAsConfig(String configId) {
         if (configId == null) {
             if (this.configId == null) {
                 throw new IllegalArgumentException("Can't derive configId (none was supplied)");
@@ -139,21 +140,15 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
             }
         }
 
-        Map result = new HashMap<Object, Object>();
-    	Map<Object, Object> props = new HashMap<Object, Object>();
-    	props.put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY, logDatePtrn.pattern());
-    	props.put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_VALUE_KEY, logDateFormat.toPattern());
+        ConfigObject result = new ConfigObject();
+    	ConfigObject logDateFormats = (ConfigObject) result.getProperty(LOG_DATE_FORMATS_KEY);
+    	ConfigObject config = (ConfigObject) logDateFormats.getProperty(configId);
 
-	    Map<Object, Object> logDateConfig = new HashMap<Object, Object>();
-    	logDateConfig.put(configId, props);
+    	config.put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_VALUE_KEY, logDateFormat.toPattern());
+		config.put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY, logDatePtrn.pattern());    	
 
-    	result.put(LOG_DATE_FORMATS_KEY, logDateConfig);
-
-    	Map<Object, Object> dateFormatProps = new HashMap<Object, Object>();
-    	dateFormatProps.put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY, props);
-    	Map<Object, Object> config = new HashMap<Object, Object>();
-    	config.put(configId, dateFormatProps);
-    	result.put(ConfigHolder.SAVED_CONFIG_KEY, config);
+    	ConfigObject savedConfigs = (ConfigObject) result.getProperty(ConfigHolder.SAVED_CONFIG_KEY);
+    	((ConfigObject) savedConfigs.getProperty(configId)).put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY, config);
     	return result;
 	}
 

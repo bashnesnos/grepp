@@ -278,18 +278,16 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 
 	@SuppressWarnings("unchecked")
     @Override
-    public Map getAsConfig(String configId) {
-        ConfigObject result = new ConfigObject();
+    public ConfigObject getAsConfig(String configId) {
+        ConfigObject root = new ConfigObject();
 
         for (Filter<?> filter: filters) {
         	if (filter instanceof Configurable) {
-        		ConfigObject nextConfig = new ConfigObject();
-        		nextConfig.putAll(((Configurable) filter).getAsConfig(configId));
-        		result.merge(nextConfig);
+        		root.merge(((Configurable) filter).getAsConfig(configId));
         	}
         }
 
-        return result;
+        return root;
     }
 
 	@SuppressWarnings("unchecked")

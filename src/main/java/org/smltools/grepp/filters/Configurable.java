@@ -1,7 +1,7 @@
 package org.smltools.grepp.filters;
 
-import java.util.Map;
+import groovy.util.ConfigObject;
 
 public interface Configurable {
-	Map getAsConfig(String configId);
+	ConfigObject getAsConfig(String configId);
 }

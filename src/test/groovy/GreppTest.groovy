@@ -109,7 +109,7 @@ class GreppTest extends GroovyTestCase {
 	}
 
 	void testComplexVarsProcessing() {
-		def options = facade.parseOptions("-l test --dtime 2013-01-25T12:00:00;+ test $HOME\\test*".split())
+		def options = facade.parseOptions("-l test -d 2013-01-25T12:00:00;+ test $HOME\\test*".split())
 		def runtimeConfig = facade.makeRuntimeConfig()
 		def entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
 		assertTrue("Should have EntryDateFilter", entryFilterChain.has(EntryDateFilter.class))
@@ -146,7 +146,7 @@ class GreppTest extends GroovyTestCase {
 
 		def expectedResult = ""
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--dtime $testTimeStringFrom;+ Foo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d $testTimeStringFrom;+ Foo $HOME\\processing_time_test.log".split(" "))
 		}
 
 	}
@@ -214,7 +214,7 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--dtime $testTimeStringFrom;+60 Foo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d $testTimeStringFrom;+60 Foo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -233,7 +233,7 @@ ${logDateFormat.format(new Date(fileTime.getTime() + 3*60*60*1000))}:05:56,951 [
 Foo Man Chu
 #basic"""
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--dtime $testTimeStringFrom;+ Foo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d $testTimeStringFrom;+ Foo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -249,7 +249,7 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--dtime +;$testTimeStringTo --foo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d +;$testTimeStringTo --foo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -303,15 +303,24 @@ log4j.appender.CWMSGlobal.layout=org.apache.log4j.PatternLayout
 log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601} %t %c - %n%m%n
 """
 		def expectedResult = """\
-cwms_debug_ {
-	dateFormat {
+savedConfigs {
+	cwms_debug_ {
+		dateFormat {
+			value='yyyy-MM-dd HH:mm:ss,SSS'
+			regex='(\\\\d{4}-\\\\d{2}-\\\\d{2} \\\\d{2}:\\\\d{2}:\\\\d{2},\\\\d{3})'
+		}
+		starter='\\\\#\\\\#\\\\#\\\\#\\\\[[TRACEDBUGINFLOWSV]* *\\\\].*'
+		pattern='cwms_debug_.*\\\\.log'
+	}
+}
+logDateFormats {
+	cwms_debug_ {
 		value='yyyy-MM-dd HH:mm:ss,SSS'
 		regex='(\\\\d{4}-\\\\d{2}-\\\\d{2} \\\\d{2}:\\\\d{2}:\\\\d{2},\\\\d{3})'
 	}
-	starter='\\\\#\\\\#\\\\#\\\\#\\\\[[TRACEDBUGINFLOWSV]* *\\\\].*'
-	pattern='cwms_debug_.*\\\\.log'
 }
 """	
+	
 		def propFilter = new PropertiesFilter()
 		assertTrue(propFilter.filter(configString).replace("\r\n", "\n") == expectedResult)
 	}

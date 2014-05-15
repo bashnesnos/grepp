@@ -93,12 +93,12 @@ grepp -s SomethingINeedToFind D:\\myfolder\\LOGS\\myapp\\node*.log
 grepp -l \"RecordStart\" \"SomethingINeedToFind\" D:\\myfolder\\LOGS\\myapp\\node*.log*
 ---------------------------
 Using on NIX 
-grepp --my_predefined_config --dtime 2011-11-11T11:10;2011-11-11T11:11 myapp.log 
-grepp --my_predefined_config --dtime 2011-11-11T11:10;-10 myapp.log 
+grepp --my_predefined_config -d 2011-11-11T11:10;2011-11-11T11:11 myapp.log 
+grepp --my_predefined_config -d 2011-11-11T11:10;-10 myapp.log 
 grepp --my_predefined_regex_id myapp.log 
 grepp 'SomethingINeedToFind' myanotherapp.log 
-grepp -s --dtime 2012-12-12T12;2012-12-12T12:12 'RecordShouldContainThis%and%ShouldContainThisAsWell' thirdapp.log 
-grepp --dtime 2009-09-09T09:00;+ 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' thirdapp.log 
+grepp -s -d 2012-12-12T12;2012-12-12T12:12 'RecordShouldContainThis%and%ShouldContainThisAsWell' thirdapp.log 
+grepp -d 2009-09-09T09:00;+ 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' thirdapp.log 
 grepp -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
 cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 """)
@@ -110,16 +110,18 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.l(args:1, argName:"entry_regex", "Tells grepp to split the input in blocks, treating <entry_regex> as a start of the next block (so it's a block end at the same time).\n<entry_regex> - a string which will be used to \"split\" the input. Is optinal, as by default it will be looked up by the filename in config. Anyway, if not found input would be processed by line.")
         cli.p(longOpt:"parse", "Toggles logging .properties file to grepp config parsing")
         cli.e("Toggles thread ID preserving, i.e. all the records for a thread will be fetched")
-        cli.d(longOpt:"dtime", args:2, valueSeparator:";", argName:"from;to", """Tells grepp to include files/log entries within the supplied timeframe.
+        cli.d(args:2, valueSeparator:";", argName:"from;to", """Tells grepp to include files/log entries within the supplied timeframe.
             <from to> - string representing date constraints for current search. 
                         Default format is yyyy-mm-ddTHH:MM:ss (could be reduced till yyyy). If <from> or <to> is not known (or is indefinite) '+' can be passed as argument.
-                        Date's could be constructed by an offset from NOW or from supplied date. I.e. --dtime -10;+ will mean 'searching period is last 10 minutes'.
-                        E.g. --dtime 2013-05-01T12:00;-20, --dtime 2013-05-01T12:00;+20
+                        Date's could be constructed by an offset from NOW or from supplied date. I.e. -d -10;+ will mean 'searching period is last 10 minutes'.
+                        E.g. -d 2013-05-01T12:00;-20, -d 2013-05-01T12:00;+20
                         If <from> is after <to> they will be swapped automatically.
                         Usage requires valid date pattern to be configured for such a file in config. Otherwise it won't be applied
 """)
-        cli._(longOpt:'add', args:1, argName:"configId", "Instructs to save given configuraion as a config. <configId> should be unique")
-
+        cli.add(args:1, argName:"configId", "Instructs to save given configuraion as a config. <configId> should be unique")
+        cli.dateProp(args:2, valueSeparator:";", argName:"format;regex", "Loads date entry filter with <format> (SimpleDateFormat compliant) and <regex> to extract the date from entries")
+        cli.threadProp(args:3, valueSeparator:";", argName:"start;skipend;end", "Loads thread filter with <start>, <skipend> (leave as blank if not needed) and <end> regexes")
+        cli.lock("Locks the filter chains after full initialization. I.e. it means if any file processed won't update filter params even if such are configured for it")
         def options = cli.parse(args)
         if (options.h) {
         	cli.usage()
@@ -218,18 +220,31 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		if (options.d) {
 			def dtimeParser = new DateTimeParser()
 			log.trace('Got date options: {}', options.ds)
-			options.ds.each {
-				dtimeParser.parseVar(runtimeConfig, it)
-			}
+			dtimeParser.parseVar(runtimeConfig, options.ds[0])
+			dtimeParser.parseVar(runtimeConfig, options.ds[1])
+
 			def entryDateFilter = new EntryDateFilter(config)
 			entryDateFilter.setFrom(runtimeConfig.runtime.dateFilter.from)
 			entryDateFilter.setTo(runtimeConfig.runtime.dateFilter.to)
+
+			if (options.dateProp) {
+				entryDateFilter.setLogDateFormat(options.dateProps[0])
+				entryDateFilter.setLogDatePattern(options.dateProps[1])
+				entryDateFilter.lock()
+			}
+
 			entryFilterChain.add(entryDateFilter) //postpone file-specific filter creation
 		}
 
 		for (arg in options.arguments()) {
 			log.debug("next arg: {}", arg);
-			if (!this.processOptions(entryFilterChain, arg)) {
+
+			if (arg =~/^-(?![-0-9])/) //such flags should be processed by CliBuilder in parseOptions()
+			{
+				throw new IllegalArgumentException("Invalid flag: " + arg)
+			}
+
+			if (!processConfigId([entryFilterChain/*, fileFilterChain need to re-arrange init somehow*/], arg)) {
 				ParamParser<?> paramParser = varParsers.pop()
 				if (paramParser instanceof FilterParser) {
 					if (entryFilterChain.has(SimpleFilter.class) || entryFilterChain.has(ThreadFilter.class)) {
@@ -246,7 +261,13 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			if (options.e) {
 				def threadFilter = new ThreadFilter(config)
 				threadFilter.setFilterPattern(runtimeConfig.runtime.filterPattern)
-				entryFilterChain.add(threadFilter)	
+				if (options.threadProp)	{
+					threadFilter.setThreadExtractorList(options.threadProps[0].size() > 0 ? [options.threadProps[0]] : null)
+					threadFilter.setThreadSkipEndPatternList(options.threadProps[1].size() > 0 ? [options.threadProps[1]] : null)
+					threadFilter.setThreadEndPatternList(options.threadProps[2].size() > 0 ? [options.threadProps[2]] : null)
+				}
+
+				entryFilterChain.add(threadFilter)
 			}
 			else {
 				entryFilterChain.add(new SimpleFilter(runtimeConfig.runtime.filterPattern))
@@ -296,6 +317,12 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		def entryFilterChain = makeEntryFilterChain(runtimeConfig, options)
 		def fileFilterChain = makeFileFilterChain(runtimeConfig, options)
 
+		if (options.lock) {
+			log.trace("Locking filter chains")
+			entryFilterChain.lock()
+			fileFilterChain.lock()	
+		}
+
 		if (runtimeConfig.runtime.data.containsKey('files')) {
         	List<File> filteredData = fileFilterChain.filter(runtimeConfig.runtime.data.files)
 			if (filteredData != null) {
@@ -317,14 +344,11 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		def processor = makeProcessor(runtimeConfig, output, options)
 		processor.process(runtimeConfig.runtime.data)
 
-		if (options.add && runtimeConfig.containsKey('tempConfig')) {
+		if (options.add) {
 			log.info("Saving config to {}", options.add)
-			def tempConfig = new ConfigObject()
-			tempConfig.putAll(entryFilterChain.getAsConfig(options.add))
-			config.merge(tempConfig)
-			tempConfig = new ConfigObject()
-			tempConfig.putAll(fileFilterChain.getAsConfig(options.add))
-			config.mergeAndSave(tempConfig)
+			config.merge(entryFilterChain.getAsConfig(options.add))
+			config.merge(fileFilterChain.getAsConfig(options.add))
+			config.save()
 		}
 	}
 
@@ -335,61 +359,24 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 	 * @return <code>1</code> if <code>arg</code> was processed(i.e. it was a valid arg) <code>0</code> otherwise.
 	 */
 
-	protected boolean processOptions(FilterChain filterChain, String arg)
-	{
-		if (arg =~/^-(?![-0-9])/) //option should be a char and not a number
+	protected boolean processConfigId(List<FilterChain> filterChainList, String arg)	{
+		if (arg =~ /^--/)
 		{
-			this.processSimpleArg(filterChain, arg.substring(1)) //skipping '-' itself
-			return true
+			String wannaBeConfigId = arg.substring(2)
+			if (wannaBeConfigId == null) throw new IllegalArgumentException("Invalid option: " + arg)			
+			
+			boolean isAConfigId = false
+			filterChainList.each { filterChain ->
+				isAConfigId |= filterChain.refreshByConfigId(wannaBeConfigId)
+			}
+			
+			if (!isAConfigId) throw new IllegalArgumentException("Invalid configId, doesn't match any pre-configured: " + arg)
+			return isAConfigId
 		}
-		else if (arg =~ /^--/)
-		{
-			this.processComlpexArg(filterChain, arg.substring(2)) //skipping '--' itself
-			return true
-		}
-		return false
-	}
-
-	/**
-	 * Method for simple flags. It tokenizes passed string by each symbol.
-	 * I.e. for each character it will be looking for corresponding optiong in config.xml
-	 * Such behaviour was introduced to support multiple flags at once, like '-abcd'.
-	 * For each tokenized character it calls {@link processOption} method.
-	 *
-	 * @param arg An argument to be parsed
-	 */
-	protected void processSimpleArg(FilterChain filterChain, String arg)
-	{
-		throw new IllegalArgumentException("Invalid flag: " + arg)
-	}
-
-	/**
-	 * Method for complex flags/options. There is no complex logic at the moment.
-	 * It fetches every character from string and passes the result to {@link processOption} method.
-	 *
-	 * @param arg An argument to be parsed
-	 */
-
-	protected void processComlpexArg(FilterChain filterChain, String arg)
-	{
-		(arg =~ /.*/).each{opt -> if(opt) this.loadParamsById(filterChain, opt)}
-	}
-
-	/**
-	 * Method which performs actual option lookup in the config
-	 * <p>
-	 * It fetches handler function (from <code>handler</code> attribute), and calls it from {@link WgrepFacade} class.
-	 * <p> It passes to the handler function <code>field</code> attribute and value of matching option from config.xml.
-	 *
-	 * @param opt An argument to be looked up
-	 * @throws IllegalArgumentException If the supplied <code>arg</code> is not configured, i.e. cannot be found in the config.xml.
-	 */
-	protected void loadParamsById(FilterChain filterChain, String id) {
-                if (id != null && !filterChain.addByConfigId(id)) {
-                    throw new IllegalArgumentException("Invalid id, doesn't match any pre-configured: " + id)
+		else {
+			return false //otherwise it's something else and we're letting somebody else to process it
 		}
 	}
-	
 
 	/**
 	*

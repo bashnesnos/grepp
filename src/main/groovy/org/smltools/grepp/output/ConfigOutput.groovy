@@ -24,7 +24,8 @@ final class ConfigOutput extends SimpleOutput<String> {
 	protected void printNotFiltered(String data) {
 		if (data != null) {
 			log.trace("Got config: {}", data)
-            config.mergeAndSave(new ConfigSlurper().parse(data))
+            config.merge(new ConfigSlurper().parse(data))
+            config.save()
 		}
 		else {
             log.debug("No custom config found")

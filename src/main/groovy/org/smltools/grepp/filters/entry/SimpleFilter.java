@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import groovy.util.ConfigObject;
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.FilterBase;
 import org.smltools.grepp.filters.FilterParams;
@@ -104,7 +104,7 @@ public class SimpleFilter extends FilterBase<String> {
     }
 
     @Override
-    public Map getAsConfig(String configId) {
+    public ConfigObject getAsConfig(String configId) {
         if (configId == null) {
             if (this.configId == null) {
                 throw new IllegalArgumentException("Can't derive configId (none was supplied)");
@@ -113,12 +113,11 @@ public class SimpleFilter extends FilterBase<String> {
                 configId = this.configId;
             }
         }
-    	
-    	Map result = new HashMap<Object, Object>();
-    	Map<Object, Object> config = new HashMap<Object, Object>();
-    	config.put(configId, filterPattern);
-    	result.put(FILTERS_CONFIG_KEY, config);
-    	return result;
+
+        ConfigObject root = new ConfigObject();
+    	ConfigObject filterAliases = (ConfigObject) root.getProperty(FILTERS_CONFIG_KEY);
+    	filterAliases.put(configId, filterPattern);
+    	return root;
 
 	}
 

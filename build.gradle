@@ -79,13 +79,13 @@ task testGroovyProps(type: Test) {
     if (printTestClasspath) {
         newCP.getFiles().each {print it.getCanonicalPath() + ";"}
     }
-
-    doLast {
-        new File('build/resources/main/config/config.groovy').delete()
-    }
 }
 
 test {
+    doFirst {
+        new File('build/resources/main/config/config.groovy').delete()
+    }
+
     systemProperty 'grepp.home', rootDir.getAbsolutePath()
     systemProperty 'grepp.config', 'config.xml'
     def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main/config')
