@@ -3,9 +3,7 @@
 ########
 .gradle/
 build/
-dev*
-release*
-default*
+*Install
 
 ########
 # Idea
@@ -21,7 +19,7 @@ default*
 ########
 # Sublime
 ########
-.sublime
+*.sublime-*
 
 ########
 # General
@@ -34,3 +32,4 @@ bin/
 /logs
 /results
 /.nb-gradle/private/
+
