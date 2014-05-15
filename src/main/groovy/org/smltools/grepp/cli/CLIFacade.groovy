@@ -122,6 +122,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.dateProp(args:2, valueSeparator:";", argName:"format;regex", "Loads date entry filter with <format> (SimpleDateFormat compliant) and <regex> to extract the date from entries")
         cli.threadProp(args:3, valueSeparator:";", argName:"start;skipend;end", "Loads thread filter with <start>, <skipend> (leave as blank if not needed) and <end> regexes")
         cli.lock("Locks the filter chains after full initialization. I.e. it means if any file processed won't update filter params even if such are configured for it")
+        
         def options = cli.parse(args)
         if (options.h) {
         	cli.usage()
@@ -147,48 +148,36 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 	public ConfigObject makeRuntimeConfig() {
 
         ConfigObject runtimeConfig = new ConfigObject()
-        runtimeConfig.runtime.spoolFileExtension = config.defaults.spoolFileExtension
-        runtimeConfig.runtime.resultsDir = config.defaults.resultsDir
+        runtimeConfig.spoolFileExtension = config.defaults.spoolFileExtension
+        runtimeConfig.resultsDir = config.defaults.resultsDir
                 
 		if (curWorkDir != null) {
-			runtimeConfig.runtime.cwd = curWorkDir
+			runtimeConfig.cwd = curWorkDir
 		}
 		
 		def systemSep = System.getProperty("file.separator")
-		runtimeConfig.runtime.home = System.getProperty("grepp.home") + systemSep
+		runtimeConfig.home = System.getProperty("grepp.home") + systemSep
 		if ("\\".equals(systemSep)) {
 			systemSep += "\\"
 		}
-		runtimeConfig.runtime.folderSeparator = systemSep
+		runtimeConfig.folderSeparator = systemSep
 
 		return runtimeConfig
 	}
 
 
 	public FilterChain makeFileFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
-        FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>(config, new StringAggregator())
-        fileFilterChain.add(new FileSortFilter())
-
-		if (options.d) {
-			if (runtimeConfig.runtime.containsKey('dateFilter')) {
-				def fileDateFilter = new FileDateFilter(config)
-				fileDateFilter.setFrom(runtimeConfig.runtime.dateFilter.from)
-				fileDateFilter.setTo(runtimeConfig.runtime.dateFilter.to)
-				fileFilterChain.add(fileDateFilter)
-			}
-			else {
-				log.debug("Runtime config: {}; options: {}", runtimeConfig.flatten(), options)
-				throw new IllegalStateException("fileFilterChain init attempt before the entryFilterChain was initialized; or dateFilter wasn't proper")
-			}
-		}
 
 
 		return fileFilterChain
 	}
 
-    public FilterChain makeEntryFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
+    public ConfigObject makeFilterChains(ConfigObject runtimeConfig, OptionAccessor options) {
         FilterChain<String> entryFilterChain = new FilterChain<String>(config, new StringAggregator())
 		Deque<ParamParser> varParsers = new ArrayDeque<ParamParser>();
+
+        FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>(config, new StringAggregator())
+        fileFilterChain.add(new FileSortFilter())
 
 		FilterParser filterParser = new FilterParser()
 		FileNameParser fileNameParser = new FileNameParser()
@@ -223,9 +212,15 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			dtimeParser.parseVar(runtimeConfig, options.ds[0])
 			dtimeParser.parseVar(runtimeConfig, options.ds[1])
 
+			def fileDateFilter = new FileDateFilter(config)
+			fileDateFilter.setFrom(runtimeConfig.dateFilter.from)
+			fileDateFilter.setTo(runtimeConfig.dateFilter.to)
+			fileFilterChain.add(fileDateFilter)
+
+
 			def entryDateFilter = new EntryDateFilter(config)
-			entryDateFilter.setFrom(runtimeConfig.runtime.dateFilter.from)
-			entryDateFilter.setTo(runtimeConfig.runtime.dateFilter.to)
+			entryDateFilter.setFrom(runtimeConfig.dateFilter.from)
+			entryDateFilter.setTo(runtimeConfig.dateFilter.to)
 
 			if (options.dateProp) {
 				entryDateFilter.setLogDateFormat(options.dateProps[0])
@@ -244,7 +239,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 				throw new IllegalArgumentException("Invalid flag: " + arg)
 			}
 
-			if (!processConfigId([entryFilterChain/*, fileFilterChain need to re-arrange init somehow*/], arg)) {
+			if (!processConfigId([entryFilterChain, fileFilterChain], arg)) {
 				ParamParser<?> paramParser = varParsers.pop()
 				if (paramParser instanceof FilterParser) {
 					if (entryFilterChain.has(SimpleFilter.class) || entryFilterChain.has(ThreadFilter.class)) {
@@ -257,10 +252,10 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			} 
 		}
 
-		if (runtimeConfig.runtime.containsKey('filterPattern')) {
+		if (runtimeConfig.containsKey('filterPattern')) {
 			if (options.e) {
 				def threadFilter = new ThreadFilter(config)
-				threadFilter.setFilterPattern(runtimeConfig.runtime.filterPattern)
+				threadFilter.setFilterPattern(runtimeConfig.filterPattern)
 				if (options.threadProp)	{
 					threadFilter.setThreadExtractorList(options.threadProps[0].size() > 0 ? [options.threadProps[0]] : null)
 					threadFilter.setThreadSkipEndPatternList(options.threadProps[1].size() > 0 ? [options.threadProps[1]] : null)
@@ -270,11 +265,20 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 				entryFilterChain.add(threadFilter)
 			}
 			else {
-				entryFilterChain.add(new SimpleFilter(runtimeConfig.runtime.filterPattern))
+				entryFilterChain.add(new SimpleFilter(runtimeConfig.filterPattern))
 			}
 		}
 
-		return entryFilterChain
+		if (options.lock) {
+			log.trace("Locking filter chains")
+			entryFilterChain.lock()
+			fileFilterChain.lock()	
+		}
+
+		runtimeConfig.entryFilterChain = entryFilterChain
+		runtimeConfig.fileFilterChain = fileFilterChain
+
+		return runtimeConfig
 	}
 
 	public GreppOutput makeOutput(ConfigObject runtimeConfig, FilterChain entryFilterChain, OptionAccessor options) {
@@ -299,14 +303,14 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 	public DataProcessor makeProcessor(ConfigObject runtimeConfig, GreppOutput output, OptionAccessor options) {
 		DataProcessor processor = null
-		if (runtimeConfig.runtime.data.containsKey('files')) {
+		if (runtimeConfig.data.containsKey('files')) {
 			processor = new TextFileProcessor(output, options.m)
-			runtimeConfig.runtime.data = runtimeConfig.runtime.data.files
+			runtimeConfig.data = runtimeConfig.data.files
 			
 		}
 		else {
 			processor = new InputStreamProcessor(output)
-			runtimeConfig.runtime.data = System.in
+			runtimeConfig.data = System.in
 		}		
 		return processor
 	}
@@ -314,19 +318,14 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 	public void process(String[] args) {
 		def options = parseOptions(args)
 		def runtimeConfig = makeRuntimeConfig()
-		def entryFilterChain = makeEntryFilterChain(runtimeConfig, options)
-		def fileFilterChain = makeFileFilterChain(runtimeConfig, options)
+		makeFilterChains(runtimeConfig, options)
+		def entryFilterChain = runtimeConfig.entryFilterChain
+		def fileFilterChain = runtimeConfig.fileFilterChain
 
-		if (options.lock) {
-			log.trace("Locking filter chains")
-			entryFilterChain.lock()
-			fileFilterChain.lock()	
-		}
-
-		if (runtimeConfig.runtime.data.containsKey('files')) {
-        	List<File> filteredData = fileFilterChain.filter(runtimeConfig.runtime.data.files)
+		if (runtimeConfig.data.containsKey('files')) {
+        	List<File> filteredData = fileFilterChain.filter(runtimeConfig.data.files)
 			if (filteredData != null) {
-				runtimeConfig.runtime.data.files = filteredData
+				runtimeConfig.data.files = filteredData
 			}
 			else {
 				return //nothing to process
@@ -342,7 +341,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		def output = makeOutput(runtimeConfig, entryFilterChain, options)
 		def processor = makeProcessor(runtimeConfig, output, options)
-		processor.process(runtimeConfig.runtime.data)
+		processor.process(runtimeConfig.data)
 
 		if (options.add) {
 			log.info("Saving config to {}", options.add)
@@ -444,9 +443,9 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 	
 	public static PrintWriter getFilePrinter(ConfigObject runtimeConfig) {
-		def outputDir = new File(new File(runtimeConfig.runtime.home), runtimeConfig.runtime.resultsDir)
+		def outputDir = new File(new File(runtimeConfig.home), runtimeConfig.resultsDir)
 		if (!outputDir.exists()) outputDir.mkdir()
-		def out_file = new File(outputDir, runtimeConfig.runtime.spoolExtension)
+		def out_file = new File(outputDir, runtimeConfig.spoolExtension)
 		log.trace("Creating new file: {}", out_file.getCanonicalPath())
 		out_file.createNewFile()
 		return new PrintWriter(new FileWriter(out_file), true) //autoflushing PrintWriter

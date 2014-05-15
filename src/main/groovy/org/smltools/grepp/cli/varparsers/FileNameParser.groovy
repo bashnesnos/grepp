@@ -25,8 +25,8 @@ class FileNameParser implements ParamParser<String> {
 
 	private boolean parseVarInternal(ConfigObject config, String fileName) {
 		List<File> fileList = []
-		def fSeparator = config.runtime."$FOLDER_SEPARATOR_KEY"
-		def curDir = config.runtime.containsKey('cwd') ? config.runtime.cwd : null
+		def fSeparator = config."$FOLDER_SEPARATOR_KEY"
+		def curDir = config.containsKey('cwd') ? config.cwd : null
 
 		log.trace("analyzing supplied file: {}", fileName)
 		if (fileName =~ /\*/) {
@@ -64,12 +64,12 @@ class FileNameParser implements ParamParser<String> {
 			fileList.add(new File(fileName))
 		}
 		
-		List<File> files = config.runtime.data.containsKey(FILES_KEY) ? config.runtime.data.files : null
+		List<File> files = config.data.containsKey(FILES_KEY) ? config.data.files : null
 		if (files != null) {
 			files.addAll(fileList)
 		}
 		else {
-			config.runtime.data.files = fileList
+			config.data.files = fileList
 		}
 		
 		// Never unsubscribes, since there could be supplied more than one filename.

@@ -20,14 +20,14 @@ CLIFacade facade = new CLIFacade(config);
 
 def options = facade.parseOptions((String[]) ["--add", "myconfig", "--threadProp", "Thread [\\d{2}];;the end", "--dateProp", "yyyy-MM-dd;(\\d{4}-\\d{2}-\\d{2})", "-e", "-d", "$testTimeStringFrom;+", "-l", "Foo", "oo", "$HOME\\processing_time_test.log"])
 
-		def runtimeConfig = facade.makeRuntimeConfig()
-		def entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
-		def fileFilterChain = facade.makeFileFilterChain(runtimeConfig, options)
+		def runtimeConfig = facade.makeFilterChains(facade.makeRuntimeConfig(), options)
+		def entryFilterChain = runtimeConfig.entryFilterChain
+		def fileFilterChain = runtimeConfig.fileFilterChain
 
-		if (runtimeConfig.runtime.data.containsKey('files')) {
-        	List<File> filteredData = fileFilterChain.filter(runtimeConfig.runtime.data.files)
+		if (runtimeConfig.data.containsKey('files')) {
+        	List<File> filteredData = fileFilterChain.filter(runtimeConfig.data.files)
 			if (filteredData != null) {
-				runtimeConfig.runtime.data.files = filteredData
+				runtimeConfig.data.files = filteredData
 			}
 			else {
 				return //nothing to process
@@ -50,11 +50,12 @@ def options = facade.parseOptions((String[]) ["--add", "myconfig", "--threadProp
 
 		config = new ConfigHolder(new File(GREPP_CONFIG).toURI().toURL())
 		facade = new CLIFacade(config);
-		options = facade.parseOptions("-e -d $testTimeStringFrom;+ --myconfig $HOME\\processing_time_test.log".split(" "))
-		runtimeConfig = facade.makeRuntimeConfig()
-		entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
-		fileFilterChain = facade.makeFileFilterChain(runtimeConfig, options)
+		options = facade.parseOptions("--lock -e -d $testTimeStringFrom;+ --myconfig $HOME\\processing_time_test.log".split(" "))
+		runtimeConfig = facade.makeFilterChains(facade.makeRuntimeConfig(), options)
+		entryFilterChain = runtimeConfig.entryFilterChain
+		fileFilterChain = runtimeConfig.fileFilterChain
 		def tempConfig = entryFilterChain.getAsConfig(null)
+		tempConfig.merge(fileFilterChain.getAsConfig(null))
 		println tempConfig
 
 //def runtimeConfig = facade.makeRuntimeConfig()

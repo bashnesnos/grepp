@@ -71,10 +71,10 @@ class GreppTest extends GroovyTestCase {
 		assertTrue(expectedResult == actualResult)
 	}
 
-	public static def getFilterChain(def facade, String arguments) {
+	public static def makeFilterChains(def facade, String arguments) {
 		def options = facade.parseOptions(arguments.split())
 		def runtimeConfig = facade.makeRuntimeConfig()
-		return facade.makeEntryFilterChain(runtimeConfig, options)
+		return facade.makeFilterChains(runtimeConfig, options)
 	}
 
 //	void testGetOptions(){
@@ -85,17 +85,17 @@ class GreppTest extends GroovyTestCase {
 		def options = facade.parseOptions("-l test test $HOME\\fpTest*".split())
 		assertTrue("User entry pattern option not recognized: " + options.l, "test".equals(options.l))
 		def runtimeConfig = facade.makeRuntimeConfig()
-		def entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
+		def entryFilterChain = facade.makeFilterChains(runtimeConfig, options).entryFilterChain
 		def newConfig = entryFilterChain.getAsConfig("main")
 		assertTrue("Filter pattern not recognized", "test".equals(newConfig.savedConfigs.main.starter))
-		assertTrue("Files not recognized", runtimeConfig.runtime.data.files == [
+		assertTrue("Files not recognized", runtimeConfig.data.files == [
 			new File(HOME+"\\fpTest_test.log")]
 		)
-		assertTrue("Folder separator not initialized", runtimeConfig.runtime.folderSeparator != null )
+		assertTrue("Folder separator not initialized", runtimeConfig.folderSeparator != null )
 	}
 	
 	void testConfigsProcessing() {
-		def entryFilterChain = getFilterChain(facade, "--to_test --predef $HOME\\fpTest*")
+		def entryFilterChain = makeFilterChains(facade, "--to_test --predef $HOME\\fpTest*").entryFilterChain
 		def newConfig = entryFilterChain.getAsConfig(null)
 		assertTrue("Filter pattern not recognized", config.filterAliases.predef.equals(newConfig.filterAliases.predef))
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
@@ -103,40 +103,36 @@ class GreppTest extends GroovyTestCase {
 	}
 
 	void testExtendedPatternProcessing() {
-		def entryFilterChain = getFilterChain(facade, "-l test test%and%tets $HOME\\test*")
+		def entryFilterChain = makeFilterChains(facade, "-l test test%and%tets $HOME\\test*").entryFilterChain
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
 		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
 	}
 
 	void testComplexVarsProcessing() {
-		def options = facade.parseOptions("-l test -d 2013-01-25T12:00:00;+ test $HOME\\test*".split())
-		def runtimeConfig = facade.makeRuntimeConfig()
-		def entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
+		def runtimeConfig = makeFilterChains(facade, "-l test -d 2013-01-25T12:00:00;+ test $HOME\\test*")
+		def entryFilterChain = runtimeConfig.entryFilterChain
 		assertTrue("Should have EntryDateFilter", entryFilterChain.has(EntryDateFilter.class))
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
 		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
-		def fileFilterChain = facade.makeFileFilterChain(runtimeConfig, options)		
+		def fileFilterChain = runtimeConfig.fileFilterChain
 		assertTrue("Should have FileDateFilter", fileFilterChain.has(FileDateFilter.class))
 	}
 
 	void testAutomationProcessing() {
-		def options = facade.parseOptions("test $HOME\\fpTest_*".split())
-		def runtimeConfig = facade.makeRuntimeConfig()
-		def entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
-
-		entryFilterChain.refreshByConfigId(ConfigHolder.findConfigIdByFileName(config, runtimeConfig.runtime.data.files[0].name))
+		def runtimeConfig = makeFilterChains(facade, "test $HOME\\fpTest_*")
+		def entryFilterChain = runtimeConfig.entryFilterChain
+		entryFilterChain.refreshByConfigId(ConfigHolder.findConfigIdByFileName(config, runtimeConfig.data.files[0].name))
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
 		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
 	}
 
 	void testMoreComplexVarsProcessing() {
-		def options = facade.parseOptions("-s -l stCommand --some_timings cmd_only_1.log".split())
-		def runtimeConfig = facade.makeRuntimeConfig()
-		def entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
+		def runtimeConfig = makeFilterChains(facade, "-s -l stCommand --some_timings cmd_only_1.log")
+		def entryFilterChain = runtimeConfig.entryFilterChain
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
 		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
-		assertTrue("Files not recognized", runtimeConfig.runtime.data.files.containsAll([new File("cmd_only_1.log")]))
-		assertTrue("Separator wasn't identified", "\\\\".equals(runtimeConfig.runtime.folderSeparator))
+		assertTrue("Files not recognized", runtimeConfig.data.files.containsAll([new File("cmd_only_1.log")]))
+		assertTrue("Separator wasn't identified", "\\\\".equals(runtimeConfig.folderSeparator))
 	}
 
 	void testFileMTimeFiltering() {

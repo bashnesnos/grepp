@@ -21,7 +21,7 @@ class FilterParser implements ParamParser<String> {
 	@Override
 	public boolean parseVar(ConfigObject config, String arg) {
         log.trace("Parsing var: {}", arg)
-        config.runtime."$FILTER_PATTERN_KEY" = arg
+        config."$FILTER_PATTERN_KEY" = arg
         return true
 	}
 

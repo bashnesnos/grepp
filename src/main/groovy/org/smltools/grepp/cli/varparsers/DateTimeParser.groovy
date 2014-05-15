@@ -52,15 +52,15 @@ class DateTimeParser implements ParamParser<String>
     */
     def checkDates() {
         log.trace("checking if dates are valid")
-        Date from = config.runtime.dateFilter."$FROM_DATE"
-        Date to =  config.runtime.dateFilter."$TO_DATE"
+        Date from = config.dateFilter."$FROM_DATE"
+        Date to =  config.dateFilter."$TO_DATE"
         def swapDate = null
         if (from != null && to != null)
         {
             if (from.after(to)) { //swapping dates
                 log.trace("FROM is AFTER to, swapping them")
-                config.runtime.dateFilter."$FROM_DATE" = to
-                config.runtime.dateFilter."$TO_DATE" = from
+                config.dateFilter."$FROM_DATE" = to
+                config.dateFilter."$TO_DATE" = from
             }
         } 
         else {
@@ -115,7 +115,7 @@ class DateTimeParser implements ParamParser<String>
         {
             log.trace("Total minutes: {}", minutesMatcher.group(1))
             def minutes = Integer.valueOf(minutesMatcher.group(1))*60*1000
-            def curDate = config.runtime.dateFilter."$paramName"
+            def curDate = config.dateFilter."$paramName"
 			if (curDate == null || !curDate instanceof Date) curDate = new Date()
 			
             date = curDate
@@ -139,12 +139,12 @@ class DateTimeParser implements ParamParser<String>
         def matcher = dateStr =~ /^[+-]/
         if (!matcher.find()) {
             log.trace("Usual dates parsing")
-            config.runtime.dateFilter."$paramName" = parseInput(dateStr)
+            config.dateFilter."$paramName" = parseInput(dateStr)
         }
         else
         {
             log.trace("Offset dates parsing")
-            config.runtime.dateFilter."$paramName" = parseOffset(offsetParamMap[paramName],dateStr)
+            config.dateFilter."$paramName" = parseOffset(offsetParamMap[paramName],dateStr)
         }
     }
 	/**
