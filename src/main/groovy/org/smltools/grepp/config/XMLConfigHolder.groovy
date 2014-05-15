@@ -49,13 +49,13 @@ public class XMLConfigHolder extends ConfigHolder {
         def writer = new File(configFilePath).newWriter()
         def xml = new MarkupBuilder(writer)
         def extractorsSet = this.processThreads.collect { it.value.extractors }.flatten().toSet()
-        def skipendsSet = this.processThreads.collect { it.value.skipends }.flatten().toSet()
+        def skipendsSet = this.processThreads.findAll { it.value.skipends instanceof List }.collect { it.value.skipends }.flatten().toSet() //since skipends are optional
         def endsSet = this.processThreads.collect { it.value.ends }.flatten().toSet()
         def filterSet = this.filterAliases.collect { it.value }.flatten().toSet()
         xml.mkp.xmlDeclaration(version:'1.0', encoding:'UTF-8')
         xml.root('xmlns':"http://www.smltools.org/config",
             'xmlns:xsi':"http://www.w3.org/2001/XMLSchema-instance",
-            'xsi:schemaLocation':"http://www.smltools.org/config config.xsd") {
+            'xsi:schemaLocation':"http://www.smltools.org/config this.xsd") {
             defaults {
                 spoolFileExtension(this.defaults.spoolFileExtension)
                 resultsDir(this.defaults.resultsDir)
@@ -104,7 +104,7 @@ public class XMLConfigHolder extends ConfigHolder {
                 }
                 skipends {
                     skipendsSet.each { skipend ->
-                        pattern('tags':this.processThreads.findResults { if (it.value.skipends.contains(skipend)) return it.key }.join(','), skipend)
+                        pattern('tags':this.processThreads.findResults { if (it.value.containsKey('skipends') && it.value.skipends instanceof List && it.value.skipends.contains(skipend)) return it.key }.join(','), skipend)
                     }
                 }
                 ends {
@@ -127,8 +127,8 @@ public class XMLConfigHolder extends ConfigHolder {
                     filter('tags':this.filterAliases.findResults { if (it.value.equals(filterVal)) return it.key }.join(','), filterVal)
                 }
             }
-        }                     
-        writer.close()
+        }
+        writer.close()       
     }
 
     private void loadConfigInternal(String pConfigFilePath, String pConfigXSDPath) {
