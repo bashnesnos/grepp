@@ -120,26 +120,45 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
             boolean wasAdded = false;
             for (Class<? extends Filter> filterClass: filterOrderList) {
 				if (!has(filterClass) && FilterBase.class.isAssignableFrom(filterClass)) {
-                    try {
-                        Method configIdExistsMethod = filterClass.getMethod("configIdExists", Map.class, String.class);
-                        if ((Boolean) configIdExistsMethod.invoke(null, config, configId)) {
-                            add(createFilterFromConfigByConfigId((Class<? extends FilterBase>) filterClass, config, configId));
-                            wasAdded = true;
-                        }
-                    } catch (NoSuchMethodException nsme) {
-                        throw new RuntimeException(nsme);
-                    } catch (SecurityException se) {
-                        throw new RuntimeException(se);
-                    } catch (IllegalAccessException iae) {
-                        throw new RuntimeException(iae);
-                    } catch (IllegalArgumentException iare) {
-                        throw new RuntimeException(iare);
-                    } catch (InvocationTargetException ite) {
-                        throw new RuntimeException(ite);
+                    if (configIdExists(filterClass, configId)) {
+                        add(createFilterFromConfigByConfigId((Class<? extends FilterBase>) filterClass, config, configId));
+                        wasAdded = true;
                     }
     	        }
 			}
             return wasAdded;
+	}
+
+	@SuppressWarnings("unchecked")
+	private boolean configIdExists(Class<? extends Filter> filterClass, String configId) {
+		if (FilterBase.class.isAssignableFrom(filterClass)) {
+            try {
+                Method configIdExistsMethod = filterClass.getMethod("configIdExists", Map.class, String.class);
+                return (Boolean) configIdExistsMethod.invoke(null, config, configId);
+            } catch (NoSuchMethodException nsme) {
+                throw new RuntimeException(nsme);
+            } catch (SecurityException se) {
+                throw new RuntimeException(se);
+            } catch (IllegalAccessException iae) {
+                throw new RuntimeException(iae);
+            } catch (IllegalArgumentException iare) {
+                throw new RuntimeException(iare);
+            } catch (InvocationTargetException ite) {
+                throw new RuntimeException(ite);
+            }
+        }
+        else {
+        	return false;
+        }
+	}
+
+    @SuppressWarnings("unchecked")
+	public boolean configIdExists(String configId) {
+		boolean exists = false;
+        for (Class<? extends Filter> filterClass: filterOrderList) {
+        	exists |= configIdExists(filterClass, configId);
+        }
+        return exists;
 	}
 
     @Deprecated

@@ -118,7 +118,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
                         If <from> is after <to> they will be swapped automatically.
                         Usage requires valid date pattern to be configured for such a file in config. Otherwise it won't be applied
 """)
-        cli.add(args:1, argName:"configId", "Instructs to save given configuraion as a config. <configId> should be unique")
+        cli._(longOpt:'add', args:1, argName:"configId", "Instructs to save given configuraion as a config. <configId> should be unique")
 
         def options = cli.parse(args)
         if (options.h) {
@@ -128,13 +128,6 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         	System.exit(0)
         }
 
-        if (options.add) {
-        	if (config.savedConfigs.containsKey(options.add)) {
-        		println "Config $options.add already exists!"
-        		System.exit(1)
-        	}
-        }
-        
         if (options.v) {
         	enforceInfo()
         }
@@ -176,7 +169,10 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.d) {
 			if (runtimeConfig.runtime.containsKey('dateFilter')) {
-				fileFilterChain.add(new FileDateFilter(runtimeConfig.runtime.dateFilter.from, runtimeConfig.runtime.dateFilter.to, null)) //postpone file-specific filter creation
+				def fileDateFilter = new FileDateFilter(config)
+				fileDateFilter.setFrom(runtimeConfig.runtime.dateFilter.from)
+				fileDateFilter.setTo(runtimeConfig.runtime.dateFilter.to)
+				fileFilterChain.add(fileDateFilter)
 			}
 			else {
 				log.debug("Runtime config: {}; options: {}", runtimeConfig.flatten(), options)
@@ -310,13 +306,25 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			}
 		}		
 
+		if (options.add) {
+			if (entryFilterChain.configIdExists(options.add) || fileFilterChain.configIdExists(options.add)) {
+				println "ConfigId $options.add already exists for a given filter chain; try different one"
+				return
+			}
+		}
+
 		def output = makeOutput(runtimeConfig, entryFilterChain, options)
 		def processor = makeProcessor(runtimeConfig, output, options)
 		processor.process(runtimeConfig.runtime.data)
 
 		if (options.add && runtimeConfig.containsKey('tempConfig')) {
 			log.info("Saving config to {}", options.add)
-			config.mergeAndSave(runtimeConfig.tempConfig)
+			def tempConfig = new ConfigObject()
+			tempConfig.putAll(entryFilterChain.getAsConfig(options.add))
+			config.merge(tempConfig)
+			tempConfig = new ConfigObject()
+			tempConfig.putAll(fileFilterChain.getAsConfig(options.add))
+			config.mergeAndSave(tempConfig)
 		}
 	}
 

@@ -8,6 +8,8 @@ import groovy.xml.dom.DOMCategory
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.RefreshableFilterBase
 import org.smltools.grepp.filters.FilterParams
+import org.smltools.grepp.filters.entry.LogEntryFilter
+import org.smltools.grepp.config.ConfigHolder
 
 /**
  * Provides filtering of supplied files by last modified date. <br>
@@ -43,6 +45,10 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
         }
     }
 	
+    public FileDateFilter(Map<?, ?> config) {
+        super(FileDateFilter.class, config);
+    }
+
     public void setFileDateOutputFormat(String fileDateFormat) {
         this.fileDateFormat = new SimpleDateFormat(fileDateFormat)
     }
@@ -68,14 +74,14 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     @SuppressWarnings("unchecked")
     @Override
     protected boolean fillParamsByConfigIdInternal(String configId) {
-        if (!EntryDateFilter.configIdExists(config, configId)) {
+        if (!LogEntryFilter.configIdExists(config, configId)) {
             return false
         }
 
         def customCfg = config.savedConfigs."$configId"
 
-        if (customCfg.containsKey(LOG_THRESHOLD_KEY)) {
-            logThreshold = customCfg.logThreshold
+        if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY)) {
+            logFileThreshold = customCfg.logThreshold
             return true;
         }
         else {
@@ -125,6 +131,11 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
 	boolean checkFileTime(File file)
     {
         if (file == null) return
+
+        if (config != null) {
+            refreshByConfigId(ConfigHolder.findConfigIdByFileName(config, file.getCanonicalPath())) //refreshing first; so the logThreshold is re-initialized
+        }
+
         Date fileTime = new Date(file.lastModified())
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("fileTime: {}\nChecking if file suits FROM {}", fileDateFormat.format(fileTime), from == null ? null : fileDateFormat.format(from))
