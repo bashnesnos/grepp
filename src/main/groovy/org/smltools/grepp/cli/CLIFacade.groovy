@@ -122,7 +122,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.dateProp(args:2, valueSeparator:";", argName:"format;regex", "Loads date entry filter with <format> (SimpleDateFormat compliant) and <regex> to extract the date from entries")
         cli.threadProp(args:3, valueSeparator:";", argName:"start;skipend;end", "Loads thread filter with <start>, <skipend> (leave as blank if not needed) and <end> regexes")
         cli.lock("Locks the filter chains after full initialization. I.e. it means if any file processed won't update filter params even if such are configured for it")
-        
+        cli.noff("No File Filtering - i.e. turns off file filtering based on date etc.")
         def options = cli.parse(args)
         if (options.h) {
         	cli.usage()
@@ -182,9 +182,11 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		FilterParser filterParser = new FilterParser()
 		FileNameParser fileNameParser = new FileNameParser()
 		varParsers.addAll([filterParser, fileNameParser])
+		def logEntryFilter
 
 		if (options.l) {
-			def logEntryFilter = new LogEntryFilter(options.l)
+			logEntryFilter = new LogEntryFilter()
+			logEntryFilter.setStarter(options.l)
 			logEntryFilter.lock()
 			entryFilterChain.add(logEntryFilter)
 		}
@@ -212,11 +214,12 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			dtimeParser.parseVar(runtimeConfig, options.ds[0])
 			dtimeParser.parseVar(runtimeConfig, options.ds[1])
 
-			def fileDateFilter = new FileDateFilter(config)
-			fileDateFilter.setFrom(runtimeConfig.dateFilter.from)
-			fileDateFilter.setTo(runtimeConfig.dateFilter.to)
-			fileFilterChain.add(fileDateFilter)
-
+			if (!options.noff) {
+				def fileDateFilter = new FileDateFilter(config)
+				fileDateFilter.setFrom(runtimeConfig.dateFilter.from)
+				fileDateFilter.setTo(runtimeConfig.dateFilter.to)
+				fileFilterChain.add(fileDateFilter)
+			}
 
 			def entryDateFilter = new EntryDateFilter(config)
 			entryDateFilter.setFrom(runtimeConfig.dateFilter.from)
@@ -226,6 +229,13 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 				entryDateFilter.setLogDateFormat(options.dateProps[0])
 				entryDateFilter.setLogDatePattern(options.dateProps[1])
 				entryDateFilter.lock()
+				if (logEntryFilter == null) { //enabling if null; otherwise it's useless
+					logEntryFilter = new LogEntryFilter()
+					logEntryFilter.lock()
+					entryFilterChain.add(logEntryFilter)
+				}
+
+				logEntryFilter.setDateRegex(options.dateProps[1])
 			}
 
 			entryFilterChain.add(entryDateFilter) //postpone file-specific filter creation

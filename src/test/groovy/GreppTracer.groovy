@@ -18,7 +18,7 @@ CLIFacade facade = new CLIFacade(config);
 		def testTimeStringFrom = dateFormat.format(new Date(fileTime.getTime() + 24*60*60*1000))
 
 
-def options = facade.parseOptions((String[]) ["--add", "myconfig", "--threadProp", "Thread [\\d{2}];;the end", "--dateProp", "yyyy-MM-dd;(\\d{4}-\\d{2}-\\d{2})", "-e", "-d", "$testTimeStringFrom;+", "-l", "Foo", "oo", "$HOME\\processing_time_test.log"])
+def options = facade.parseOptions()
 
 		def runtimeConfig = facade.makeFilterChains(facade.makeRuntimeConfig(), options)
 		def entryFilterChain = runtimeConfig.entryFilterChain

@@ -25,20 +25,38 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = new StringBuilder();
 	private Pattern logEntryPtrn = null;
+	private String starter = null;
+	private String dateRegex = null;
 
 	/**
 	 * Creates non-refreshable and non-publicly modifiable, standalone LogEntryFilter
 	 * @param logEntryPtrn
 	 *            pattern to slice data for entries
 	 */
-	public LogEntryFilter(String logEntryPtrn) {
+	public LogEntryFilter() {
 		super(LogEntryFilter.class);
-		setLogEntryPattern(logEntryPtrn);
 	}
 
-	public void setLogEntryPattern(String logEntryPtrn) {
-		LOGGER.debug("Entry pattern :/{}/", logEntryPtrn);
-		this.logEntryPtrn = Pattern.compile(logEntryPtrn);
+	public void setStarter(String starter) {
+		if (starter == null) {
+			throw new IllegalArgumentException("Is null by default; just don't set it");
+		}
+		this.starter = starter;
+		setLogEntryPattern();
+	}
+
+
+	public void setDateRegex(String dateRegex) {
+		if (dateRegex == null) {
+			throw new IllegalArgumentException("Is null by default; just don't set it");
+		}
+		this.dateRegex = dateRegex;
+		setLogEntryPattern();
+	}
+
+	private void setLogEntryPattern() {
+		this.logEntryPtrn = Pattern.compile((starter != null ? starter : "") + (dateRegex != null ? dateRegex : "" ));
+		LOGGER.debug("Entry pattern :/{}/", this.logEntryPtrn.pattern());
         this.setState(null);
         flush();
 	}
@@ -82,6 +100,7 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 		
 		if (starter != null || dateRegex != null) 
 		{
+			this.starter = starter; //so we can dump it to config unchanged
 			logEntryPtrn = Pattern.compile((starter != null ? starter : "") + (dateRegex != null ? dateRegex : "" ));
 			LOGGER.debug("Entry pattern :/{}/", logEntryPtrn.pattern());
 			return true;
@@ -104,8 +123,11 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
         }
 
         ConfigObject root = new ConfigObject();
-    	ConfigObject savedConfigs = (ConfigObject) root.getProperty(ConfigHolder.SAVED_CONFIG_KEY);
-    	((ConfigObject) savedConfigs.getProperty(configId)).put(ConfigHolder.SAVED_CONFIG_STARTER_KEY, logEntryPtrn.pattern());
+        if (starter != null) {
+	    	ConfigObject savedConfigs = (ConfigObject) root.getProperty(ConfigHolder.SAVED_CONFIG_KEY);
+    		((ConfigObject) savedConfigs.getProperty(configId)).put(ConfigHolder.SAVED_CONFIG_STARTER_KEY, starter);
+   		}
+
     	return root;
 	}
 

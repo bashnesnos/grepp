@@ -68,7 +68,7 @@ class GreppTest extends GroovyTestCase {
 		println "ER: ####\n$expectedResult\n#### :ER"
 		String actualResult = getOutput(operation)
 		println "AR: ####\n$actualResult\n#### :AR"
-		assertTrue(expectedResult == actualResult)
+		assertTrue("Output not matched", expectedResult.replace('\r\n', '\n') == actualResult)
 	}
 
 	public static def makeFilterChains(def facade, String arguments) {
@@ -133,6 +133,32 @@ class GreppTest extends GroovyTestCase {
 		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
 		assertTrue("Files not recognized", runtimeConfig.data.files.containsAll([new File("cmd_only_1.log")]))
 		assertTrue("Separator wasn't identified", "\\\\".equals(runtimeConfig.folderSeparator))
+	}
+
+	void testOnTheFlyLockedConfig() {
+		def expectedResult = """\
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
+Too early for main time tests
+
+2000-01-01 10:05:56,952 [ACTIVE] ThreadStart: '10' 
+Still too early for main time tests
+
+2000-01-01 10:05:56,953 [ACTIVE] ThreadStart: '15'
+The end
+
+2000-01-01 10:05:56,955 [ACTIVE] ThreadStart: '10'
+A bit more stuff
+The end
+"""
+		assertGreppOutput(expectedResult) {
+			Grepp.main((String[]) ["--lock", "--noff", "--add", "myconfig", "--threadProp", "ThreadStart: '\\d{1,2}';;The end"
+				, "--dateProp", "yyyy-MM-dd;(\\d{4}-\\d{2}-\\d{2})", "-e", "-d", "+;2001"
+				, "oo", "$HOME\\processing_time_test.log"])
+		}
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--lock --noff -e -d +;2001 --myconfig $HOME\\processing_time_test.log".split(" "))
+		}
 	}
 
 	void testFileMTimeFiltering() {

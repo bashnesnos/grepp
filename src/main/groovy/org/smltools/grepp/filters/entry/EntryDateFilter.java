@@ -236,7 +236,7 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 						if (LOGGER.isTraceEnabled()) {
 							LOGGER.trace("Not passed");
 						}
-						throw new TimeToIsOverduedException(logDateFormat.format(to));
+						throw new TimeToIsOverduedException(logDateFormat.format(entryDate));
 					}
 				}
 				if (LOGGER.isTraceEnabled())
