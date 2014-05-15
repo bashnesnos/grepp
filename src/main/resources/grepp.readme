@@ -4,7 +4,7 @@ Prereq's for running:
 
 Run via grepp.bat(Win) or grepp(Unix)
 To check if it works, execute 
-	grepp -?
+	grepp -h
 
 It should show some help on how to use grepp.
 

@@ -1,15 +1,12 @@
-import groovy.xml.DOMBuilder
-import groovy.xml.dom.DOMCategory
-import groovy.xml.XmlUtil
 import java.text.SimpleDateFormat
 
 apply plugin: 'groovy'
 apply plugin: 'application'
 
-version = '1.0'
+version = '2.0'
 //these properties are overwritten by subprojects dev and release if they are defined there
-def targetDir = new File("default") //is initialized with the project
-def includeOptional = false //whether to include optional sh scripts
+def targetDir = new File("grepp") //is initialized with the project
+def includeOptional = false
 def params = [:] //params for used templates
 
 //these properties are not overrided by subprojects and should be populated here. If should
@@ -53,7 +50,7 @@ compileGroovy {
 }
 
 startScripts {
-    mainClassName = 'org.smltools.grepp.Grepp'
+    mainClassName = 'org.smltools.grepp.cli.Grepp'
     classpath += files('/config')
 
     doLast {
@@ -105,11 +102,6 @@ processTestResources {
                 .replace('#TEST_TIME_TO#', dateFormat.format(new Date(curDate.getTime() + 60*60*1000)))
                 .replace('#TEST_TIME_TOO_FAR#', dateFormat.format(new Date(curDate.getTime() + 3*60*60*1000)))
     }   
-//    doLast {
-//        mergeConfig (rootDir.getAbsolutePath() + '/build/resources/main/config/config.xml'
-//                    , rootDir.getAbsolutePath() + '/build/resources/test/config.custom'
-//                    , rootDir.getAbsolutePath() + '/build/resources/test/config.xml')
-//    }
 }
 
 
@@ -134,17 +126,6 @@ processResources {
                 }
                 newLine
             }
-        }
-    }
-
-
-    doLast{
-        mergeConfig (destinationDir.getAbsolutePath() + '/config/config.xml'
-            , targetDir.getAbsolutePath() + '/config.custom'
-            , null)
-        if (makeExecsFileWriter) {
-            makeExecsFileWriter.flush()
-            makeExecsFileWriter.close()
         }
     }
 }
@@ -172,27 +153,8 @@ task copyToIvy(type: Copy) {
 }
 
 tasks.addRule("Pattern: install<ID>") { String taskName ->
-	if (taskName.startsWith("install"))
-	{
-		def subProject = null
-        if (taskName =~ /Dev/) {
-            subProject = project(':dev')
-		}
-        else if (taskName ==~ /install/) {
-            subProject = project(':release')
-
-        }
-        
-        if (subProject)
-        {
-
-            targetDir = subProject.hasProperty('targetDir') ? subProject.targetDir : targetDir
-            includeOptional = subProject.hasProperty('includeOptional') ? subProject.includeOptional : includeOptional
-            oldJdkCompatibility = subProject.hasProperty('oldJdkCompatibility') ? subProject.oldJdkCompatibility : oldJdkCompatibility
-            oldJreLibPath = subProject.hasProperty('oldJreLibPath') ? subProject.oldJreLibPath : oldJreLibPath
-            params = subProject.hasProperty('params') ? subProject.params : params
-        }
-        
+    if (taskName.startsWith("install"))
+    {
         def installDir = new File(targetDir.getAbsolutePath() + 'Install')
         installApp.destinationDir = installDir
         applicationDistribution.from(processResources) {
@@ -207,37 +169,5 @@ tasks.addRule("Pattern: install<ID>") { String taskName ->
         clean.dependsOn(':cleanSubProject')
         task(taskName, dependsOn: ':installApp') << {
         }   
-	}
-}
-
-def mergeConfig(def origin, def toMerge, def target) {
-    File originFile = new File(origin) 
-    File mergeFile = new File(toMerge)
-    if (originFile.exists() && mergeFile.exists()) { //nothing to do if the file to include does not exist
-        def cfgDoc = DOMBuilder.parse(new FileReader(originFile))
-        def customDoc = DOMBuilder.parse(new FileReader(mergeFile))
-        def root = cfgDoc.documentElement
-        use(DOMCategory) {
-            def origCustomNode = root.custom[0]
-            def mergingCustomNode = customDoc.documentElement.custom[0]
-            if (origCustomNode == null) {
-                root.appendChild(cfgDoc.importNode(mergingCustomNode, true))
-            }
-            else {
-                mergingCustomNode.children().each {
-                    origCustomNode.appendChild(cfgDoc.importNode(it, true))
-                }
-            }
-        }
-        cfgDoc.normalizeDocument()
-        if (target == null) { //merging into origin
-            XmlUtil.serialize(root, new FileWriter(originFile))    
-        }
-        else {
-            XmlUtil.serialize(root, new FileWriter(target))    
-        }
-    }
-    else {
-        println "Check $origin and $toMerge paths"
     }
 }

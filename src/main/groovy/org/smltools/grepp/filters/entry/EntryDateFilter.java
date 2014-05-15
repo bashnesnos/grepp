@@ -4,6 +4,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.smltools.grepp.config.ConfigHolder;
@@ -24,6 +25,8 @@ import org.smltools.grepp.filters.enums.Event;
 
 @FilterParams(order = 15)
 public final class EntryDateFilter extends StatefulFilterBase<String> implements OptionallyStateful<String> {
+	public static final String LOG_DATE_FORMATS_KEY = "logDateFormats";
+
 	private final boolean isStateOptional;
 	private Date from;
 	private Date to;
@@ -90,7 +93,7 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 	public EntryDateFilter(Map<?, ?> config, String configId) {
 		super(EntryDateFilter.class, config);
 		fillParamsByConfigIdInternal(configId);
-                isStateOptional = false;
+        isStateOptional = false;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -124,6 +127,35 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 			throw new PropertiesNotFoundRuntimeException(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY + " is not filled for config: " + configId);
 		}
     }
+
+    @Override
+    public Map getAsConfig(String configId) {
+        if (configId == null) {
+            if (this.configId == null) {
+                throw new IllegalArgumentException("Can't derive configId (none was supplied)");
+            }
+            else {
+                configId = this.configId;
+            }
+        }
+
+        Map result = new HashMap<Object, Object>();
+    	Map<Object, Object> props = new HashMap<Object, Object>();
+    	props.put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY, logDatePtrn.pattern());
+    	props.put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_VALUE_KEY, logDateFormat.toPattern());
+
+	    Map<Object, Object> logDateConfig = new HashMap<Object, Object>();
+    	logDateConfig.put(configId, props);
+
+    	result.put(LOG_DATE_FORMATS_KEY, logDateConfig);
+
+    	Map<Object, Object> dateFormatProps = new HashMap<Object, Object>();
+    	dateFormatProps.put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY, props);
+    	Map<Object, Object> config = new HashMap<Object, Object>();
+    	config.put(configId, dateFormatProps);
+    	result.put(ConfigHolder.SAVED_CONFIG_KEY, config);
+    	return result;
+	}
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {

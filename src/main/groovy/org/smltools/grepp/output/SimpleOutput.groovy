@@ -34,10 +34,10 @@ public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String
 		this.filterChain = filterChain
 	}
 	
-        @Override
-        public void flush() {
-            filterChain.flush()
-        }
+    @Override
+    public void flush() {
+        filterChain.flush()
+    }
     
 	@Override
 	public void printToOutput(T data) {
@@ -46,6 +46,7 @@ public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String
 
 	@Override
 	public void closeOutput() {
+		flush()
 		if (printer != null) {
 			printer.close();
 		}

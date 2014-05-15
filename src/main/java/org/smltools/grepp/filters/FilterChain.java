@@ -16,8 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smltools.grepp.exceptions.FilteringIsInterruptedException;
 import org.smltools.grepp.filters.enums.Event;
+import groovy.util.ConfigObject;
 
-public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
+public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Configurable {
     private static final Logger LOGGER = LoggerFactory.getLogger(FilterChain.class);
     private static final Comparator<Class<? extends Filter>> NATURAL_BY_ORDER_FIELD = new Comparator<Class<? extends Filter>>() {
         @Override
@@ -64,6 +65,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 	}
 
     private List<Class<? extends Filter>> filterOrderList = new ArrayList<Class<? extends Filter>>();
+    private Map<Class<? extends Filter>, Class<? extends Filter>> replacedFiltersMap = new HashMap<Class<? extends Filter>, Class<? extends Filter>>();
     private Comparator<Filter<?>> naturalByOrderedList = new Comparator<Filter<?>>() {
         @Override
         public int compare(Filter<?> o1, Filter<?> o2) {
@@ -143,13 +145,26 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
     @Deprecated
     public void enableFilter(Class<? extends Filter> filterClass) {
     	if (filterClass != null) {
+    		if (replacedFiltersMap.containsKey(filterClass)) {
+    			throw new IllegalArgumentException("Attempt to enable replaced class: " + filterClass.getName() + "; replaced by: " + replacedFiltersMap.get(filterClass));
+    		}
+
     		if (!filterOrderList.contains(filterClass)) {
 	        	filterOrderList.add(filterClass);
 	        	FilterParams params = filterClass.getAnnotation(FilterParams.class);
 	        	if (params != null) {
-	        		Class<? extends Filter> replaceClass = params.replaces();
-	        		if (replaceClass != null && replaceClass != NoOpFilter.class) {
-	        			filterOrderList.remove(replaceClass);
+	        		Class<? extends Filter> classToReplace = params.replaces();
+	        		if (classToReplace != null && classToReplace != NoOpFilter.class) {
+	        			if (!replacedFiltersMap.containsKey(classToReplace)) {
+	        				filterOrderList.remove(classToReplace);
+	        				replacedFiltersMap.put(classToReplace, filterClass);
+	        			}
+	        			else {
+	        				Class<? extends Filter> alreadyReplacedByClass = replacedFiltersMap.get(classToReplace);
+	        				if (!filterClass.equals(alreadyReplacedByClass)) {
+	        					throw new IllegalArgumentException(classToReplace.getName() + " is already replaced by " + alreadyReplacedByClass.getName() + "; attempt to replace it with " + filterClass.getName() + " is illegal without disabling previous first");
+	        				}
+	        			}
 	        		}
 	        	}
 	        	Collections.sort(filterOrderList, NATURAL_BY_ORDER_FIELD);
@@ -241,6 +256,22 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable {
 		while (filterIterator.hasNext());
 		return aggregator.aggregate();
 	}
+
+	@SuppressWarnings("unchecked")
+    @Override
+    public Map getAsConfig(String configId) {
+        ConfigObject result = new ConfigObject();
+
+        for (Filter<?> filter: filters) {
+        	if (filter instanceof Configurable) {
+        		ConfigObject nextConfig = new ConfigObject();
+        		nextConfig.putAll(((Configurable) filter).getAsConfig(configId));
+        		result.merge(nextConfig);
+        	}
+        }
+
+        return result;
+    }
 
 	@SuppressWarnings("unchecked")
 	@Override

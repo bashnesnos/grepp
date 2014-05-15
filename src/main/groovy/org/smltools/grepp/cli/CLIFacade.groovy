@@ -1,9 +1,10 @@
-package org.smltools.grepp.config
+package org.smltools.grepp.cli
 
 import groovy.util.logging.Slf4j
 import groovy.util.ConfigObject
 import groovy.util.OptionAccessor
-import org.smltools.grepp.config.varparsers.*
+import org.smltools.grepp.cli.varparsers.*
+import org.smltools.grepp.config.ConfigHolder
 import org.smltools.grepp.filters.FilterChain
 import org.smltools.grepp.filters.StringAggregator
 import org.smltools.grepp.filters.entry.EntryDateFilter
@@ -99,7 +100,7 @@ grepp 'SomethingINeedToFind' myanotherapp.log
 grepp -s --dtime 2012-12-12T12;2012-12-12T12:12 'RecordShouldContainThis%and%ShouldContainThisAsWell' thirdapp.log 
 grepp --dtime 2009-09-09T09:00;+ 'RecordShouldContainThis%and%ShouldContainThisAsWell%or%ItCouldContainThis%and%This' thirdapp.log 
 grepp -s 'SimplyContainsThis' onemoreapp.log1 onemoreapp.log2 onemoreapp.log3 
-cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
+cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 """)
         cli.v("Enforce info to stdout")
         cli.t("Enforce trace to stdout")
@@ -117,6 +118,7 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
                         If <from> is after <to> they will be swapped automatically.
                         Usage requires valid date pattern to be configured for such a file in config. Otherwise it won't be applied
 """)
+        cli.add(args:1, argName:"configId", "Instructs to save given configuraion as a config. <configId> should be unique")
 
         def options = cli.parse(args)
         if (options.h) {
@@ -124,6 +126,13 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
         	println "Press any key to exit"
         	System.in.read()
         	System.exit(0)
+        }
+
+        if (options.add) {
+        	if (config.savedConfigs.containsKey(options.add)) {
+        		println "Config $options.add already exists!"
+        		System.exit(1)
+        	}
         }
         
         if (options.v) {
@@ -181,8 +190,6 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 
     public FilterChain makeEntryFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
         FilterChain<String> entryFilterChain = new FilterChain<String>(config, new StringAggregator())
-        entryFilterChain.enableFilter(LogEntryFilter.class)
-
 		Deque<ParamParser> varParsers = new ArrayDeque<ParamParser>();
 
 		FilterParser filterParser = new FilterParser()
@@ -193,6 +200,9 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 			def logEntryFilter = new LogEntryFilter(options.l)
 			logEntryFilter.lock()
 			entryFilterChain.add(logEntryFilter)
+		}
+		else {
+        	entryFilterChain.enableFilter(LogEntryFilter.class)			
 		}
 
 		if (options.p) {
@@ -270,10 +280,10 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		return output
 	}
 
-	public DataProcessor makeProcessor(ConfigObject runtimeConfig, GreppOutput output, FilterChain fileFilterChain, OptionAccessor options) {
+	public DataProcessor makeProcessor(ConfigObject runtimeConfig, GreppOutput output, OptionAccessor options) {
 		DataProcessor processor = null
 		if (runtimeConfig.runtime.data.containsKey('files')) {
-			processor = new TextFileProcessor(output, fileFilterChain, options.m)
+			processor = new TextFileProcessor(output, options.m)
 			runtimeConfig.runtime.data = runtimeConfig.runtime.data.files
 			
 		}
@@ -289,9 +299,25 @@ cat blabla.txt | grepp -L Chapter 'Once upon a time' > myfavoritechapter.txt
 		def runtimeConfig = makeRuntimeConfig()
 		def entryFilterChain = makeEntryFilterChain(runtimeConfig, options)
 		def fileFilterChain = makeFileFilterChain(runtimeConfig, options)
+
+		if (runtimeConfig.runtime.data.containsKey('files')) {
+        	List<File> filteredData = fileFilterChain.filter(runtimeConfig.runtime.data.files)
+			if (filteredData != null) {
+				runtimeConfig.runtime.data.files = filteredData
+			}
+			else {
+				return //nothing to process
+			}
+		}		
+
 		def output = makeOutput(runtimeConfig, entryFilterChain, options)
-		def processor = makeProcessor(runtimeConfig, output, fileFilterChain, options)
+		def processor = makeProcessor(runtimeConfig, output, options)
 		processor.process(runtimeConfig.runtime.data)
+
+		if (options.add && runtimeConfig.containsKey('tempConfig')) {
+			log.info("Saving config to {}", options.add)
+			config.mergeAndSave(runtimeConfig.tempConfig)
+		}
 	}
 
 	/**

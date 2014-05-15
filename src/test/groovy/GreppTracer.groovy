@@ -1,10 +1,10 @@
-import org.smltools.grepp.Grepp
+import org.smltools.grepp.cli.Grepp
 import org.smltools.grepp.config.ConfigHolder
 import java.util.Date
 import java.text.SimpleDateFormat
 import org.smltools.grepp.filters.entry.PropertiesFilter
 import groovy.xml.MarkupBuilder
-import org.smltools.grepp.config.CLIFacade
+import org.smltools.grepp.cli.CLIFacade
 
 def BASE_HOME = System.getProperty("grepp.home")
 //def HOME = BASE_HOME + "\\build\\resources\\main\\config"

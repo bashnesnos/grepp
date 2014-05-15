@@ -1,4 +1,4 @@
-package org.smltools.grepp
+package org.smltools.grepp.cli
 
 /**
 * CLI program to analyze text files in a regex manner. Adding a feature of a log record splitting, thread-coupling and reporting.
@@ -10,7 +10,7 @@ package org.smltools.grepp
 */
 import org.smltools.grepp.config.ConfigHolder
 import org.smltools.grepp.config.XMLConfigHolder
-import org.smltools.grepp.config.CLIFacade
+import org.smltools.grepp.cli.CLIFacade
 import org.smltools.grepp.util.GreppUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

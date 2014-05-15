@@ -1,7 +1,9 @@
 package org.smltools.grepp.filters.entry;
 
 import java.util.*;
-import java.util.regex.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.Refreshable;
@@ -123,6 +125,30 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 
 		return result;
     }
+
+    @Override
+    public Map getAsConfig(String configId) {
+        if (configId == null) {
+            if (this.configId == null) {
+                throw new IllegalArgumentException("Can't derive configId (none was supplied)");
+            }
+            else {
+                configId = this.configId;
+            }
+        }
+
+    	Map result = super.getAsConfig(configId);
+    	Map<Object, Object> extractors = new HashMap<Object, Object>();
+    	extractors.put(THREAD_EXTRACTORS_KEY, threadStartExtractorList);
+    	if (!threadSkipEndPatternList.isEmpty()) {
+    		extractors.put(THREAD_SKIPENDS_KEY, threadSkipEndPatternList);
+    	}
+    	extractors.put(THREAD_ENDS_KEY, threadEndPatternList);
+    	Map<Object, Object> config = new HashMap<Object, Object>();
+    	config.put(configId, extractors);
+    	result.put(THREADS_CONFIG_KEY, config);
+    	return result;
+	}
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {

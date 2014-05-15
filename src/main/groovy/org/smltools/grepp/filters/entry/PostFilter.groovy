@@ -160,6 +160,21 @@ public final class PostFilter extends StatefulFilterBase<String> {
         return true
     }
 
+    @Override
+    public Map getAsConfig(String configId) {
+        if (configId == null) {
+            if (this.configId == null) {
+                throw new IllegalArgumentException("Can't derive configId (none was supplied)");
+            }
+            else {
+                configId = this.configId;
+            }
+        }
+        //implement when PostFilter is more configurable
+        return new HashMap<Object, Object>();
+    }
+
+
     @SuppressWarnings("unchecked")
     public static boolean configIdExists(Map<?, ?> config, String configId) {
         if (config == null) {

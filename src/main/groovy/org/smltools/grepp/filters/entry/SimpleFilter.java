@@ -1,7 +1,11 @@
 package org.smltools.grepp.filters.entry;
 
-import java.util.*;
-import java.util.regex.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.FilterBase;
@@ -98,6 +102,25 @@ public class SimpleFilter extends FilterBase<String> {
     	}
 		return result;
     }
+
+    @Override
+    public Map getAsConfig(String configId) {
+        if (configId == null) {
+            if (this.configId == null) {
+                throw new IllegalArgumentException("Can't derive configId (none was supplied)");
+            }
+            else {
+                configId = this.configId;
+            }
+        }
+    	
+    	Map result = new HashMap<Object, Object>();
+    	Map<Object, Object> config = new HashMap<Object, Object>();
+    	config.put(configId, filterPattern);
+    	result.put(FILTERS_CONFIG_KEY, config);
+    	return result;
+
+	}
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {

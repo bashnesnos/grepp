@@ -1,6 +1,7 @@
 package org.smltools.grepp.filters.entry;
 
 import java.util.Map;
+import java.util.HashMap;
 import java.util.regex.Pattern;
 import org.smltools.grepp.config.ConfigHolder;
 import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
@@ -89,6 +90,28 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 			throw new PropertiesNotFoundRuntimeException("Either " + ConfigHolder.SAVED_CONFIG_STARTER_KEY + " or " + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY + "." + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY + " should be filled for config: " + configId);
 		}
     }
+
+    @Override
+    public Map getAsConfig(String configId) {
+        if (configId == null) {
+            if (this.configId == null) {
+                throw new IllegalArgumentException("Can't derive configId (none was supplied)");
+            }
+            else {
+                configId = this.configId;
+            }
+        }
+
+    	Map result = new HashMap<Object, Object>();
+    	Map<Object, Object> props = new HashMap<Object, Object>();
+    	props.put(ConfigHolder.SAVED_CONFIG_STARTER_KEY, logEntryPtrn.pattern());
+    	Map<Object, Object> config = new HashMap<Object, Object>();
+    	config.put(configId, props);
+    	result.put(ConfigHolder.SAVED_CONFIG_KEY, config);
+    	return result;
+
+	}
+
 
     @SuppressWarnings("unchecked")
 	public static boolean configIdExists(Map<?, ?> config, String configId) {

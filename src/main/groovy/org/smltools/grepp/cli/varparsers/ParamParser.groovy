@@ -1,4 +1,4 @@
-package org.smltools.grepp.config.varparsers
+package org.smltools.grepp.cli.varparsers
 
 import groovy.util.ConfigObject
 import groovy.util.logging.Slf4j

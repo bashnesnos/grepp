@@ -4,7 +4,6 @@ import groovy.util.logging.Slf4j;
 
 import java.util.regex.Matcher
 import java.lang.StringBuilder
-import org.smltools.grepp.filters.FilterChain
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.output.GreppOutput
 import org.smltools.grepp.processors.DataProcessor;
@@ -22,7 +21,6 @@ class TextFileProcessor implements DataProcessor<List<File>>
    
     private boolean isMerging;
 	private GreppOutput<String> output;
-	private FilterChain<List<File>> fileFilter;
  
 	/**
 	 * Create new instance with supplied filter chains and {@link WgrepConfig} instance.
@@ -31,12 +29,11 @@ class TextFileProcessor implements DataProcessor<List<File>>
 	 * @param filterChain_ FilterBase chain which will be used to filter each file line
 	 * @param filesFilterChain_ FilterBase chain which will be used to filter filename List
 	 */
-    TextFileProcessor(GreppOutput<String> output_, FilterChain<List<File>> fileFilter_, boolean isMerging_) 
+    TextFileProcessor(GreppOutput<String> output_, boolean isMerging_) 
     {
 		output = output_
         isMerging = isMerging_
         log.trace("Is merging? {}", isMerging_)
-		fileFilter = fileFilter_
     }
 
 
@@ -84,13 +81,15 @@ class TextFileProcessor implements DataProcessor<List<File>>
 
 	@Override
 	public void process(List<File> data) {
-        List<File> filteredData = fileFilter.filter(data)
-		if (filteredData != null) {
-			filteredData.each {
+		if (data != null) {
+			data.each {
 				processSingleFile(initFile(it))
 			}
 			output.processEvent(Event.ALL_CHUNKS_PROCESSED)
 			output.closeOutput()
+		}
+		else {
+			log.trace("Data is null; nothing to process")
 		}
 	}
 }

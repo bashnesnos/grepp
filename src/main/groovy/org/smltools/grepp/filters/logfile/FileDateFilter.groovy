@@ -84,6 +84,21 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
         }
     }
 
+    @Override
+    public Map getAsConfig(String configId) {
+        if (configId == null) {
+            if (this.configId == null) {
+                throw new IllegalArgumentException("Can't derive configId (none was supplied)");
+            }
+            else {
+                configId = this.configId;
+            }
+        }
+        def savedConfigs = [:]
+        savedConfigs[configId] = [logThreshold:this.logThreshold]
+        return [savedConfigs:savedConfigs]
+    }
+
 	/**
     * Checks supplied files if they exceed supplied time boundaries. <br>
     * 

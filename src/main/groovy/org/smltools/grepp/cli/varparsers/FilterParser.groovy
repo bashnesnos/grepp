@@ -1,4 +1,4 @@
-package org.smltools.grepp.config.varparsers
+package org.smltools.grepp.cli.varparsers
 
 import java.util.Map;
 

@@ -1,7 +1,7 @@
-import org.smltools.grepp.*
 import org.smltools.grepp.filters.entry.*
 import org.smltools.grepp.filters.logfile.*
-import org.smltools.grepp.config.CLIFacade
+import org.smltools.grepp.cli.Grepp
+import org.smltools.grepp.cli.CLIFacade
 import org.smltools.grepp.config.XMLConfigHolder
 import org.smltools.grepp.config.ConfigHolder
 import org.smltools.grepp.util.GreppUtil
@@ -86,7 +86,8 @@ class GreppTest extends GroovyTestCase {
 		assertTrue("User entry pattern option not recognized: " + options.l, "test".equals(options.l))
 		def runtimeConfig = facade.makeRuntimeConfig()
 		def entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
-		assertTrue("Filter pattern not recognized", "test".equals(runtimeConfig.runtime.filterPattern))
+		def newConfig = entryFilterChain.getAsConfig("main")
+		assertTrue("Filter pattern not recognized", "test".equals(newConfig.savedConfigs.main.starter))
 		assertTrue("Files not recognized", runtimeConfig.runtime.data.files == [
 			new File(HOME+"\\fpTest_test.log")]
 		)
@@ -95,6 +96,8 @@ class GreppTest extends GroovyTestCase {
 	
 	void testConfigsProcessing() {
 		def entryFilterChain = getFilterChain(facade, "--to_test --predef $HOME\\fpTest*")
+		def newConfig = entryFilterChain.getAsConfig(null)
+		assertTrue("Filter pattern not recognized", config.filterAliases.predef.equals(newConfig.filterAliases.predef))
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
 		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
 	}
