@@ -17,9 +17,40 @@ import org.slf4j.LoggerFactory;
 import org.smltools.grepp.exceptions.FilteringIsInterruptedException;
 import org.smltools.grepp.filters.enums.Event;
 import groovy.util.ConfigObject;
+import org.smltools.grepp.util.GreppUtil;
 
 public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Configurable {
     private static final Logger LOGGER = LoggerFactory.getLogger(FilterChain.class);
+    private static final List<Class<? extends Filter>> REGISTERED_FILTERS_LIST = new ArrayList<Class<? extends Filter>>();
+
+    @SuppressWarnings("unchecked")
+    public static void addFilterByName(String name) throws ClassNotFoundException {
+    	Class<?> clazz = Class.forName(name);
+    	if (Filter.class.isAssignableFrom(clazz)) {
+    		REGISTERED_FILTERS_LIST.add((Class<? extends Filter>) clazz);
+    	}
+    	else {
+    		throw new IllegalArgumentException(name + " is not an implementation of Filter");
+    	}
+    }
+
+    static {
+    	try {
+	    	addFilterByName("org.smltools.grepp.filters.logfile.FileDateFilter");
+	    	addFilterByName("org.smltools.grepp.filters.logfile.FileSortFilter");
+	    	addFilterByName("org.smltools.grepp.filters.entry.EntryDateFilter");
+	    	addFilterByName("org.smltools.grepp.filters.entry.LogEntryFilter");
+	    	addFilterByName("org.smltools.grepp.filters.entry.SimpleFilter");
+	    	addFilterByName("org.smltools.grepp.filters.entry.ThreadFilter");
+	    	addFilterByName("org.smltools.grepp.filters.entry.PostFilter");
+	    	addFilterByName("org.smltools.grepp.filters.entry.PropertiesFilter");
+    	}
+    	catch (ClassNotFoundException cnfe) {
+    		throw new RuntimeException(cnfe);
+    	}
+    }
+
+
     private static final Comparator<Class<? extends Filter>> NATURAL_BY_ORDER_FIELD = new Comparator<Class<? extends Filter>>() {
         @Override
         public int compare(Class<? extends Filter> c1, Class<? extends Filter> c2) {
@@ -80,9 +111,26 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 	private Map<?, ?> state = new HashMap();
 	private boolean isLocked = false;
 
-	public FilterChain(Map<?, ?> config, Aggregator<T> aggregator) {
+	public FilterChain(Map<?, ?> config, Aggregator<T> aggregator, Class<T> type) {
+		if (config == null || aggregator == null || type == null) {
+			throw new IllegalArgumentException("All constructor params shouldn't be null: " + (config != null) + ";" + (aggregator != null) + ";" + (type != null));
+		}
+
 		this.config = config;
 		this.aggregator = aggregator;
+
+		//filter class pick-up here
+		for (Class<? extends Filter> filterClass: REGISTERED_FILTERS_LIST) {
+			Class<?> parameter = GreppUtil.findParameterClass(filterClass);
+			if (parameter != null && parameter.isAssignableFrom(type)) {
+				if (!replacedFiltersMap.containsKey(filterClass)) {
+					enableFilter(filterClass);
+				}
+				else {
+					LOGGER.debug("<init> Ignoring attempt to enable replaced class: {}; replaced by: {}", filterClass.getName(), replacedFiltersMap.get(filterClass));					
+				}
+			}
+		}
 	}
 
     @Override
@@ -99,6 +147,52 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
     	}
     	return false;
     }
+
+    public void enableFilter(Class<? extends Filter> filterClass) {
+    	if (filterClass != null) {
+    		if (replacedFiltersMap.containsKey(filterClass)) {
+    			throw new IllegalArgumentException("Attempt to enable replaced class: " + filterClass.getName() + "; replaced by: "+ replacedFiltersMap.get(filterClass) + "; replacing one should be disabled explicitly first");
+    		}
+
+    		if (!filterOrderList.contains(filterClass)) {
+	        	filterOrderList.add(filterClass);
+	        	FilterParams params = filterClass.getAnnotation(FilterParams.class);
+	        	if (params != null) {
+	        		Class<? extends Filter> classToReplace = params.replaces();
+	        		if (classToReplace != null && classToReplace != NoOpFilter.class) {
+	        			if (!replacedFiltersMap.containsKey(classToReplace)) {
+	        				filterOrderList.remove(classToReplace);
+	        				replacedFiltersMap.put(classToReplace, filterClass);
+	        			}
+	        			else {
+	        				Class<? extends Filter> alreadyReplacedByClass = replacedFiltersMap.get(classToReplace);
+	        				if (!filterClass.equals(alreadyReplacedByClass)) {
+	        					throw new IllegalArgumentException(classToReplace.getName() + " is already replaced by " + alreadyReplacedByClass.getName() + "; attempt to replace it with " + filterClass.getName() + " is illegal without disabling previous first");
+	        				}
+	        			}
+	        		}
+	        	}
+	        	Collections.sort(filterOrderList, NATURAL_BY_ORDER_FIELD);
+        	}
+        }
+        else {
+        	throw new IllegalArgumentException("Filter class shouldn't be null!");
+        }
+    }
+        
+	public void disableFilter(Class<? extends Filter> filterClass) {
+		if (filterClass != null) {
+			filterOrderList.remove(filterClass);
+			FilterParams params = filterClass.getAnnotation(FilterParams.class);
+			if (params != null) {
+				replacedFiltersMap.remove(params.replaces());
+			}
+		}
+        else {
+        	throw new IllegalArgumentException("Filter class shouldn't be null!");
+        }
+	}
+
 
 	public void add(Filter<T> filter) {
 		if (isLocked) return;
@@ -159,48 +253,6 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
         	exists |= configIdExists(filterClass, configId);
         }
         return exists;
-	}
-
-    @Deprecated
-    public void enableFilter(Class<? extends Filter> filterClass) {
-    	if (filterClass != null) {
-    		if (replacedFiltersMap.containsKey(filterClass)) {
-    			throw new IllegalArgumentException("Attempt to enable replaced class: " + filterClass.getName() + "; replaced by: " + replacedFiltersMap.get(filterClass));
-    		}
-
-    		if (!filterOrderList.contains(filterClass)) {
-	        	filterOrderList.add(filterClass);
-	        	FilterParams params = filterClass.getAnnotation(FilterParams.class);
-	        	if (params != null) {
-	        		Class<? extends Filter> classToReplace = params.replaces();
-	        		if (classToReplace != null && classToReplace != NoOpFilter.class) {
-	        			if (!replacedFiltersMap.containsKey(classToReplace)) {
-	        				filterOrderList.remove(classToReplace);
-	        				replacedFiltersMap.put(classToReplace, filterClass);
-	        			}
-	        			else {
-	        				Class<? extends Filter> alreadyReplacedByClass = replacedFiltersMap.get(classToReplace);
-	        				if (!filterClass.equals(alreadyReplacedByClass)) {
-	        					throw new IllegalArgumentException(classToReplace.getName() + " is already replaced by " + alreadyReplacedByClass.getName() + "; attempt to replace it with " + filterClass.getName() + " is illegal without disabling previous first");
-	        				}
-	        			}
-	        		}
-	        	}
-	        	Collections.sort(filterOrderList, NATURAL_BY_ORDER_FIELD);
-        	}
-        }
-        else {
-        	throw new IllegalArgumentException("Filter class shouldn't be null!");
-        }
-    }
-        
-	public void disableFilter(Class<? extends Filter> filterClass) {
-		if (filterClass != null) {
-			filterOrderList.remove(filterClass);
-		}
-        else {
-        	throw new IllegalArgumentException("Filter class shouldn't be null!");
-        }
 	}
 
 	/**

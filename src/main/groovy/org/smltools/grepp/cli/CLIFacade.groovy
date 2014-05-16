@@ -166,17 +166,11 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 
 
-	public FilterChain makeFileFilterChain(ConfigObject runtimeConfig, OptionAccessor options) {
-
-
-		return fileFilterChain
-	}
-
     public ConfigObject makeFilterChains(ConfigObject runtimeConfig, OptionAccessor options) {
-        FilterChain<String> entryFilterChain = new FilterChain<String>(config, new StringAggregator())
+        FilterChain<String> entryFilterChain = new FilterChain<String>(config, new StringAggregator(), String.class)
 		Deque<ParamParser> varParsers = new ArrayDeque<ParamParser>();
 
-        FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>(config, new StringAggregator())
+        FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>(config, new StringAggregator(), new ArrayList<File>().class)
         fileFilterChain.add(new FileSortFilter())
 
 		FilterParser filterParser = new FilterParser()
@@ -190,22 +184,26 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			logEntryFilter.lock()
 			entryFilterChain.add(logEntryFilter)
 		}
-		else {
-        	entryFilterChain.enableFilter(LogEntryFilter.class)			
-		}
 
 		if (options.p) {
 			varParsers.remove(filterParser)
 			entryFilterChain.add(new PropertiesFilter())
+			entryFilterChain.disableFilter(PostFilter.class)
+			entryFilterChain.disableFilter(SimpleFilter.class)
+			entryFilterChain.disableFilter(ThreadFilter.class)
+			entryFilterChain.disableFilter(EntryDateFilter.class)
+			fileFilterChain.disableFilter(FileDateFilter.class)			
 		}
 		else {
-			entryFilterChain.enableFilter(LogEntryFilter.class)
-			entryFilterChain.enableFilter(PostFilter.class)
-			entryFilterChain.enableFilter(SimpleFilter.class)
+			entryFilterChain.disableFilter(PropertiesFilter.class)
 		}
 
 		if (options.e) {
 			entryFilterChain.enableFilter(ThreadFilter.class)			
+		}
+		else {
+			entryFilterChain.disableFilter(ThreadFilter.class)	
+			entryFilterChain.enableFilter(SimpleFilter.class)
 		}
 
 		if (options.d) {
@@ -239,6 +237,10 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			}
 
 			entryFilterChain.add(entryDateFilter) //postpone file-specific filter creation
+		}
+		else {
+			entryFilterChain.disableFilter(EntryDateFilter.class)
+			fileFilterChain.disableFilter(FileDateFilter.class)
 		}
 
 		for (arg in options.arguments()) {

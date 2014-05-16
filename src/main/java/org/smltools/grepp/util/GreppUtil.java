@@ -10,6 +10,10 @@ import java.net.URL;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.lang.reflect.ParameterizedType;
+
 
 /**
  * 
@@ -19,9 +23,63 @@ import org.slf4j.LoggerFactory;
  *
  */
 public final class GreppUtil {
-        private static final Logger LOGGER = LoggerFactory.getLogger(GreppUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GreppUtil.class);
         
 	private GreppUtil() { throw new AssertionError(); } //please don't instantiate the class
+
+	@SuppressWarnings("unchecked")
+	public static Class<?> findConcreteParameterClass(ParameterizedType type) {
+		for (Type typeArgument: type.getActualTypeArguments()) {
+			if (typeArgument instanceof Class<?> && !Object.class.equals(typeArgument)) {
+				return (Class<?>) typeArgument;
+			}
+		}
+		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static Class<?> findSuperclassParameter(Class<?> clazz) {
+		Type superclazz = clazz.getGenericSuperclass();
+		if (superclazz != null) {
+			if (superclazz instanceof ParameterizedType) {
+				LOGGER.debug("findSuperclassParameter: {}", superclazz);
+				return findConcreteParameterClass((ParameterizedType) superclazz);
+			}
+			else {
+				return findSuperclassParameter((Class<?>) superclazz);
+			}
+		}
+		else {
+			return null;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static Class<?> findParameterClass(Class<?> clazz) {
+		for (TypeVariable typeVar: clazz.getTypeParameters()) {
+			for (Type type: typeVar.getBounds()) {
+				if (type instanceof Class<?> && !Object.class.equals(type)) {
+					LOGGER.debug("{} findParameterClass: itself", clazz.getName());
+					return (Class<?>) type;
+				}
+			}
+		}
+
+		ParameterizedType parametrizedInterface = null;
+		for (Type interfase: clazz.getGenericInterfaces()) {
+			if (interfase instanceof ParameterizedType) {
+				Class<?> concreteClass = findConcreteParameterClass((ParameterizedType) interfase);
+				if (concreteClass != null) {
+					LOGGER.debug("{} findParameterClass: interface {}", clazz.getName(), interfase);
+					return concreteClass;
+				}
+			}
+		}
+
+		LOGGER.debug("findParameterClass: super");
+		return findSuperclassParameter(clazz);
+	}
+
 
 	/**
 	 * Kind-of a default value method for a Map.get()

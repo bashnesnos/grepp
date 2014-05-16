@@ -5,59 +5,56 @@ import java.text.SimpleDateFormat
 import org.smltools.grepp.filters.entry.PropertiesFilter
 import groovy.xml.MarkupBuilder
 import org.smltools.grepp.cli.CLIFacade
+import org.smltools.grepp.filters.entry.ThreadFilter
+import java.lang.reflect.*
+import org.smltools.grepp.filters.StringAggregator
+import org.smltools.grepp.filters.FilterChain
 
 def BASE_HOME = System.getProperty("grepp.home")
 //def HOME = BASE_HOME + "\\build\\resources\\main\\config"
 def HOME = BASE_HOME + "\\build\\resources\\test"
 def GREPP_CONFIG = BASE_HOME + "\\build\\resources\\main\\config\\config.groovy"
 ConfigHolder config = new ConfigHolder(new File(GREPP_CONFIG).toURI().toURL())
-CLIFacade facade = new CLIFacade(config);
-
-		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
-		def dateFormat = new SimpleDateFormat("yyyy-MM-dd")
-		def testTimeStringFrom = dateFormat.format(new Date(fileTime.getTime() + 24*60*60*1000))
-
-
-def options = facade.parseOptions()
-
-		def runtimeConfig = facade.makeFilterChains(facade.makeRuntimeConfig(), options)
-		def entryFilterChain = runtimeConfig.entryFilterChain
-		def fileFilterChain = runtimeConfig.fileFilterChain
-
-		if (runtimeConfig.data.containsKey('files')) {
-        	List<File> filteredData = fileFilterChain.filter(runtimeConfig.data.files)
-			if (filteredData != null) {
-				runtimeConfig.data.files = filteredData
-			}
-			else {
-				return //nothing to process
-			}
-		}		
-
-		if (options.add) {
-			if (entryFilterChain.configIdExists(options.add) || fileFilterChain.configIdExists(options.add)) {
-				println "ConfigId $options.add already exists for a given filter chain; try different one"
-				return
-			}
+def findSuperclassParameter = { clazz ->
+	def superclazz = clazz.getGenericSuperclass()
+	if (superclazz != null) {
+		if (superclazz instanceof ParameterizedType) {
+			return superclazz.getActualTypeArguments().find {it instanceof Class}
 		}
-
-		if (options.add) {
-			//log.info("Saving config to {}", options.add)
-			config.merge(entryFilterChain.getAsConfig(options.add))
-			config.merge(fileFilterChain.getAsConfig(options.add))
-			config.save()
+		else {
+			return findSuperclassParameter(superclazz)
 		}
+	}
+	else {
+		return null
+	}
+}
 
-		config = new ConfigHolder(new File(GREPP_CONFIG).toURI().toURL())
-		facade = new CLIFacade(config);
-		options = facade.parseOptions("--lock -e -d $testTimeStringFrom;+ --myconfig $HOME\\processing_time_test.log".split(" "))
-		runtimeConfig = facade.makeFilterChains(facade.makeRuntimeConfig(), options)
-		entryFilterChain = runtimeConfig.entryFilterChain
-		fileFilterChain = runtimeConfig.fileFilterChain
-		def tempConfig = entryFilterChain.getAsConfig(null)
-		tempConfig.merge(fileFilterChain.getAsConfig(null))
-		println tempConfig
+def findParameterClass = { clazz ->
+	if (clazz instanceof ParameterizedType) {
+		println "itself"
+		return clazz.getTypeParameters().findResult { it.getBounds().findResult { if (!Object.class.equals(it)) it } }
+	}
+	else {
+		def parametrizedInterface = clazz.getGenericInterfaces().find { it instanceof ParameterizedType }
+		if (parametrizedInterface != null) {
+			println "interface"
+			return parametrizedInterface.getActualTypeArguments().find {it instanceof Class}
+		}
+		else {
+			println "super"
+			return findSuperclassParameter(clazz)	
+		}
+	}
+}
+def myclazz = new FilterChain(config, new StringAggregator()).getClass()
+myclazz.getTypeParameters().each { println it.getBounds() }
+//def parameter = findParameterClass(myclazz)
+//println parameter
+//println (String.class.equals(parameter))
 
+
+//CLIFacade facade = new CLIFacade(config);
 //def runtimeConfig = facade.makeRuntimeConfig()
 //def entryFilterChain = facade.makeEntryFilterChain(runtimeConfig, options)
 //println runtimeConfig
