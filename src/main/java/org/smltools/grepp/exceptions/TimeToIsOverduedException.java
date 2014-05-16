@@ -12,7 +12,7 @@ public class TimeToIsOverduedException extends FilteringIsInterruptedException {
 	
 	private String timeToString;
     public TimeToIsOverduedException(String timeTo) {
-        super();
+        super(timeTo);
         timeToString = timeTo;
     }
     

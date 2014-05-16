@@ -50,11 +50,13 @@ processThreads {
 filterAliases {
     predef='Something::'
     foo='Foo'
-    some_timings='oo'
+    group_op_values='oo'
+    group_ops='oo'
+    count_ops='oo'
     avg_timings='oo'
 }
 postProcessColumns {
-    some_timings {
+    count_ops {
         filter {
             order=1
             colName='some_cmd'
@@ -66,6 +68,30 @@ postProcessColumns {
             value='(operand)'
         }
     }
+    group_ops {
+        group {
+            order=1
+            colName='some_cmd'
+            value='Command name="?(.*?)"'
+        }
+        counter {
+            order=2
+            colName='count_of_operands'
+            value='(operand)'
+        }
+    }    
+    group_op_values {
+        group {
+            order=1
+            colName='some_cmd'
+            value='Command name="?(.*?)"'
+        }
+        rfilter {
+            order=2
+            colName='operands'
+            value='operand=\'(.*?)\''
+        }
+    }    
     avg_timings {
         group {
             order=1

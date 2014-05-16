@@ -127,7 +127,7 @@ class GreppTest extends GroovyTestCase {
 	}
 
 	void testMoreComplexVarsProcessing() {
-		def runtimeConfig = makeFilterChains(facade, "-s -l stCommand --some_timings cmd_only_1.log")
+		def runtimeConfig = makeFilterChains(facade, "-s -l stCommand --count_ops cmd_only_1.log")
 		def entryFilterChain = runtimeConfig.entryFilterChain
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
 		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
@@ -280,12 +280,40 @@ Foo Koo
 		def expectedResult = """\
 some_cmd,count_of_operands
 Foo,3
-Koo,1"""
+Koo,1
+Foo,1"""
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--some_timings $HOME\\processing_report_test.log".split(" "))
+			Grepp.main("--count_ops $HOME\\processing_report_test.log".split(" "))
 		}
 	}
+
+	void testPostDefaultGroupFiltering() {
+
+		def expectedResult = """\
+some_cmd,count_of_operands
+Foo,4
+Koo,1
+"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--group_ops $HOME\\processing_report_test.log".split(" "))
+		}
+	}
+
+	void testPostDefaultStringGroupFiltering() {
+
+		def expectedResult = """\
+some_cmd,operands
+Foo,alpha;bravo;delta;gamma
+Koo,this
+"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--group_op_values $HOME\\processing_report_test.log".split(" "))
+		}
+	}
+
 
 	void testPostAverageFiltering() {
 

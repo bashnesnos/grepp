@@ -11,4 +11,12 @@ package org.smltools.grepp.exceptions;
 @SuppressWarnings("serial")
 public class FilteringIsInterruptedException extends Exception {
 
+	public FilteringIsInterruptedException() {
+
+	}
+
+	public FilteringIsInterruptedException(String reason) {
+		super(reason);
+	}
+
 }

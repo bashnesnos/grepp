@@ -14,8 +14,10 @@ import org.smltools.grepp.filters.StatefulFilterBase
 import org.smltools.grepp.filters.FilterParams
 import org.smltools.grepp.filters.PostFilterMethod
 import org.smltools.grepp.filters.PostFilterGroupMethod
+import org.smltools.grepp.filters.RepeatingPostFilterMethod
 import groovy.util.ConfigObject;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Class which provide post filtering of passed entries <br>
  * Basically it extracts substrings from data matched by configured patterns <br>
@@ -130,24 +132,23 @@ public final class PostFilter extends StatefulFilterBase<String> {
                 postFilterPatternBuilder = postFilterPatternBuilder.size() == 0 ? postFilterPatternBuilder.append("(?ms)").append(curPtrn) : postFilterPatternBuilder.append(Qualifier.and.getPattern()).append(curPtrn)
                 methodTypeList.add(type)
                 switch (type) {
-                    case "filter":
-                        filterMethods.add(new SimpleMatchingMethod())
-                        break
-                    case "counter":
-                        filterMethods.add(new CountingMethod())
-                        break
                     case "group":
                         groupingMethod = new GroupingMethod(this)
                         filterMethods.add(groupingMethod)
                         break
+                    case "filter":
+                        addFilterMethod(new SimpleMatchingMethod())
+                        break
+                    case "rfilter":
+                        def method = new RepeatingSimpleMatchingMethod()
+                        method.setPattern(Pattern.compile(curPtrn))
+                        addFilterMethod(method)
+                        break
+                    case "counter":
+                        addFilterMethod(new CountingMethod())
+                        break
                     case "avg":
-                        def method = new AveragingMethod()
-                        if (groupingMethod != null) {
-                            groupingMethod.addChildMethod(method)
-                        }
-                        else {
-                            filterMethods.add(method)
-                        }
+                        addFilterMethod(new AveragingMethod())
                         break
                     default:
                         throw new IllegalArgumentException("Unknown postFilterMethod type: " + type + " at config: " + COLUMNS_KEY + "." + configId)
@@ -160,6 +161,15 @@ public final class PostFilter extends StatefulFilterBase<String> {
         }
         postFilterPattern = Pattern.compile(postFilterPatternBuilder.toString())
         return true
+    }
+
+    private addFilterMethod(PostFilterMethod method) {
+        if (groupingMethod != null) {
+            groupingMethod.addChildMethod(method)
+        }
+        else {
+            filterMethods.add(method)
+        }
     }
 
     @Override
@@ -205,9 +215,23 @@ public final class PostFilter extends StatefulFilterBase<String> {
          result.setLength(0) //invalidating result first
          Matcher postPPatternMatcher = postFilterPattern.matcher(blockData)
          if (postPPatternMatcher.find()) {//bulk matching all patterns. If any of them won't be matched nothing will be returned
-            int ptrnIndex = 1
+            int groupIdx = 1
             filterMethods.each { method ->
-               aggregatePostProcess(postPPatternMatcher, result, columnSeparator, method, ptrnIndex++)
+                LOGGER.trace("Aggregating post processing, agg={} method={} groupIdx={} \nmtch found", result, method.getClass().getName(), groupIdx)
+                def methodResult = method.processMatchResults(postPPatternMatcher, groupIdx++)
+                if (methodResult != null) //omitting printing since one of the results was null. Might be a grouping
+                {
+                    if (methodResult instanceof List) {
+                        methodResult.each {
+                            aggregatorAppend(result, columnSeparator, methodResult)
+                            result.append('\n')
+                        }
+                        result.deleteCharAt(result.length())
+                    }
+                    else {
+                        aggregatorAppend(result, columnSeparator, methodResult)   
+                    }
+                }
             }
             if (reportHeader != null && !isHeaderPrinted && groupingMethod == null) {   
                 isHeaderPrinted = true
@@ -224,32 +248,6 @@ public final class PostFilter extends StatefulFilterBase<String> {
         isHeaderPrinted = false
         if (groupingMethod != null) {
             groupingMethod.flush()
-        }
-    }
-	/**
-	 * This method is used to extract and process matched groups from supplied data. <br>
-	 * It is considered that actual matching is done prior to calling this method, and it's purpose is just to call appropriate handler method for appropriate group in Matcher <br>
-	 * Handlers to group relation is defined during PostFilter initialization through config.xml parsing.
-	 * 
-	 * @param mtchr Matcher object which has matched all post patterns to data
-	 * @param agg accumulator object which will gather matched substring
-	 * @param sep column separator string
-	 * @param method declared in PostFilter method which will be used to extract matched group value
-	 * @param groupIdx index of a matched group which will be used to get substrings
-	 * @return accumulator with appended substring for current group
-	 */
-
-    private StringBuilder aggregatePostProcess(Matcher mtchr, StringBuilder agg, String sep, PostFilterMethod<String> method, Integer groupIdx)
-    {
-		LOGGER.trace("Aggregating post processing, agg={} method={} groupIdx={} \nmtch found", agg, method.getClass().getName(), groupIdx)
-        String result = method.processMatchResults(mtchr, groupIdx)
-        if (agg != null && result != null) //omitting printing since one of the results was null. Might be a grouping
-        {
-            return aggregatorAppend(agg, sep, result)
-        }
-        else
-        {
-            return null
         }
     }
 	
@@ -289,16 +287,18 @@ public final class PostFilter extends StatefulFilterBase<String> {
     }
 
     private class GroupingMethod implements PostFilterMethod<String> {
+        private static final Logger LOGGER = LoggerFactory.getLogger(GroupingMethod.class)
         private Map<?,?> groupMap = [:]
         private Map<?,?> currentGroup = null
-        private List<? extends PostFilterGroupMethod> methodsToGroup = []
+        private List<? extends PostFilterMethod> methodsToGroup = []
         private PostFilter papa = papa
 
         public GroupingMethod(PostFilter papa) {
             this.papa = papa
         }
 
-        public void addChildMethod(PostFilterGroupMethod method){
+        public void addChildMethod(PostFilterMethod method){
+            LOGGER.trace("Added {} to group methods", method)
             methodsToGroup.add(method)
         }
 
@@ -321,7 +321,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
             if (methodsToGroup.isEmpty()) {
                 throw new IllegalStateException("At least one group method is expected if group is specified")
             }
-
+            LOGGER.trace("Group at {}", groupIdx)
             int initGroupIdx = groupIdx //need to increase it for each method
             String newGroup = mtchResults.group(initGroupIdx++)
             Map existingGroup = groupMap[newGroup]
@@ -332,7 +332,8 @@ public final class PostFilter extends StatefulFilterBase<String> {
             }
             currentGroup = existingGroup
             methodsToGroup.each { method ->
-                aggregateFilterResult(method.processMatchResults(mtchResults, initGroupIdx++), method.getAggregatorKey())
+                LOGGER.trace("Next group method {} at {}", method, initGroupIdx)
+                aggregateFilterResult(method.processMatchResults(mtchResults, initGroupIdx++), method instanceof PostFilterGroupMethod ? method.getAggregatorKey() : method.class.name)
             }
             return null
         }
@@ -350,13 +351,33 @@ public final class PostFilter extends StatefulFilterBase<String> {
             List<T> agg = currentGroup[aggregatorKey]
             if (agg != null)
             {
-                agg.add(result)
+                if (result instanceof List) {
+                    agg.addAll(result)   
+                }
+                else {
+                    agg.add(result)
+                }
             }
             else
             {
-                currentGroup[aggregatorKey] = [result]
+                if (result instanceof List) {
+                    currentGroup[aggregatorKey] = result
+                }
+                else {
+                    currentGroup[aggregatorKey] = [result]   
+                }
             }            
 
+        }
+
+        private <T> String defaultProcessGroup(List<T> aggregatedResults) {
+            if (aggregatedResults == null) return ""
+            switch (aggregatedResults[0]) {
+                case String:
+                    return aggregatedResults.join(';')
+                default:
+                    return aggregatedResults.sum()
+            }
         }
 
         /**
@@ -371,7 +392,12 @@ public final class PostFilter extends StatefulFilterBase<String> {
             groupMap.each { groupName, groupValue ->
                 rslt.append(groupName)
                 methodsToGroup.each { method ->
-                    papa.aggregatorAppend(rslt, papa.columnSeparator, method.processGroup(groupValue))
+                    if (method instanceof PostFilterGroupMethod) {
+                        papa.aggregatorAppend(rslt, papa.columnSeparator, method.processGroup(groupValue))
+                    }
+                    else {
+                        papa.aggregatorAppend(rslt, papa.columnSeparator, defaultProcessGroup(groupValue[method.getClass().getName()]))
+                    }
                 }
                 rslt.append("\n")
             }
@@ -385,7 +411,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
 
 class SimpleMatchingMethod implements PostFilterMethod<String> {
     /**
-     * Simply returns substring matched by a pattern.
+     * Simply returns substring matched by a pattern. It would be just one result mathed last, even if there are more matches
      * 
      * @param mtchResults Matcher containing needed group
      * @param groupIdx index of the group
@@ -394,6 +420,31 @@ class SimpleMatchingMethod implements PostFilterMethod<String> {
     @Override
     public String processMatchResults(Matcher mtchResults, Integer groupIdx) {
         return mtchResults.group(groupIdx)
+    }    
+}
+
+class RepeatingSimpleMatchingMethod implements PostFilterMethod<List<String>>, RepeatingPostFilterMethod {
+    private Pattern groupPattern
+
+    @Override
+    public void setPattern(Pattern groupPattern) {
+        this.groupPattern = groupPattern
+    }
+    /**
+     * Returns substring matched by a pattern.
+     * 
+     * @param mtchResults Matcher containing needed group
+     * @param groupIdx index of the group
+     * @return group value
+     */
+    @Override
+    public List<String> processMatchResults(Matcher mtchResults, Integer groupIdx) {
+        List<String> result = []
+        Matcher allMatches = groupPattern.matcher(mtchResults.group())
+        while(allMatches.find()) {
+            result.add(allMatches.group(1))
+        }
+        return result.isEmpty() ? null : result
     }    
 }
 
@@ -420,10 +471,8 @@ class CountingMethod implements PostFilterMethod<Integer> {
     }
 }
 
-class AveragingMethod implements PostFilterGroupMethod<Integer> {
+class AveragingMethod extends CountingMethod implements PostFilterGroupMethod<Integer> {
     public static final String AVG_AGGREGATOR_KEY = "averageAgg"
-
-    private CountingMethod internalCountingMethod = new CountingMethod()
 
     @Override
     public String getAggregatorKey() {
@@ -445,7 +494,7 @@ class AveragingMethod implements PostFilterGroupMethod<Integer> {
             newIntVal = Integer.valueOf(mtchResults.group(groupIdx))            
         }
         catch(NumberFormatException e) {
-            newIntVal = internalCountingMethod.processMatchResults(mtchResults, groupIdx)
+            newIntVal = super.processMatchResults(mtchResults, groupIdx)
         }
         return newIntVal
     }
