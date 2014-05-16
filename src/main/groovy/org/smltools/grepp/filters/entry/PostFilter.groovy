@@ -12,6 +12,7 @@ import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.filters.enums.Qualifier
 import org.smltools.grepp.filters.StatefulFilterBase
 import org.smltools.grepp.filters.FilterParams
+import org.smltools.grepp.filters.PostFilterParams
 import org.smltools.grepp.filters.PostFilterMethod
 import org.smltools.grepp.filters.PostFilterGroupMethod
 import org.smltools.grepp.filters.RepeatingPostFilterMethod
@@ -33,6 +34,33 @@ public final class PostFilter extends StatefulFilterBase<String> {
     public static final String VALUE_KEY = 'value'
     public static final String COLUMNS_KEY = 'postProcessColumns'
     public static final String COLUMN_NAME_KEY = 'colName'
+    public static final Map<String, Class<? extends PostFilterMethod>> ID_TO_FILTER_CLASS_MAP = new HashMap<String, Class<? extends PostFilterMethod>>()
+
+    static {
+        addIdToFilterClassMapping(null, SimpleMatchingMethod.class)
+        addIdToFilterClassMapping(null, RepeatingSimpleMatchingMethod.class)
+        addIdToFilterClassMapping(null, CountingMethod.class)
+        addIdToFilterClassMapping(null, AveragingMethod.class)
+    }
+
+    private static void addIdToFilterClassMapping(String filterId, Class<? extends PostFilterMethod> filterClass) {
+        if (filterId == null) {
+            PostFilterParams postFilterParams = filterClass.getAnnotation(PostFilterParams.class)
+            if (postFilterParams != null) {
+                filterId = postFilterParams.id()
+            }
+            else {
+                throw new IllegalArgumentException("Either filterId shouldn't be null, or " + filterClass.name + " should be annotated with PostFilterParams")
+            }
+        }
+        if (!ID_TO_FILTER_CLASS_MAP.containsKey(filterId)) {
+            ID_TO_FILTER_CLASS_MAP.put(filterId, filterClass)
+        }
+        else {
+            throw new IllegalArgumentException("Filter id " + filterId + " already registered!")
+        }
+    }
+
 
     //Postprocessing stuff
     private Pattern postFilterPattern = null
@@ -136,22 +164,18 @@ public final class PostFilter extends StatefulFilterBase<String> {
                         groupingMethod = new GroupingMethod(this)
                         filterMethods.add(groupingMethod)
                         break
-                    case "filter":
-                        addFilterMethod(new SimpleMatchingMethod())
-                        break
-                    case "rfilter":
-                        def method = new RepeatingSimpleMatchingMethod()
-                        method.setPattern(Pattern.compile(curPtrn))
-                        addFilterMethod(method)
-                        break
-                    case "counter":
-                        addFilterMethod(new CountingMethod())
-                        break
-                    case "avg":
-                        addFilterMethod(new AveragingMethod())
-                        break
                     default:
-                        throw new IllegalArgumentException("Unknown postFilterMethod type: " + type + " at config: " + COLUMNS_KEY + "." + configId)
+                        Class<? extends PostFilterMethod> filterClass = ID_TO_FILTER_CLASS_MAP.get(type)
+                        if (filterClass != null) {
+                            def method = filterClass.newInstance()
+                            if (method instanceof RepeatingPostFilterMethod) {
+                                method.setPattern(Pattern.compile(curPtrn))        
+                            }
+                            addFilterMethod(method)
+                        }
+                        else {
+                            throw new IllegalArgumentException("Unknown postFilterMethod type: " + type + " at config: " + COLUMNS_KEY + "." + configId)
+                        }
                 }
                 
                 if (props.containsKey(COLUMN_NAME_KEY)) {
@@ -408,7 +432,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
 
 }
 
-
+@PostFilterParams(id="filter")
 class SimpleMatchingMethod implements PostFilterMethod<String> {
     /**
      * Simply returns substring matched by a pattern. It would be just one result mathed last, even if there are more matches
@@ -423,6 +447,7 @@ class SimpleMatchingMethod implements PostFilterMethod<String> {
     }    
 }
 
+@PostFilterParams(id="rfilter")
 class RepeatingSimpleMatchingMethod implements PostFilterMethod<List<String>>, RepeatingPostFilterMethod {
     private Pattern groupPattern
 
@@ -448,6 +473,7 @@ class RepeatingSimpleMatchingMethod implements PostFilterMethod<List<String>>, R
     }    
 }
 
+@PostFilterParams(id="counter")
 class CountingMethod implements PostFilterMethod<Integer> {
     /**
      * Counts number of substrings matched by a pattern.
@@ -471,6 +497,7 @@ class CountingMethod implements PostFilterMethod<Integer> {
     }
 }
 
+@PostFilterParams(id="avg")
 class AveragingMethod extends CountingMethod implements PostFilterGroupMethod<Integer> {
     public static final String AVG_AGGREGATOR_KEY = "averageAgg"
 
