@@ -1,9 +1,9 @@
 defaults {
-    spoolFileExtension='.log'
+    spoolFileExtension='log'
     resultsDir='results'
     postProcessSeparator {
         value=','
-        spoolFileExtension='.csv'
+        spoolFileExtension='csv'
     }
 }
 logDateFormats {

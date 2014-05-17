@@ -182,6 +182,17 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
     	return false;
     }
 
+    @SuppressWarnings("unchecked")
+    public <E extends Filter<T>> E get(Class<E> filterClass) {
+    	for (Filter<T> filter: filters) {
+    		if (filter.getClass().equals(filterClass)) {
+    			return (E) filter;
+    		}
+    	}
+    	return null;
+    }
+
+
     public void enableFilter(Class<? extends Filter> filterClass) {
     	if (filterClass != null) {
     		if (replacedFiltersMap.containsKey(filterClass)) {

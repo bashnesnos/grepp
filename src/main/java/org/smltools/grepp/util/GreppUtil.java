@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import org.codehaus.groovy.control.CompilationFailedException;
 
+
 /**
  * 
  * Some common methods.
@@ -120,8 +121,18 @@ public final class GreppUtil {
 	 * @param o Object to be checked for null
 	 * @param message which will be passed to an exception
 	 */
-	public static void throwIllegalAEifNull(Object o, String message)
-	{
+	public static void throwIllegalAEifNull(String msg, Object... objects) {
+		StringBuilder message = new StringBuilder(msg).append(" ");
+
+		boolean isAllNotNull = true;
+		for (Object obj: objects) {
+			isAllNotNull &= obj == null;
+			message.append(isAllNotNull).append(";");
+			if (!isAllNotNull) throw new IllegalArgumentException(message.toString());
+		}
+	}
+
+	public static void throwIllegalAEifNull(Object o, String message) {
 		if (o == null) throw new IllegalArgumentException(message);
 	}
 

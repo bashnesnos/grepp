@@ -24,6 +24,7 @@ import org.smltools.grepp.processors.DataProcessor
 import org.smltools.grepp.processors.InputStreamProcessor
 import org.smltools.grepp.processors.TextFileProcessor
 import static org.smltools.grepp.Constants.*
+
 /**
  * Class represents wgrep config, which will be used to parse incoming arguments, config.xml and would be a source for processing, filtering etc. 
  *
@@ -150,7 +151,8 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         ConfigObject runtimeConfig = new ConfigObject()
         runtimeConfig.spoolFileExtension = config.defaults.spoolFileExtension
         runtimeConfig.resultsDir = config.defaults.resultsDir
-                
+		runtimeConfig.spoolFileName = String.format("result_%tY%<tm%<td_%<tH%<tM%<tS", new Date())
+		
 		if (curWorkDir != null) {
 			runtimeConfig.cwd = curWorkDir
 		}
@@ -285,6 +287,10 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			log.trace("Locking filter chains")
 			entryFilterChain.lock()
 			fileFilterChain.lock()	
+		}
+
+		if (entryFilterChain.has(PostFilter.class)) {
+			runtimeConfig.spoolFileExtension = entryFilterChain.get(PostFilter.class).getSpoolFileExtension()
 		}
 
 		runtimeConfig.entryFilterChain = entryFilterChain
@@ -457,7 +463,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 	public static PrintWriter getFilePrinter(ConfigObject runtimeConfig) {
 		def outputDir = new File(runtimeConfig.home, runtimeConfig.resultsDir)
 		if (!outputDir.exists()) outputDir.mkdir()
-		def out_file = new File(outputDir, runtimeConfig.spoolExtension)
+		def out_file = new File(outputDir, runtimeConfig.spoolFileName + "." + runtimeConfig.spoolExtension)
 		log.trace("Creating new file: {}", out_file.getCanonicalPath())
 		out_file.createNewFile()
 		return new PrintWriter(new FileWriter(out_file), true) //autoflushing PrintWriter

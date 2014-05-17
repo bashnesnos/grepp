@@ -14,6 +14,7 @@ import org.smltools.grepp.filters.StatefulFilterBase
 import org.smltools.grepp.filters.FilterParams
 import org.smltools.grepp.filters.PostFilterParams
 import org.smltools.grepp.filters.PostFilterMethod
+import org.smltools.grepp.filters.PostFilterMethodBase
 import org.smltools.grepp.filters.PostFilterGroupMethod
 import org.smltools.grepp.filters.RepeatingPostFilterMethod
 import static org.smltools.grepp.Constants.*
@@ -38,6 +39,8 @@ public final class PostFilter extends StatefulFilterBase<String> {
     public static final String COLUMNS_KEY = 'postProcessColumns'
     public static final String COLUMN_NAME_KEY = 'colName'
     public static final String GREPP_POST_FILTER_PLUGIN_DIR = "/plugin/postFilterMethods";
+
+    public static final String GROUP_RESERVED_TYPE_NAME = "group";
 
     private static final Map<String, Class<? extends PostFilterMethod>> ID_TO_FILTER_CLASS_MAP = new HashMap<String, Class<? extends PostFilterMethod>>()
 
@@ -89,10 +92,10 @@ public final class PostFilter extends StatefulFilterBase<String> {
 
     //Postprocessing stuff
     private Pattern postFilterPattern = null
+    private StringBuilder postFilterPatternBuilder = null
     String columnSeparator = null
     String reportHeader = null
     private GroupingMethod groupingMethod = null
-    private List<String> methodTypeList = []
     boolean isHeaderPrinted = false
     private StringBuilder result = new StringBuilder()
     private String spoolFileExtension
@@ -103,21 +106,12 @@ public final class PostFilter extends StatefulFilterBase<String> {
     * Also it parses from config.xml post filter pattern configuration basing on fulfilled POST_PROCESSING parameter.
     *
     */
-    public PostFilter(String postFilterPattern, String columnSeparator, String reportHeader, List<String> methodTypeList) {
-		setPostFilterPattern(postFilterPattern)
-        setColumnSeparator(columnSeparator)
-        setReportHeader(reportHeader)
-		setMethodTypeList(methodTypeList)
+    public PostFilter() {
+
     }
 
     public PostFilter(Map<?, ?> config) {
         super(config);
-    }
-
-    public void setPostFilterPattern(String postFilterPattern) {
-        GreppUtil.throwIllegalAEifNull(postFilterPattern, "postFilterPattern shouldn't be null")
-        this.postFilterPattern = Pattern.compile(postFilterPattern)
-        LOGGER.trace("postFilterPattern: {}", postFilterPattern)
     }
 
     public void setColumnSeparator(String columnSeparator) {
@@ -125,13 +119,11 @@ public final class PostFilter extends StatefulFilterBase<String> {
         this.columnSeparator = columnSeparator
     }
 
-    public void setReportHeader(String reportHeader) {
-        this.reportHeader = reportHeader        
-    }
-
-    public void setMethodTypeList(List<String> methodTypeList) {
-        GreppUtil.throwIllegalAEifNull(methodTypeList, "methodTypeList shouldn't be null")
-        this.methodTypeList = methodTypeList
+    public void addFilterMethodByType(String type, String pattern, String colName) {
+        GreppUtil.throwIllegalAEifNull("'type' and 'pattern' shouldn't be null!", type, pattern)
+        addFilterMethodByType(type, Pattern.compile(pattern), colName)
+        appendFilterPattern(pattern)
+        addColumnToHeader(colName)
     }
 
     /**
@@ -154,16 +146,16 @@ public final class PostFilter extends StatefulFilterBase<String> {
             throw new ConfigNotExistsRuntimeException(configId);
         }
 
-        StringBuilder postFilterPatternBuilder = new StringBuilder()
+        postFilterPatternBuilder = new StringBuilder()
         //defaults come first
         columnSeparator = config.defaults.postProcessSeparator.value
         spoolFileExtension = config.defaults.postProcessSeparator.spoolFileExtension
 
         def sortedHandlers = config.postProcessColumns."$configId"
 
-        if (sortedHandlers.containsKey("group")) { //group comes first
+        if (sortedHandlers.containsKey(GROUP_RESERVED_TYPE_NAME)) { //group comes first
             def tempHandlers = [:]
-            tempHandlers.put("group", sortedHandlers.remove("group"))
+            tempHandlers.put(GROUP_RESERVED_TYPE_NAME, sortedHandlers.remove(GROUP_RESERVED_TYPE_NAME))
             tempHandlers.putAll(sortedHandlers)
             sortedHandlers = tempHandlers
             config.postProcessColumns."$configId" = sortedHandlers            
@@ -182,44 +174,68 @@ public final class PostFilter extends StatefulFilterBase<String> {
 
         sortedHandlers.each { type, props -> 
             if (!type.equals(SEPARATOR_KEY)) {
-                LOGGER.trace("postProcessColumn type: {}; props: {}", type, props.keySet())
+                LOGGER.trace("postProcessColumn type: {}; props: {}", type, props.values())
 
                 if (!props.containsKey(VALUE_KEY)) {
                     throw new PropertiesNotFoundRuntimeException(COLUMNS_KEY + "." + configId + "." + type + "." + VALUE_KEY + " should be filled")
                 }
 
                 def curPtrn = props.value
-                postFilterPatternBuilder = postFilterPatternBuilder.size() == 0 ? postFilterPatternBuilder.append("(?ms)").append(curPtrn) : postFilterPatternBuilder.append(Qualifier.and.getPattern()).append(curPtrn)
-                methodTypeList.add(type)
-                switch (type) {
-                    case "group":
-                        groupingMethod = new GroupingMethod(this)
-                        filterMethods.add(groupingMethod)
-                        break
-                    default:
-                        Class<? extends PostFilterMethod> filterClass = ID_TO_FILTER_CLASS_MAP.get(type)
-                        if (filterClass != null) {
-                            def method = filterClass.newInstance()
-                            if (method instanceof RepeatingPostFilterMethod) {
-                                method.setPattern(Pattern.compile(curPtrn))        
-                            }
-                            addFilterMethod(method)
-                        }
-                        else {
-                            throw new IllegalArgumentException("Unknown postFilterMethod type: " + type + " at config: " + COLUMNS_KEY + "." + configId)
-                        }
-                }
+                appendFilterPattern(curPtrn)
+                addFilterByType(type, Pattern.compile(curPtrn), props.containsKey(COLUMN_NAME_KEY) ? props.colName : null)
                 
                 if (props.containsKey(COLUMN_NAME_KEY)) {
-                    reportHeader = (reportHeader != null) ? reportHeader + columnSeparator + props.colName : props.colName
+                    addColumnToHeader(props.colName)
                 }
             }
         }
-        postFilterPattern = Pattern.compile(postFilterPatternBuilder.toString())
         return true
     }
 
-    private addFilterMethod(PostFilterMethod method) {
+    private void appendFilterPattern(String pattern) {
+        if (postFilterPatternBuilder == null) {
+            postFilterPatternBuilder = new StringBuilder()
+        }
+        postFilterPatternBuilder.size() == 0 ? postFilterPatternBuilder.append("(?ms)").append(pattern) : postFilterPatternBuilder.append(Qualifier.and.getPattern()).append(pattern)
+    }
+
+    private void addColumnToHeader(String colName) {
+        GreppUtil.throwIllegalAEifNull(columnSeparator, "columnSeparator should be supplied either via configId or explicitly")
+        if (colName != null) {
+            reportHeader = (reportHeader != null) ? reportHeader + columnSeparator + colName : colName
+        }
+    }
+
+    private void addFilterByType(String type, Pattern ptrn, String colName) {
+        switch (type) {
+            case GROUP_RESERVED_TYPE_NAME:
+                groupingMethod = new GroupingMethod(this)
+                groupingMethod.setPattern(ptrn)
+                groupingMethod.setColName(colName)
+                if (!filterMethods.isEmpty()) {
+                    filterMethods.each {
+                        groupingMethod.addChildMethod(it)
+                    }
+                }
+                filterMethods = [groupingMethod]
+                break
+            default:
+                Class<? extends PostFilterMethod> filterClass = ID_TO_FILTER_CLASS_MAP.get(type)
+                if (filterClass != null) {
+                    def method = filterClass.newInstance()
+                    if (method instanceof PostFilterMethodBase) {
+                        method.setPattern(ptrn)
+                        method.setColName(colName)       
+                    }
+                    addFilterMethod(method)
+                }
+                else {
+                    throw new IllegalArgumentException("Unknown postFilterMethod type: " + type)
+                }
+        }        
+    }
+
+    private void addFilterMethod(PostFilterMethod method) {
         if (groupingMethod != null) {
             groupingMethod.addChildMethod(method)
         }
@@ -238,10 +254,29 @@ public final class PostFilter extends StatefulFilterBase<String> {
                 configId = this.configId;
             }
         }
-        //implement when PostFilter is more configurable
-        return new HashMap<Object, Object>();
+
+        ConfigObject root = new ConfigObject()
+        if (groupingMethod != null) {
+            root."$COLUMNS_KEY"."$configId".merge(groupingMethod.getAsConfig())
+        }
+        else {
+            root."$COLUMNS_KEY"."$configId".merge(gatherConfigFromMethods(filterMethods))
+        }
+        return root
     }
 
+    ConfigObject gatherConfigFromMethods(List<? extends PostFilterMethod> methodsList) {
+        ConfigObject config = new ConfigObject()
+        methodsList.each {
+            if (it.isAnnotationPresent(PostFilterParams.class)) {
+                def typeId = it.getAnnotation(PostFilterParams.class).id()
+                config."$typeId".value = it.getPattern().pattern()
+                config."$typeId".colName = it.getColName()
+            }
+        }
+
+        return config
+    }
 
     @SuppressWarnings("unchecked")
     public static boolean configIdExists(Map<?, ?> config, String configId) {
@@ -265,7 +300,14 @@ public final class PostFilter extends StatefulFilterBase<String> {
     @Override
     public String filter(String blockData) {
         if (postFilterPattern == null) {
-            throw new IllegalStateException("postFilterPattern should be supplied via configId or explicitly!")
+            if (postFilterPatternBuilder == null) {
+                throw new IllegalStateException("Either postFilterPattern or postFilterPatternBuilder should be supplied via configId or explicitly!")
+            }
+            else {
+                postFilterPattern = Pattern.compile(postFilterPatternBuilder.toString())
+                LOGGER.trace("Set pattern to {}", postFilterPatternBuilder)                
+                postFilterPatternBuilder = null //i.e. it's not needed anymore
+            }
         }
 
          result.setLength(0) //invalidating result first
@@ -342,7 +384,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
         }
     }
 
-    private class GroupingMethod implements PostFilterMethod<String> {
+    private class GroupingMethod extends PostFilterMethodBase<String> {
         private static final Logger LOGGER = LoggerFactory.getLogger(GroupingMethod.class)
         private Map<?,?> groupMap = [:]
         private Map<?,?> currentGroup = null
@@ -356,6 +398,15 @@ public final class PostFilter extends StatefulFilterBase<String> {
         public void addChildMethod(PostFilterMethod method){
             LOGGER.trace("Added {} to group methods", method)
             methodsToGroup.add(method)
+        }
+
+        public ConfigObject getAsConfig() {
+            ConfigObject config = new ConfigObject()
+            config."$GROUP_RESERVED_TYPE_NAME".value = pattern.pattern()
+            config."$GROUP_RESERVED_TYPE_NAME".colName = colName
+
+            config.merge(papa.gatherConfigFromMethods(methodsToGroup))
+            return config
         }
 
         public void flush() {
@@ -465,7 +516,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
 }
 
 @PostFilterParams(id="filter")
-class SimpleMatchingMethod implements PostFilterMethod<String> {
+class SimpleMatchingMethod extends PostFilterMethodBase<String> {
     /**
      * Simply returns substring matched by a pattern. It would be just one result mathed last, even if there are more matches
      * 
@@ -480,13 +531,7 @@ class SimpleMatchingMethod implements PostFilterMethod<String> {
 }
 
 @PostFilterParams(id="rfilter")
-class RepeatingSimpleMatchingMethod implements PostFilterMethod<List<String>>, RepeatingPostFilterMethod {
-    private Pattern groupPattern
-
-    @Override
-    public void setPattern(Pattern groupPattern) {
-        this.groupPattern = groupPattern
-    }
+class RepeatingSimpleMatchingMethod extends PostFilterMethodBase<List<String>> {
     /**
      * Returns substring matched by a pattern.
      * 
@@ -497,7 +542,7 @@ class RepeatingSimpleMatchingMethod implements PostFilterMethod<List<String>>, R
     @Override
     public List<String> processMatchResults(Matcher mtchResults, Integer groupIdx) {
         List<String> result = []
-        Matcher allMatches = groupPattern.matcher(mtchResults.group())
+        Matcher allMatches = pattern.matcher(mtchResults.group())
         while(allMatches.find()) {
             result.add(allMatches.group(1))
         }
@@ -506,7 +551,7 @@ class RepeatingSimpleMatchingMethod implements PostFilterMethod<List<String>>, R
 }
 
 @PostFilterParams(id="counter")
-class CountingMethod implements PostFilterMethod<Integer> {
+class CountingMethod extends PostFilterMethodBase<Integer> {
     /**
      * Counts number of substrings matched by a pattern.
      * 

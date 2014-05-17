@@ -9,7 +9,6 @@ package org.smltools.grepp.cli
 * @author Alexander Semelit
 */
 import org.smltools.grepp.config.ConfigHolder
-import org.smltools.grepp.config.XMLConfigHolder
 import org.smltools.grepp.cli.CLIFacade
 import org.smltools.grepp.util.GreppUtil
 import org.slf4j.Logger
@@ -28,15 +27,8 @@ class Grepp {
 			configHolder = new ConfigHolder(configPath)
 		}
 		else {
-			configPath = GreppUtil.getResourceOrNull("config.xml");
-			def configXSDPath = GreppUtil.getResourceOrNull("config.xsd");
-			if (configPath != null) {
-				configHolder = new XMLConfigHolder(configPath.getPath(), configXSDPath == null ?: configXSDPath.getPath())
-			}
-			else {
-				System.err.println("Can't find config file to initialize")
-				System.exit(1)
-			}
+			System.err.println("Can't find config file to initialize")
+			System.exit(1)
 		}
 
 		try {
