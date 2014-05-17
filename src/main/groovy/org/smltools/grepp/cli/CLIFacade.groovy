@@ -122,6 +122,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.add(args:1, argName:"configId", "Instructs to save given configuraion as a config. <configId> should be unique")
         cli.dateProp(args:2, valueSeparator:";", argName:"format;regex", "Loads date entry filter with <format> (SimpleDateFormat compliant) and <regex> to extract the date from entries")
         cli.threadProp(args:3, valueSeparator:";", argName:"start;skipend;end", "Loads thread filter with <start>, <skipend> (leave as blank if not needed) and <end> regexes")
+        cli.repProp(args:1, argName:"type(regex,colName);...", "Loads post filter with <type(regex,colName)> in the given order. Type should be equal to one of the post filter methods. Separate with ';' if multiple columns. You need to escape ',' and ';' with \\ in the <regex> part for correct processing")
         cli.lock("Locks the filter chains after full initialization. I.e. it means if any file processed won't update filter params even if such are configured for it")
         cli.noff("No File Filtering - i.e. turns off file filtering based on date etc.")
         def options = cli.parse(args)
@@ -198,6 +199,24 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 		else {
 			entryFilterChain.disableFilter(PropertiesFilter.class)
+		}
+
+		if (options.repProp) {
+			def postFilter = new PostFilter()
+			postFilter.setColumnSeparator(config.defaults.postProcessSeparator.value)
+			postFilter.setSpoolFileExtension(config.defaults.postProcessSeparator.spoolFileExtension)
+
+			options.repProp.split(/(?<!\\);/).each { prop ->
+				def mtchr = prop =~ /(\w+?)\((.*)\)/
+				if (mtchr.matches()) {
+				    def type = mtchr.group(1)
+				    def regexAndColName = mtchr.group(2).split(/(?<!\\),/)
+				    postFilter.addFilterMethodByType(type, regexAndColName[0], (regexAndColName.length > 1) ? regexAndColName[1] : null)
+				}
+			}			
+
+			postFilter.lock()
+			entryFilterChain.add(postFilter)
 		}
 
 		if (options.e) {
@@ -352,14 +371,10 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.add) {
 			if (entryFilterChain.configIdExists(options.add) || fileFilterChain.configIdExists(options.add)) {
-				println "ConfigId $options.add already exists for a given filter chain; try different one"
+				println "ConfigId $options.add already exists for a given filter chain; try different one or remove the old one"
 				return
 			}
 		}
-
-		def output = makeOutput(runtimeConfig, entryFilterChain, options)
-		def processor = makeProcessor(runtimeConfig, output, options)
-		processor.process(runtimeConfig.data)
 
 		if (options.add) {
 			log.info("Saving config to {}", options.add)
@@ -367,6 +382,10 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			config.merge(fileFilterChain.getAsConfig(options.add))
 			config.save()
 		}
+
+		def output = makeOutput(runtimeConfig, entryFilterChain, options)
+		def processor = makeProcessor(runtimeConfig, output, options)
+		processor.process(runtimeConfig.data)
 	}
 
 	/**

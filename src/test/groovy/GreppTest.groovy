@@ -176,6 +176,22 @@ The end
 		}
 	}
 
+	void testOnTheFlyReport() {
+		def expectedResult = """\
+some_cmd,count_of_operands
+Foo,3
+Koo,1
+Foo,1"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--add new_report --repProp filter(name=\"?(.*?)\",some_cmd);counter((operand),count_of_operands) oo $RESOURCES\\processing_report_test.log".split(" "))
+		}
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--new_report $RESOURCES\\processing_report_test.log".split(" "))
+		}
+	}
+
 	void testFileMTimeFiltering() {
 		def fileTime = new Date(new File(RESOURCES+"\\processing_time_test.log").lastModified())
 		def dateFormat = new SimpleDateFormat("yyyy-MM-dd")

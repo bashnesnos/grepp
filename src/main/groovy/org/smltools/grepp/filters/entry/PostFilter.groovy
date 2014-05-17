@@ -114,6 +114,14 @@ public final class PostFilter extends StatefulFilterBase<String> {
         super(config);
     }
 
+    public void setSpoolFileExtension(String spoolFileExtension) {
+        this.spoolFileExtension = spoolFileExtension
+    }
+
+    public String getSpoolFileExtension() {
+        return spoolFileExtension
+    }
+
     public void setColumnSeparator(String columnSeparator) {
         GreppUtil.throwIllegalAEifNull(columnSeparator, "Column separator shouldn't be null")
         this.columnSeparator = columnSeparator
@@ -121,7 +129,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
 
     public void addFilterMethodByType(String type, String pattern, String colName) {
         GreppUtil.throwIllegalAEifNull("'type' and 'pattern' shouldn't be null!", type, pattern)
-        addFilterMethodByType(type, Pattern.compile(pattern), colName)
+        addFilterByType(type, Pattern.compile(pattern), colName)
         appendFilterPattern(pattern)
         addColumnToHeader(colName)
     }
@@ -133,10 +141,6 @@ public final class PostFilter extends StatefulFilterBase<String> {
     public PostFilter(Map<?, ?> config, String configId) {
         super(config);
         fillParamsByConfigIdInternal(configId);
-    }
-
-    public String getSpoolFileExtension() {
-        return spoolFileExtension
     }
 
     @SuppressWarnings("unchecked")
@@ -165,7 +169,6 @@ public final class PostFilter extends StatefulFilterBase<String> {
         if (separatorProps != null) {
             columnSeparator = separatorProps.value
             spoolFileExtension = separatorProps.spoolFileExtension
-            config.runtime.spoolFileExtension = spoolFileExtension
         }
 
         if (columnSeparator == null || spoolFileExtension == null || columnSeparator.size() < 1 || spoolFileExtension.size() < 1) {
@@ -268,10 +271,11 @@ public final class PostFilter extends StatefulFilterBase<String> {
     ConfigObject gatherConfigFromMethods(List<? extends PostFilterMethod> methodsList) {
         ConfigObject config = new ConfigObject()
         methodsList.each {
-            if (it.isAnnotationPresent(PostFilterParams.class)) {
-                def typeId = it.getAnnotation(PostFilterParams.class).id()
-                config."$typeId".value = it.getPattern().pattern()
+            if (it.class.isAnnotationPresent(PostFilterParams.class)) {
+                def typeId = it.class.getAnnotation(PostFilterParams.class).id()
                 config."$typeId".colName = it.getColName()
+                config."$typeId".value = it.getPattern().pattern()
+                
             }
         }
 
@@ -308,6 +312,10 @@ public final class PostFilter extends StatefulFilterBase<String> {
                 LOGGER.trace("Set pattern to {}", postFilterPatternBuilder)                
                 postFilterPatternBuilder = null //i.e. it's not needed anymore
             }
+        }
+
+        if (filterMethods.isEmpty()) {
+            throw new IllegalStateException("filterMethods should be supplied either via configId or explicitly!")
         }
 
          result.setLength(0) //invalidating result first
@@ -402,8 +410,8 @@ public final class PostFilter extends StatefulFilterBase<String> {
 
         public ConfigObject getAsConfig() {
             ConfigObject config = new ConfigObject()
-            config."$GROUP_RESERVED_TYPE_NAME".value = pattern.pattern()
             config."$GROUP_RESERVED_TYPE_NAME".colName = colName
+            config."$GROUP_RESERVED_TYPE_NAME".value = pattern.pattern()
 
             config.merge(papa.gatherConfigFromMethods(methodsToGroup))
             return config

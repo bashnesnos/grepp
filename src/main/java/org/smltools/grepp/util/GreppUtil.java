@@ -126,7 +126,7 @@ public final class GreppUtil {
 
 		boolean isAllNotNull = true;
 		for (Object obj: objects) {
-			isAllNotNull &= obj == null;
+			isAllNotNull &= obj != null;
 			message.append(isAllNotNull).append(";");
 			if (!isAllNotNull) throw new IllegalArgumentException(message.toString());
 		}
