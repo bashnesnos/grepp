@@ -15,13 +15,12 @@ public abstract class StatefulFilterBase<T> extends RefreshableFilterBase<T> imp
 	
     protected Map<?,?> state = new HashMap<Object, Object>();
 
-    public StatefulFilterBase(Class<?> subclazz) {
-            super(subclazz);
+    public StatefulFilterBase() {
+            
     }
-
     
-    public StatefulFilterBase(Class<?> subclazz, Map<?, ?> config) {
-            super(subclazz, config);
+    public StatefulFilterBase(Map<?, ?> config) {
+            super(config);
     }
 
     

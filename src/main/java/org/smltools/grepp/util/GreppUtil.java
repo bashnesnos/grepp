@@ -13,7 +13,10 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.ParameterizedType;
-
+import groovy.lang.GroovyClassLoader;
+import java.io.File;
+import java.io.IOException;
+import org.codehaus.groovy.control.CompilationFailedException;
 
 /**
  * 
@@ -26,6 +29,22 @@ public final class GreppUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(GreppUtil.class);
         
 	private GreppUtil() { throw new AssertionError(); } //please don't instantiate the class
+
+	@SuppressWarnings("unchecked")
+	public static Class<?> loadGroovyClass(File groovyFile) {
+		try {
+			GroovyClassLoader gcl = new GroovyClassLoader();
+			return gcl.parseClass(groovyFile);
+		}
+		catch (IOException ioe) {
+			LOGGER.error("Can't open groovy file;\n", ioe);
+		}
+		catch (CompilationFailedException cfe) {
+			LOGGER.error("Can't compile groovy plugin;\n", cfe);	
+		}
+		
+		return null;
+	}
 
 	@SuppressWarnings("unchecked")
 	public static Class<?> findConcreteParameterClass(ParameterizedType type) {

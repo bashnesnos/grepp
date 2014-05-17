@@ -11,8 +11,8 @@ import org.smltools.grepp.filters.Stateful;
 import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.*;
 import org.smltools.grepp.util.GreppUtil;
-
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 
@@ -25,6 +25,7 @@ import org.smltools.grepp.util.GreppUtil;
 
 @FilterParams(order = 5, replaces = SimpleFilter.class)
 public final class ThreadFilter extends SimpleFilter implements Stateful<String>, Refreshable {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ThreadFilter.class);		
 	public final static String THREADS_CONFIG_KEY = "processThreads";
 	public final static String THREAD_EXTRACTORS_KEY = "extractors";
 	public final static String THREAD_SKIPENDS_KEY = "skipends";
@@ -45,7 +46,7 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 
 	public ThreadFilter(String filterPattern, List<String> threadStartExtractorList, 
 		List<String> threadSkipEndPatternList, List<String> threadEndPatternList) {
-		super(ThreadFilter.class, filterPattern);
+		super(filterPattern);
 		if (threadStartExtractorList != null) {
 			this.threadStartExtractorList = threadStartExtractorList;
 			if (threadSkipEndPatternList != null) {
@@ -66,7 +67,7 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 	}
 
 	public ThreadFilter(Map<?, ?> config) {
-		super(ThreadFilter.class, config);
+		super(config);
 	}
 
 	public void setThreadExtractorList(List<String> threadStartExtractorList) {
@@ -91,7 +92,7 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 	*
 	*/
 	public ThreadFilter(Map<?, ?> config, String configId) {
-		super(ThreadFilter.class, config, configId);
+		super(config, configId);
 	}
 
 	@SuppressWarnings("unchecked")

@@ -10,6 +10,8 @@ import org.smltools.grepp.filters.StatefulFilterBase;
 import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.Event;
 import groovy.util.ConfigObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Class which provide grouping lines into log entries. <br>
@@ -22,6 +24,7 @@ import groovy.util.ConfigObject;
 
 @FilterParams(order = 0)
 public final class LogEntryFilter extends StatefulFilterBase<String> {
+	private static final Logger LOGGER = LoggerFactory.getLogger(LogEntryFilter.class);
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = new StringBuilder();
 	private Pattern logEntryPtrn = null;
@@ -34,7 +37,7 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	 *            pattern to slice data for entries
 	 */
 	public LogEntryFilter() {
-		super(LogEntryFilter.class);
+
 	}
 
 	public void setStarter(String starter) {
@@ -62,7 +65,7 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	}
 
 	public LogEntryFilter(Map<?, ?> config) {
-		super(LogEntryFilter.class, config);
+		super(config);
 	}
 
 
@@ -71,7 +74,7 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	*
 	*/
 	public LogEntryFilter(Map<?, ?> config, String configId) {
-		super(LogEntryFilter.class, config);
+		super(config);
 		fillParamsByConfigIdInternal(configId);
 	}
 

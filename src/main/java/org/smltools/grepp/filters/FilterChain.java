@@ -18,10 +18,13 @@ import org.smltools.grepp.exceptions.FilteringIsInterruptedException;
 import org.smltools.grepp.filters.enums.Event;
 import groovy.util.ConfigObject;
 import org.smltools.grepp.util.GreppUtil;
+import java.io.File;
+import static org.smltools.grepp.Constants.*;
 
 public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Configurable {
     private static final Logger LOGGER = LoggerFactory.getLogger(FilterChain.class);
     private static final List<Class<? extends Filter>> REGISTERED_FILTERS_LIST = new ArrayList<Class<? extends Filter>>();
+	public static final String GREPP_FILTER_PLUGIN_DIR = "/plugin/filters";
 
     @SuppressWarnings("unchecked")
     public static void addFilterByName(String name) throws ClassNotFoundException {
@@ -33,6 +36,17 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
     		throw new IllegalArgumentException(name + " is not an implementation of Filter");
     	}
     }
+    
+    @SuppressWarnings("unchecked")
+    private static void addFilterByClass(Class<?> clazz) throws ClassNotFoundException {
+    	if (Filter.class.isAssignableFrom(clazz)) {
+    		REGISTERED_FILTERS_LIST.add((Class<? extends Filter>) clazz);
+    	}
+    	else {
+    		LOGGER.debug("{} is not an implementation of Filter; ignoring", clazz);
+    	}
+    }
+
 
     static {
     	try {
@@ -44,6 +58,26 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 	    	addFilterByName("org.smltools.grepp.filters.entry.ThreadFilter");
 	    	addFilterByName("org.smltools.grepp.filters.entry.PostFilter");
 	    	addFilterByName("org.smltools.grepp.filters.entry.PropertiesFilter");
+	    	
+	    	if (System.getProperty(GREPP_HOME_SYSTEM_OPTION) != null) {
+	    		File pluginDir = new File(System.getProperty(GREPP_HOME_SYSTEM_OPTION), GREPP_FILTER_PLUGIN_DIR);
+	    		if (pluginDir.exists() && pluginDir.isDirectory()) {
+	    			LOGGER.trace("Plugin dir {} exists; plugging in Filters enabled", GREPP_FILTER_PLUGIN_DIR);
+	    			for (File pluginFile: pluginDir.listFiles()) {
+	    				LOGGER.trace("Found file: {}", pluginFile.getName());
+	    				Class<?> pluginClass = GreppUtil.loadGroovyClass(pluginFile);
+	    				if (pluginClass != null) {
+	    					addFilterByClass(pluginClass);
+	    				}
+	    				else {
+	    					LOGGER.error("{} was ignored class: {}", pluginFile.getName(), pluginClass);
+	    				}
+	    			}
+	    		}
+	    		else {
+	    			LOGGER.trace("Plugin dir {} doesn't exist; i.e. disabled", GREPP_FILTER_PLUGIN_DIR);
+	    		}
+	    	}
     	}
     	catch (ClassNotFoundException cnfe) {
     		throw new RuntimeException(cnfe);

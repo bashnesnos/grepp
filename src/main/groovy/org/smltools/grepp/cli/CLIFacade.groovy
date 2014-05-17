@@ -23,7 +23,7 @@ import org.smltools.grepp.output.SimpleOutput
 import org.smltools.grepp.processors.DataProcessor
 import org.smltools.grepp.processors.InputStreamProcessor
 import org.smltools.grepp.processors.TextFileProcessor
-
+import static org.smltools.grepp.Constants.*
 /**
  * Class represents wgrep config, which will be used to parse incoming arguments, config.xml and would be a source for processing, filtering etc. 
  *
@@ -156,7 +156,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 		
 		def systemSep = System.getProperty("file.separator")
-		runtimeConfig.home = System.getProperty("grepp.home") + systemSep
+		runtimeConfig.home = System.getProperty(GREPP_HOME_SYSTEM_OPTION) + systemSep
 		if ("\\".equals(systemSep)) {
 			systemSep += "\\"
 		}
@@ -455,7 +455,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 	
 	public static PrintWriter getFilePrinter(ConfigObject runtimeConfig) {
-		def outputDir = new File(new File(runtimeConfig.home), runtimeConfig.resultsDir)
+		def outputDir = new File(runtimeConfig.home, runtimeConfig.resultsDir)
 		if (!outputDir.exists()) outputDir.mkdir()
 		def out_file = new File(outputDir, runtimeConfig.spoolExtension)
 		log.trace("Creating new file: {}", out_file.getCanonicalPath())

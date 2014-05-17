@@ -19,7 +19,7 @@ import groovy.util.ConfigObject;
  * @author Alexander Semelit
  *
  */
-
+@Slf4j("LOGGER")
 @FilterParams(order = 0)
 public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     //Checking dates everywhere
@@ -32,8 +32,6 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
 
     public FileDateFilter(Date from, Date to, Long logFileThreshold)
     {
-        super(FileDateFilter.class)
-
         if (from == null && to == null) {
             throw new IllegalArgumentException("Either 'from' or 'to' should be supplied")
         }
@@ -47,7 +45,7 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     }
 	
     public FileDateFilter(Map<?, ?> config) {
-        super(FileDateFilter.class, config);
+        super(config);
     }
 
     public void setFileDateOutputFormat(String fileDateFormat) {
@@ -68,7 +66,7 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     *
     */
     public FileDateFilter(Map<?, ?> config, String configId) {
-        super(FileDateFilter.class, config);
+        super(config);
         fillParamsByConfigIdInternal(configId);
     }
 

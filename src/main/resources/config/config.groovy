@@ -56,62 +56,62 @@ filterAliases {
     avg_timings='oo'
 }
 postProcessColumns {
+   test_ops {
+        filter {
+            colName='some_cmd'
+            value='Command name="?(.*?)"'
+        }
+        test {
+            colName='count_of_operands'
+            value='(operand)'
+        }
+    }
     count_ops {
         filter {
-            order=1
             colName='some_cmd'
             value='Command name="?(.*?)"'
         }
         counter {
-            order=2
             colName='count_of_operands'
             value='(operand)'
         }
     }
     group_ops {
         group {
-            order=1
             colName='some_cmd'
             value='Command name="?(.*?)"'
         }
         counter {
-            order=2
             colName='count_of_operands'
             value='(operand)'
         }
     }    
     group_op_values {
         group {
-            order=1
             colName='some_cmd'
             value='Command name="?(.*?)"'
         }
         rfilter {
-            order=2
             colName='operands'
             value='operand=\'(.*?)\''
         }
     }    
     avg_timings {
         group {
-            order=1
             colName='some_cmd'
             value='Command name="?(.*?)"'
         }
         avg {
-            order=2
             colName='avg_processing'
             value='time="?(\\d*)"'
         }
     }
     avg_operands {
         group {
-            order=1
             colName='some_cmd'
             value='Command name="?(.*?)"'
         }
         avg {
-            order=2
             colName='avg_operands'
             value='(operand)'
         }
@@ -127,4 +127,6 @@ postProcessSeparators {
         spoolFileExtension='.txt'
     }
 }
-
+doodki {
+    test_doodki="aga"
+}

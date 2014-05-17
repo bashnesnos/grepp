@@ -6,7 +6,7 @@ import org.smltools.grepp.util.GreppUtil
 import groovy.util.ConfigObject
 import groovy.util.logging.Slf4j
 
-@Slf4j
+@Slf4j("LOGGER")
 public final class PropertiesFilter implements Filter<String> {
 	//CW stands for Conversion Word
 	private static String CW_STARTER = "%"
@@ -101,7 +101,7 @@ public final class PropertiesFilter implements Filter<String> {
 		while (mtchr.find()) {
 			int start = mtchr.start(1)
 			int end = mtchr.end(1)
-			log.debug("Found: {},{}", start, end)
+			LOGGER.debug("Found: {},{}", start, end)
 			result.add(input.substring(regionStart, start))
 			regionStart = end
 		}
@@ -124,14 +124,14 @@ public final class PropertiesFilter implements Filter<String> {
 		def predefinedConversion = DateConversionOptionToRegex.keySet().find { it.contains(conversionOption)}
 		String datePtrn = null
 		if (predefinedConversion != null) {
-			log.info("Predefined date format conversion")
+			LOGGER.info("Predefined date format conversion")
 			predefinedConversion = DateConversionOptionToRegex[predefinedConversion]
 			datePtrn = predefinedConversion[0]
 			builder.setDateFormatVal(predefinedConversion[1])
 			
 		}
 		else {
-			log.info("SimpleDateFormat conversion")
+			LOGGER.info("SimpleDateFormat conversion")
 			datePtrn = conversionOption.replaceAll(SIMPLE_DATE_TIME_DIGITS, SIMPLE_DATE_TIME_DIGIT_REGEX)
 										.replaceAll(SIMPLE_DATE_TIME_CHARS, SIMPLE_DATE_TIME_CHAR_REGEX)
 			builder.setDateFormatVal(conversionOption)
@@ -142,7 +142,7 @@ public final class PropertiesFilter implements Filter<String> {
 	}
 
 	private String applyDefaultConversionOption(String regex, String conversionOption) {
-		log.info("By default conversion option is not used")
+		LOGGER.info("By default conversion option is not used")
 		return regex
 	}
 
@@ -154,7 +154,7 @@ public final class PropertiesFilter implements Filter<String> {
 			String rightPart = null
 			if (parts.length > 1)
 				rightPart = parts[1]
-			log.info("Format modifier parts: {};{}", leftPart, rightPart)
+			LOGGER.info("Format modifier parts: {};{}", leftPart, rightPart)
 			if (leftPart.contains("-")) {
 				return regex + PADDING_REGEX
 			}
@@ -185,9 +185,9 @@ public final class PropertiesFilter implements Filter<String> {
 			String conversionOption = conversionGroups.group(3) 
 			if (conversionOption != null) 
 				conversionOption = conversionOption.replaceAll("[{}]", "")
-			log.info("Matched! {} = {}; {}; {};", conversionGroups.group(0), formatModifier , conversionWord,  conversionOption)
+			LOGGER.info("Matched! {} = {}; {}; {};", conversionGroups.group(0), formatModifier , conversionWord,  conversionOption)
 			Set<String> conversionFamily = ConversionLayoutToRegex.keySet().find { it.contains(conversionWord)}
-			log.info("Conversion belongs to: {}", conversionFamily)
+			LOGGER.info("Conversion belongs to: {}", conversionFamily)
 			if (conversionFamily != null) {
 				String initialRegex = ConversionLayoutToRegex[conversionFamily]
 				String conversionOptionMethod = ConversionOptionSpecialConverters[conversionFamily]
@@ -195,12 +195,12 @@ public final class PropertiesFilter implements Filter<String> {
 				return (left != null ? left : "") + this."$conversionOptionMethod"(applyFormatModifier(initialRegex, formatModifier), conversionOption) + (right != null ? right : "")
 			}
 			else {
-				log.info("Unknown conversion word: {}", conversionWord)
+				LOGGER.info("Unknown conversion word: {}", conversionWord)
 				return null
 			}
 		}
 		else {
-			log.info("{} not a valid conversion for /{}/", conversionPattern, CONVERSION_GROUPS_PTRN.toString())
+			LOGGER.info("{} not a valid conversion for /{}/", conversionPattern, CONVERSION_GROUPS_PTRN.toString())
 			return null
 		}
 	}
@@ -222,12 +222,12 @@ public final class PropertiesFilter implements Filter<String> {
 			String fileNamePtrn = fileGroups.group(1)
 			String macroPtrn = fileGroups.group(2)
 			String fileExtPtrn = fileGroups.group(3)
-			log.info("Matched! {} = {}; {}; {};", fileGroups.group(0), fileNamePtrn, macroPtrn, fileExtPtrn)
+			LOGGER.info("Matched! {} = {}; {}; {};", fileGroups.group(0), fileNamePtrn, macroPtrn, fileExtPtrn)
 			builder.setIdVal(fileNamePtrn)
 			return fileNamePtrn + ((macroPtrn != null) ? ".*" : "") + ((fileExtPtrn != null) ? ("\\." + fileExtPtrn) : "")
 		}
 		else {
-			log.info("{} not a valid filename", fileNameString)
+			LOGGER.info("{} not a valid filename", fileNameString)
 			return null
 		}
 
@@ -238,7 +238,7 @@ public final class PropertiesFilter implements Filter<String> {
 		if (fileMatcher.find()) {
 			builder = new SavedConfigBuilder()
 			String fileNameString = fileMatcher.group(1)
-			log.info("File name string found = {}", fileNameString)
+			LOGGER.info("File name string found = {}", fileNameString)
 			String filePattern = parseFileConfig(fileNameString)
 			
 			if (filePattern != null) {
@@ -246,29 +246,29 @@ public final class PropertiesFilter implements Filter<String> {
 				Matcher conversionMatcher = APPENDER_CONVERSION_STRING_PTRN.matcher(configString)
 				if (conversionMatcher.find()) {
 					String layoutString = conversionMatcher.group(1)
-					log.info("Layout string found = {}", layoutString)
+					LOGGER.info("Layout string found = {}", layoutString)
 					String starterPtrn = parseConfigLayout(layoutString)
 					if (starterPtrn != null) {
 						builder.setStarterVal(starterPtrn)
 						return builder.buildSavedConfig()
 					}
 					else { // no log entry pattern
-						log.info("Starter was not identified")
+						LOGGER.info("Starter was not identified")
 						return null
 					}
 				}
 				else { //no log entry pattern
-					log.info("Layout string wasn't found by {}", APPENDER_CONVERSION_STRING_PTRN.toString())
+					LOGGER.info("Layout string wasn't found by {}", APPENDER_CONVERSION_STRING_PTRN.toString())
 					return null
 				}
 			}
 			else { //no config id / file pattern
-				log.info("File string wasn't found")
+				LOGGER.info("File string wasn't found")
 				return null
 			}
 		}
 		else {
-			log.info("File not found")
+			LOGGER.info("File not found")
 			return null
 		}
 	}

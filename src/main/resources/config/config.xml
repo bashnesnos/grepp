@@ -49,16 +49,16 @@
 			</ends>
 		</processThreads>
     <postProcessColumns>
-		<splitter col_name="some_cmd" order="1" tags="count_ops" type="filter">Command name="?(.*?)"</splitter>
-		<splitter col_name="count_of_operands" order="2" tags="count_ops" type="counter">(operand)</splitter>
-		<splitter col_name="some_cmd" order="1" tags="group_ops" type="group">Command name="?(.*?)"</splitter>
-		<splitter col_name="count_of_operands" order="2" tags="group_ops" type="counter">(operand)</splitter>
-		<splitter col_name="some_cmd" order="1" tags="group_op_values" type="group">Command name="?(.*?)"</splitter>
-		<splitter col_name="operands" order="2" tags="group_op_values" type="rfilter">operand='(.*?)'</splitter>
-		<splitter col_name="some_cmd" order="1" tags="avg_timings" type="group">Command name="?(.*?)"</splitter>
-		<splitter col_name="avg_processing" order="2" tags="avg_timings" type="avg">time="?(\d*)"</splitter>
-		<splitter col_name="some_cmd" order="1" tags="avg_operands" type="group">Command name="?(.*?)"</splitter>
-		<splitter col_name="avg_operands" order="2" tags="avg_operands" type="avg">(operand)</splitter>
+		<splitter col_name="some_cmd" tags="count_ops" type="filter">Command name="?(.*?)"</splitter>
+		<splitter col_name="count_of_operands" tags="count_ops" type="counter">(operand)</splitter>
+		<splitter col_name="some_cmd" tags="group_ops" type="group">Command name="?(.*?)"</splitter>
+		<splitter col_name="count_of_operands" tags="group_ops" type="counter">(operand)</splitter>
+		<splitter col_name="some_cmd" tags="group_op_values" type="group">Command name="?(.*?)"</splitter>
+		<splitter col_name="operands" tags="group_op_values" type="rfilter">operand='(.*?)'</splitter>
+		<splitter col_name="some_cmd" tags="avg_timings" type="group">Command name="?(.*?)"</splitter>
+		<splitter col_name="avg_processing" tags="avg_timings" type="avg">time="?(\d*)"</splitter>
+		<splitter col_name="some_cmd" tags="avg_operands" type="group">Command name="?(.*?)"</splitter>
+		<splitter col_name="avg_operands" tags="avg_operands" type="avg">(operand)</splitter>
 	</postProcessColumns>
     <filterAliases>
 			<filter tags="predef">Something::</filter>

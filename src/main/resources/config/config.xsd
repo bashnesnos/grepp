@@ -128,7 +128,6 @@
 	<complexType name="splitter">
 		<simpleContent>
 			<extension base="tns:pattern">
-				<attribute name="order" type="string"></attribute>
 				<attribute name="col_name" type="string"></attribute>
 				<attribute name="type" type="string"></attribute>
 			</extension>

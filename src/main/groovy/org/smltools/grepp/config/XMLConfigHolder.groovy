@@ -117,7 +117,7 @@ public class XMLConfigHolder extends ConfigHolder {
                 this.postProcessColumns.each {id, types ->
                     types.each { type, props ->
                         if (!'postProcessSeparator'.equals(id)) {
-                            splitter('col_name':props.colName, 'order':props.order, 'tags':id, 'type':type, props.value)
+                            splitter('col_name':props.colName, 'tags':id, 'type':type, props.value)
                         }
                     }
                 }
@@ -286,7 +286,7 @@ public class XMLConfigHolder extends ConfigHolder {
                 def firstTag = tagList.remove(0)
                 def postProcessPropMap = postProcessColumns."$firstTag"
                 def postProcessTypePropMap = postProcessPropMap."${splitter.'@type'}"
-                postProcessTypePropMap.order = Integer.valueOf(splitter.'@order')
+                //postProcessTypePropMap.order = Integer.valueOf(splitter.'@order') //getting rid of it
                 postProcessTypePropMap.colName = splitter.'@col_name'
                 postProcessTypePropMap.value = splitter.text()
                 tagList.each { anotherTag ->

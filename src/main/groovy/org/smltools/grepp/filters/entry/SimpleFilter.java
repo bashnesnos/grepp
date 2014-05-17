@@ -11,8 +11,8 @@ import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.FilterBase;
 import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.*;
-
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 
@@ -25,6 +25,7 @@ import org.smltools.grepp.filters.enums.*;
 
 @FilterParams(order = 5)
 public class SimpleFilter extends FilterBase<String> {
+	private static final Logger LOGGER = LoggerFactory.getLogger(SimpleFilter.class);	
 	public final static String FILTERS_CONFIG_KEY = "filterAliases";
 
 	protected String filterPattern;	
@@ -42,13 +43,6 @@ public class SimpleFilter extends FilterBase<String> {
 
 	public SimpleFilter(String filterPattern)
 	{
-		super(SimpleFilter.class);
-		setFilterPattern(filterPattern);
-	}
-
-	protected SimpleFilter(Class<? extends SimpleFilter> subclazz, String filterPattern)
-	{
-		super(subclazz);
 		setFilterPattern(filterPattern);
 	}
 
@@ -66,8 +60,8 @@ public class SimpleFilter extends FilterBase<String> {
 		return filterPattern;
 	}
 
-	public SimpleFilter(Class<?> subclazz, Map<?, ?> config) {
-		super(subclazz, config);
+	public SimpleFilter(Map<?, ?> config) {
+		super(config);
 	}
 
 	/**
@@ -75,11 +69,7 @@ public class SimpleFilter extends FilterBase<String> {
 	*
 	*/
 	public SimpleFilter(Map<?, ?> config, String configId) {
-            this(SimpleFilter.class, config, configId);
-	}
-
-	protected SimpleFilter(Class<? extends SimpleFilter> subclazz, Map<?, ?> config, String configId) {
-		super(subclazz, config);
+		super(config);
 		if (!fillParamsByConfigIdInternal(configId)) {
 			throw new PropertiesNotFoundRuntimeException(FILTERS_CONFIG_KEY + "." + configId + "doesn't exist!");
 		}

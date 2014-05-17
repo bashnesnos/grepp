@@ -16,6 +16,8 @@ import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.StatefulFilterBase;
 import org.smltools.grepp.filters.enums.Event;
 import groovy.util.ConfigObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Class provides entry date filtering for supplied FROM and TO dates.
  * 
@@ -25,6 +27,7 @@ import groovy.util.ConfigObject;
 
 @FilterParams(order = 15)
 public final class EntryDateFilter extends StatefulFilterBase<String> implements OptionallyStateful<String> {
+	private static final Logger LOGGER = LoggerFactory.getLogger(EntryDateFilter.class);
 	public static final String LOG_DATE_FORMATS_KEY = "logDateFormats";
 
 	private final boolean isStateOptional;
@@ -39,9 +42,7 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 	 * @param logDatePtrn
 	 *            pattern to slice data for entries
 	 */
-	public EntryDateFilter(String logDatePtrn, String logDateFormat, Date from, Date to) {
-		super(EntryDateFilter.class);
-		
+	public EntryDateFilter(String logDatePtrn, String logDateFormat, Date from, Date to) {		
 		setLogDatePattern(logDatePtrn);
 		setLogDateFormat(logDateFormat);
 
@@ -56,7 +57,7 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 	}
 
 	public EntryDateFilter(Map<?, ?> config) {
-		super(EntryDateFilter.class, config);
+		super(config);
 		isStateOptional = false;
 	}
 
@@ -91,7 +92,7 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 	*
 	*/
 	public EntryDateFilter(Map<?, ?> config, String configId) {
-		super(EntryDateFilter.class, config);
+		super(config);
 		fillParamsByConfigIdInternal(configId);
         isStateOptional = false;
 	}

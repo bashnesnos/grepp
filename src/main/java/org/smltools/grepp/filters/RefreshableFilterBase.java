@@ -3,6 +3,8 @@ package org.smltools.grepp.filters;
 import java.util.Map;
 import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Super class for all filters. Provides filtering process template with hooking
@@ -12,15 +14,16 @@ import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
  * @param <T>
  */
 public abstract class RefreshableFilterBase<T> extends FilterBase<T> implements Refreshable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RefreshableFilterBase.class);           
     protected boolean isLocked = false;
 
-    public RefreshableFilterBase(Class<?> subclazz) {
-            super(subclazz);
+    public RefreshableFilterBase() {
+    
     }
 
     
-    public RefreshableFilterBase(Class<?> subclazz, Map<?, ?> config) {
-            super(subclazz, config);
+    public RefreshableFilterBase(Map<?, ?> config) {
+            super(config);
     }
     
     @Override

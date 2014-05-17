@@ -16,6 +16,7 @@ import org.smltools.grepp.filters.PostFilterParams
 import org.smltools.grepp.filters.PostFilterMethod
 import org.smltools.grepp.filters.PostFilterGroupMethod
 import org.smltools.grepp.filters.RepeatingPostFilterMethod
+import static org.smltools.grepp.Constants.*
 import groovy.util.ConfigObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,18 +30,42 @@ import org.slf4j.LoggerFactory;
  */
 @FilterParams(order = 20)
 public final class PostFilter extends StatefulFilterBase<String> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PostFilter.class);
+
     public static final String SEPARATOR_KEY = 'postProcessSeparator'
     public static final String SPOOL_EXTENSION_KEY = 'spoolFileExtension'
     public static final String VALUE_KEY = 'value'
     public static final String COLUMNS_KEY = 'postProcessColumns'
     public static final String COLUMN_NAME_KEY = 'colName'
-    public static final Map<String, Class<? extends PostFilterMethod>> ID_TO_FILTER_CLASS_MAP = new HashMap<String, Class<? extends PostFilterMethod>>()
+    public static final String GREPP_POST_FILTER_PLUGIN_DIR = "/plugin/postFilterMethods";
+
+    private static final Map<String, Class<? extends PostFilterMethod>> ID_TO_FILTER_CLASS_MAP = new HashMap<String, Class<? extends PostFilterMethod>>()
 
     static {
         addIdToFilterClassMapping(null, SimpleMatchingMethod.class)
         addIdToFilterClassMapping(null, RepeatingSimpleMatchingMethod.class)
         addIdToFilterClassMapping(null, CountingMethod.class)
         addIdToFilterClassMapping(null, AveragingMethod.class)
+
+        if (System.getProperty(GREPP_HOME_SYSTEM_OPTION) != null) {
+            File pluginDir = new File(System.getProperty(GREPP_HOME_SYSTEM_OPTION), GREPP_POST_FILTER_PLUGIN_DIR);
+            if (pluginDir.exists() && pluginDir.isDirectory()) {
+                LOGGER.trace("Plugin dir {} exists; plugging in postFilterMethods enabled", GREPP_POST_FILTER_PLUGIN_DIR)
+                for (File pluginFile: pluginDir.listFiles()) {
+                    LOGGER.trace("Found file: {}", pluginFile.name)
+                    Class<?> pluginClass = GreppUtil.loadGroovyClass(pluginFile);
+                    if (pluginClass != null && PostFilterMethod.isAssignableFrom(pluginClass)) {
+                        addIdToFilterClassMapping(null, pluginClass);
+                    }
+                    else {
+                        LOGGER.error("{} was ignored class: {}", pluginFile.name, pluginClass)
+                    }
+                }
+            }
+            else {
+                LOGGER.trace("Plugin dir {} doesn't exist; i.e. disabled", GREPP_POST_FILTER_PLUGIN_DIR)
+            }
+        }        
     }
 
     private static void addIdToFilterClassMapping(String filterId, Class<? extends PostFilterMethod> filterClass) {
@@ -79,7 +104,6 @@ public final class PostFilter extends StatefulFilterBase<String> {
     *
     */
     public PostFilter(String postFilterPattern, String columnSeparator, String reportHeader, List<String> methodTypeList) {
-        super(PostFilter.class)
 		setPostFilterPattern(postFilterPattern)
         setColumnSeparator(columnSeparator)
         setReportHeader(reportHeader)
@@ -87,7 +111,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
     }
 
     public PostFilter(Map<?, ?> config) {
-        super(PostFilter.class, config);
+        super(config);
     }
 
     public void setPostFilterPattern(String postFilterPattern) {
@@ -115,7 +139,7 @@ public final class PostFilter extends StatefulFilterBase<String> {
     *
     */
     public PostFilter(Map<?, ?> config, String configId) {
-        super(PostFilter.class, config);
+        super(config);
         fillParamsByConfigIdInternal(configId);
     }
 
@@ -135,8 +159,16 @@ public final class PostFilter extends StatefulFilterBase<String> {
         columnSeparator = config.defaults.postProcessSeparator.value
         spoolFileExtension = config.defaults.postProcessSeparator.spoolFileExtension
 
-        def handlers = config.postProcessColumns."$configId"
-        def sortedHandlers = handlers.sort { it.value.order }
+        def sortedHandlers = config.postProcessColumns."$configId"
+
+        if (sortedHandlers.containsKey("group")) { //group comes first
+            def tempHandlers = [:]
+            tempHandlers.put("group", sortedHandlers.remove("group"))
+            tempHandlers.putAll(sortedHandlers)
+            sortedHandlers = tempHandlers
+            config.postProcessColumns."$configId" = sortedHandlers            
+        }
+
         def separatorProps = sortedHandlers.find { type, props -> type.equals(SEPARATOR_KEY) }
         if (separatorProps != null) {
             columnSeparator = separatorProps.value

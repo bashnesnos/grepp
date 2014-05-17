@@ -15,10 +15,8 @@ import org.smltools.grepp.util.GreppUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-class Grepp 
-{
-	public static void main(String[] args)
-	{
+class Grepp {
+	public static void main(String[] args) {
 		Logger log = LoggerFactory.getLogger('Grepp')
 		Date startTime = new Date()
 		log.info("{}", args)

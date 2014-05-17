@@ -1,7 +1,6 @@
 package org.smltools.grepp.filters.logfile
 
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import groovy.util.logging.Slf4j
 import org.smltools.grepp.filters.Filter
 import org.smltools.grepp.filters.FilterParams
 
@@ -11,9 +10,9 @@ import org.smltools.grepp.filters.FilterParams
  * 
  * @author Alexander Semelit 
  */
+@Slf4j("LOGGER")
 @FilterParams(order = 5)
 public class FileSortFilter implements Filter<List<File>> {
-	protected final Logger LOGGER = LoggerFactory.getLogger(FileSortFilter.class);
 
 	/**
 	*

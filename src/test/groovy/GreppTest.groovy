@@ -15,10 +15,10 @@ class GreppTest extends GroovyTestCase {
 
 	ConfigHolder config
 	CLIFacade facade
-	def BASE_HOME = System.getProperty("grepp.home")
-	def HOME = BASE_HOME + "\\build\\resources\\test"
-	def GREPP_CONFIG = BASE_HOME + "\\build\\resources\\main\\config\\" + System.getProperty("grepp.config")
-	def GREPP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
+	def HOME = System.getProperty('grepp.home')
+	def RESOURCES = System.getProperty('grepp.test.resources')
+	def GREPP_CONFIG = System.getProperty("grepp.config")
+	def GREPP_CONFIG_XSD = System.getProperty("grepp.config.xsd")
 
 	void setUp() {
 		switch(GREPP_CONFIG) {
@@ -82,20 +82,20 @@ class GreppTest extends GroovyTestCase {
 //	}
 	
 	void testMainVarsProcessing() {
-		def options = facade.parseOptions("-l test test $HOME\\fpTest*".split())
+		def options = facade.parseOptions("-l test test $RESOURCES\\fpTest*".split())
 		assertTrue("User entry pattern option not recognized: " + options.l, "test".equals(options.l))
 		def runtimeConfig = facade.makeRuntimeConfig()
 		def entryFilterChain = facade.makeFilterChains(runtimeConfig, options).entryFilterChain
 		def newConfig = entryFilterChain.getAsConfig("main")
 		assertTrue("Filter pattern not recognized", "test".equals(newConfig.savedConfigs.main.starter))
 		assertTrue("Files not recognized", runtimeConfig.data.files == [
-			new File(HOME+"\\fpTest_test.log")]
+			new File(RESOURCES+"\\fpTest_test.log")]
 		)
 		assertTrue("Folder separator not initialized", runtimeConfig.folderSeparator != null )
 	}
 	
 	void testConfigsProcessing() {
-		def entryFilterChain = makeFilterChains(facade, "--to_test --predef $HOME\\fpTest*").entryFilterChain
+		def entryFilterChain = makeFilterChains(facade, "--to_test --predef $RESOURCES\\fpTest*").entryFilterChain
 		def newConfig = entryFilterChain.getAsConfig(null)
 		assertTrue("Filter pattern not recognized", config.filterAliases.predef.equals(newConfig.filterAliases.predef))
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
@@ -103,13 +103,13 @@ class GreppTest extends GroovyTestCase {
 	}
 
 	void testExtendedPatternProcessing() {
-		def entryFilterChain = makeFilterChains(facade, "-l test test%and%tets $HOME\\test*").entryFilterChain
+		def entryFilterChain = makeFilterChains(facade, "-l test test%and%tets $RESOURCES\\test*").entryFilterChain
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
 		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
 	}
 
 	void testComplexVarsProcessing() {
-		def runtimeConfig = makeFilterChains(facade, "-l test -d 2013-01-25T12:00:00;+ test $HOME\\test*")
+		def runtimeConfig = makeFilterChains(facade, "-l test -d 2013-01-25T12:00:00;+ test $RESOURCES\\test*")
 		def entryFilterChain = runtimeConfig.entryFilterChain
 		assertTrue("Should have EntryDateFilter", entryFilterChain.has(EntryDateFilter.class))
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
@@ -119,7 +119,7 @@ class GreppTest extends GroovyTestCase {
 	}
 
 	void testAutomationProcessing() {
-		def runtimeConfig = makeFilterChains(facade, "test $HOME\\fpTest_*")
+		def runtimeConfig = makeFilterChains(facade, "test $RESOURCES\\fpTest_*")
 		def entryFilterChain = runtimeConfig.entryFilterChain
 		entryFilterChain.refreshByConfigId(ConfigHolder.findConfigIdByFileName(config, runtimeConfig.data.files[0].name))
 		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
@@ -133,6 +133,30 @@ class GreppTest extends GroovyTestCase {
 		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
 		assertTrue("Files not recognized", runtimeConfig.data.files.containsAll([new File("cmd_only_1.log")]))
 		assertTrue("Separator wasn't identified", "\\\\".equals(runtimeConfig.folderSeparator))
+	}
+
+	void testPluginForPostFilterMethod() {
+		def expectedResult = """\
+some_cmd,count_of_operands
+Foo,test
+Koo,test
+Foo,test"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--test_ops oo $RESOURCES\\processing_report_test.log".split(" "))
+		}
+	}
+
+	void testPluginForFilter() {
+		def expectedResult = """\
+doodki!
+doodki!
+doodki!
+doodki!"""		
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--test_doodki oo $RESOURCES\\processing_report_test.log".split(" "))
+		}
 	}
 
 	void testOnTheFlyLockedConfig() {
@@ -153,22 +177,22 @@ The end
 		assertGreppOutput(expectedResult) {
 			Grepp.main((String[]) ["--lock", "--noff", "--add", "myconfig", "--threadProp", "ThreadStart: '\\d{1,2}';;The end"
 				, "--dateProp", "yyyy-MM-dd;(\\d{4}-\\d{2}-\\d{2})", "-e", "-d", "+;2001"
-				, "oo", "$HOME\\processing_time_test.log"])
+				, "oo", "$RESOURCES\\processing_time_test.log"])
 		}
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--lock --noff -e -d +;2001 --myconfig $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("--lock --noff -e -d +;2001 --myconfig $RESOURCES\\processing_time_test.log".split(" "))
 		}
 	}
 
 	void testFileMTimeFiltering() {
-		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def fileTime = new Date(new File(RESOURCES+"\\processing_time_test.log").lastModified())
 		def dateFormat = new SimpleDateFormat("yyyy-MM-dd")
 		def testTimeStringFrom = dateFormat.format(new Date(fileTime.getTime() + 24*60*60*1000))
 
 		def expectedResult = ""
 		assertGreppOutput(expectedResult) {
-			Grepp.main("-d $testTimeStringFrom;+ Foo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d $testTimeStringFrom;+ Foo $RESOURCES\\processing_time_test.log".split(" "))
 		}
 
 	}
@@ -193,7 +217,7 @@ Voo
 #complex"""
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("-e Foo $HOME\\processing_test.log".split(" "))
+			Grepp.main("-e Foo $RESOURCES\\processing_test.log".split(" "))
 		}
 	}
 
@@ -205,7 +229,7 @@ Foo Man Chu
 #basic"""
 		assertGreppOutput(expectedResult) {
 			Grepp.main((String[]) ["Foo%and%Man Chu%or%#basic" //don't need to split here
-				, "$HOME\\processing_test.log"])
+				, "$RESOURCES\\processing_test.log"])
 		}
 	}
 
@@ -220,13 +244,13 @@ Foo Man Chu
 #basic"""
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("Foo $HOME\\processing_test.log".split(" "))
+			Grepp.main("Foo $RESOURCES\\processing_test.log".split(" "))
 		}
 	}
 
 	void testTimeFiltering() {
 
-		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def fileTime = new Date(new File(RESOURCES+"\\processing_time_test.log").lastModified())
 		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
 		def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
 		def testTimeStringFrom = dateFormat.format(fileTime)
@@ -236,13 +260,13 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("-d $testTimeStringFrom;+60 Foo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d $testTimeStringFrom;+60 Foo $RESOURCES\\processing_time_test.log".split(" "))
 		}
 	}
 
 	void testTimeLeftBoundOnlyFiltering() {
 
-		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def fileTime = new Date(new File(RESOURCES+"\\processing_time_test.log").lastModified())
 		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
 		def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
 		def testTimeStringFrom = dateFormat.format(fileTime)
@@ -255,13 +279,13 @@ ${logDateFormat.format(new Date(fileTime.getTime() + 3*60*60*1000))}:05:56,951 [
 Foo Man Chu
 #basic"""
 		assertGreppOutput(expectedResult) {
-			Grepp.main("-d $testTimeStringFrom;+ Foo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d $testTimeStringFrom;+ Foo $RESOURCES\\processing_time_test.log".split(" "))
 		}
 	}
 
 	void testTimeRightBoundOnlyFiltering() {
 
-		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def fileTime = new Date(new File(RESOURCES+"\\processing_time_test.log").lastModified())
 		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
 		def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
 		def testTimeStringTo = dateFormat.format(new Date(fileTime.getTime() + 60*60*1000))
@@ -271,7 +295,7 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("-d +;$testTimeStringTo --foo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d +;$testTimeStringTo --foo $RESOURCES\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -284,7 +308,7 @@ Koo,1
 Foo,1"""
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--count_ops $HOME\\processing_report_test.log".split(" "))
+			Grepp.main("--count_ops $RESOURCES\\processing_report_test.log".split(" "))
 		}
 	}
 
@@ -297,7 +321,7 @@ Koo,1
 """
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--group_ops $HOME\\processing_report_test.log".split(" "))
+			Grepp.main("--group_ops $RESOURCES\\processing_report_test.log".split(" "))
 		}
 	}
 
@@ -310,7 +334,7 @@ Koo,this
 """
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--group_op_values $HOME\\processing_report_test.log".split(" "))
+			Grepp.main("--group_op_values $RESOURCES\\processing_report_test.log".split(" "))
 		}
 	}
 
@@ -323,7 +347,7 @@ Foo,150
 Koo,200
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--avg_timings $HOME\\processing_report_test.log".split(" "))
+			Grepp.main("--avg_timings $RESOURCES\\processing_report_test.log".split(" "))
 		}
 	}
 
@@ -338,7 +362,7 @@ Foo Man Chu
 #basic"""
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("Foo $HOME\\processing_test.log $HOME\\fpTest_test.log".split(" "))
+			Grepp.main("Foo $RESOURCES\\processing_test.log $RESOURCES\\fpTest_test.log".split(" "))
 		}
 	}
 
@@ -377,7 +401,7 @@ logDateFormats {
 
 	void testPropertiesProcessing() {
 
-		Grepp.main("--parse $HOME\\test.properties".split(" "))
+		Grepp.main("--parse $RESOURCES\\test.properties".split(" "))
 		switch (GREPP_CONFIG) {
 			case ~/.*\.xml/:
 				def cfgDoc = DOMBuilder.parse(new FileReader(GREPP_CONFIG))
