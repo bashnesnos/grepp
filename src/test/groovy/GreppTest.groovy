@@ -271,6 +271,22 @@ Foo Koo
 		}
 	}
 
+	void testLogDateConfigFiltering() {
+
+		def fileTime = new Date(new File(RESOURCES+"\\processing_time_test.log").lastModified())
+		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
+		def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
+		def testTimeStringFrom = dateFormat.format(fileTime)
+
+		def expectedResult = """\
+${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo Koo
+"""
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--lock -d $testTimeStringFrom;+60 --iso Foo $RESOURCES\\processing_time_test.log".split(" "))
+		}
+	}
+
 	void testTimeLeftBoundOnlyFiltering() {
 
 		def fileTime = new Date(new File(RESOURCES+"\\processing_time_test.log").lastModified())

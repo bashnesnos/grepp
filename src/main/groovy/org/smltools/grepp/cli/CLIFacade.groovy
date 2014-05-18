@@ -285,6 +285,15 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			} 
 		}
 
+		if (entryFilterChain.has(EntryDateFilter.class) && !entryFilterChain.has(LogEntryFilter)) { //anyway we're lookin for dates here
+			def dateRegex = entryFilterChain.get(EntryDateFilter.class).getLogDatePattern()
+			if (dateRegex != null) { //if it's not yet initialized then we're not adding entryFilter
+				logEntryFilter = entryFilterChain.getInstance(LogEntryFilter.class)
+				logEntryFilter.setDateRegex(dateRegex)
+				entryFilterChain.add(logEntryFilter)
+			}
+		}
+
 		if (runtimeConfig.containsKey('filterPattern')) {
 			def mainFilter = entryFilterChain.getInstance(SimpleFilter.class)
 			mainFilter.setFilterPattern(runtimeConfig.filterPattern)

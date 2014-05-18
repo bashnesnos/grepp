@@ -69,6 +69,15 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 		}
 	}
 
+	public String getLogDatePattern() {
+		if (logDatePtrn != null) {
+			return logDatePtrn.pattern();
+		}
+		else {
+			return null;
+		}
+	}
+
 	public void setLogDateFormat(String logDateFormat) {
 		if (logDateFormat != null) {
 			this.logDateFormat = new SimpleDateFormat(logDateFormat);
@@ -89,7 +98,7 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
     	Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
     	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
 
-		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY))	{
+		if (customCfg != null && customCfg.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY))	{
 			Map<?,?> dateFormatProps = (Map<?, ?>) customCfg.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY);
 			if (dateFormatProps.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY)) {
 				logDatePtrn = Pattern.compile((String) dateFormatProps.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY));
