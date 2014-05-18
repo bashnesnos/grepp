@@ -109,7 +109,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
     };
 
     @SuppressWarnings("unchecked")
-	public static <V extends FilterBase> V createFilterFromConfigByConfigId(Class<V> filterClass, Map<?, ?> config, String configId) {
+	public static <V extends Configurable> V createFilterFromConfigByConfigId(Class<V> filterClass, Map<?, ?> config, String configId) {
 		if (filterClass == null || config == null || configId == null) {
 			throw new IllegalArgumentException("All the method params shouldn't be null! " + (filterClass != null) + ";" + (config != null) + ";" + (configId != null));
 		}
@@ -117,11 +117,8 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 		try {
 			V newFilter = filterClass.newInstance();
 			newFilter.setConfig(config);
-			if (newFilter.fillParamsByConfigId(configId)) {
-				newFilter.configId = configId;
-			}
-			else {
-				throw new RuntimeException(filterClass + " can't be instantiated from configId: " + configId);
+			if (!newFilter.fillParamsByConfigId(configId)) {
+				throw new IllegalArgumentException(filterClass + " can't be instantiated from configId: " + configId);
 			}
 			return newFilter;
 		} catch (InstantiationException ie) {
@@ -292,48 +289,25 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 
 	@SuppressWarnings("unchecked")
 	public boolean addByConfigId(String configId) {
-			if (isLocked) return false;
+		if (isLocked) return false;
 
-            boolean wasAdded = false;
-            for (Class<? extends Filter> filterClass: filterOrderList) {
-				if (!has(filterClass) && FilterBase.class.isAssignableFrom(filterClass)) {
-                    if (configIdExists(filterClass, configId)) {
-                        add(createFilterFromConfigByConfigId((Class<? extends FilterBase>) filterClass, config, configId));
-                        wasAdded = true;
-                    }
-    	        }
-			}
-            return wasAdded;
-	}
-
-	@SuppressWarnings("unchecked")
-	private boolean configIdExists(Class<? extends Filter> filterClass, String configId) {
-		if (FilterBase.class.isAssignableFrom(filterClass)) {
-            try {
-                Method configIdExistsMethod = filterClass.getMethod("configIdExists", Map.class, String.class);
-                return (Boolean) configIdExistsMethod.invoke(null, config, configId);
-            } catch (NoSuchMethodException nsme) {
-                throw new RuntimeException(nsme);
-            } catch (SecurityException se) {
-                throw new RuntimeException(se);
-            } catch (IllegalAccessException iae) {
-                throw new RuntimeException(iae);
-            } catch (IllegalArgumentException iare) {
-                throw new RuntimeException(iare);
-            } catch (InvocationTargetException ite) {
-                throw new RuntimeException(ite);
-            }
-        }
-        else {
-        	return false;
-        }
+        boolean wasAdded = false;
+        for (Class<? extends Filter> filterClass: filterOrderList) {
+			if (!has(filterClass) && Configurable.class.isAssignableFrom(filterClass)) {
+				if (FilterBase.configIdExists(filterClass, config, configId)) {
+                    add((Filter) createFilterFromConfigByConfigId((Class<? extends Configurable>) filterClass, config, configId));
+                    wasAdded = true;
+            	}
+	        }
+		}
+        return wasAdded;
 	}
 
     @SuppressWarnings("unchecked")
 	public boolean configIdExists(String configId) {
 		boolean exists = false;
         for (Class<? extends Filter> filterClass: filterOrderList) {
-        	exists |= configIdExists(filterClass, configId);
+        	exists |= FilterBase.configIdExists(filterClass, config, configId);
         }
         return exists;
 	}

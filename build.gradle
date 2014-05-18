@@ -118,7 +118,7 @@ import org.smltools.grepp.filters.enums.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@FilterParams(order = 99)
+@FilterParams(configIdPath = "doodki", order = 99)
 public class DoodkiFilter extends FilterBase<String> {
     private static final Logger LOGGER = LoggerFactory.getLogger(DoodkiFilter.class);   
 
@@ -132,14 +132,6 @@ public class DoodkiFilter extends FilterBase<String> {
         return new ConfigObject();
 
     }
-
-    public static boolean configIdExists(Map<?, ?> config, String configId) {
-        if (config == null) {
-            throw new IllegalArgumentException(\"Config can't be null!\")
-        }
-
-        return config.doodki.containsKey(configId)
-    }   
 
     /**
      * Checks if data matches current pattern 

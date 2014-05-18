@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 
-@FilterParams(order = 5, replaces = SimpleFilter.class)
+@FilterParams(configIdPath = ThreadFilter.THREADS_CONFIG_KEY, order = 5, replaces = SimpleFilter.class)
 public final class ThreadFilter extends SimpleFilter implements Stateful<String>, Refreshable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ThreadFilter.class);		
 	public final static String THREADS_CONFIG_KEY = "processThreads";
@@ -59,10 +59,9 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 	@SuppressWarnings("unchecked")
 	@Override
     public boolean fillParamsByConfigId(String configId) {
-    	if (!ThreadFilter.configIdExists(config, configId)) {
+    	if (!configIdExists(configId)) {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}
-
     	boolean result = super.fillParamsByConfigId(configId);
 
     	Map<?, ?> configs = (Map<?,?>) config.get(THREADS_CONFIG_KEY);
@@ -113,22 +112,6 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
     	config.put(THREAD_ENDS_KEY, threadEndPatternList);
     	return root;
 	}
-
-    @SuppressWarnings("unchecked")
-	public static boolean configIdExists(Map<?, ?> config, String configId) {
-		if (config == null) {
-			throw new IllegalArgumentException("Config can't be null!");
-		}
-
-		Map<?, ?> threadConfigs = (Map<?,?>) config.get(THREADS_CONFIG_KEY);
-		
-		if (threadConfigs != null) {
-			return threadConfigs.containsKey(configId);
-		}
-		else {
-			return false;
-		}
-	}	
 
 	/**
 	 * Checks if data matches current pattern 

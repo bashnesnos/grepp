@@ -235,14 +235,12 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 			if (!options.noff) {
 				def fileDateFilter = fileFilterChain.getInstance(FileDateFilter.class)
-				fileDateFilter.setConfig(config)
 				fileDateFilter.setFrom(runtimeConfig.dateFilter.from)
 				fileDateFilter.setTo(runtimeConfig.dateFilter.to)
 				fileFilterChain.add(fileDateFilter)
 			}
 
 			def entryDateFilter = entryFilterChain.getInstance(EntryDateFilter.class)
-			entryDateFilter.setConfig(config)
 			entryDateFilter.setFrom(runtimeConfig.dateFilter.from)
 			entryDateFilter.setTo(runtimeConfig.dateFilter.to)
 

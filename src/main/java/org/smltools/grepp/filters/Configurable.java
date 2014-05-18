@@ -7,4 +7,5 @@ public interface Configurable {
     void setConfig(Map<?, ?> config);
 	boolean fillParamsByConfigId(String configId);	
 	ConfigObject getAsConfig(String configId);
+	boolean configIdExists(String configId);
 }

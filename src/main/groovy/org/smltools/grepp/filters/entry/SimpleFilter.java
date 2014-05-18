@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 
-@FilterParams(order = 5)
+@FilterParams(configIdPath = SimpleFilter.FILTERS_CONFIG_KEY, order = 5)
 public class SimpleFilter extends FilterBase<String> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SimpleFilter.class);	
 	public final static String FILTERS_CONFIG_KEY = "filterAliases";
@@ -52,17 +52,20 @@ public class SimpleFilter extends FilterBase<String> {
 	@SuppressWarnings("unchecked")
 	@Override
     public boolean fillParamsByConfigId(String configId) {
+    	if (!configIdExists(configId)) {
+    		return false;
+    	}
+
     	boolean result = false;
-    	if (SimpleFilter.configIdExists(config, configId)) {
-			Map<?, ?> configs = (Map<?,?>) config.get(FILTERS_CONFIG_KEY);
-	    	String customFilter = (String) configs.get(configId);
-	    	if (customFilter != null) {
-	    		setFilterPattern(customFilter);
-	    		result |= true;
-	    	}
-	    	else {
-	    		LOGGER.debug(FILTERS_CONFIG_KEY + " is not filled for config: " + configId);
-	    	}
+		Map<?, ?> configs = (Map<?,?>) config.get(FILTERS_CONFIG_KEY);
+    	String customFilter = (String) configs.get(configId);
+    	if (customFilter != null) {
+    		setFilterPattern(customFilter);
+    		this.configId = configId;
+    		result |= true;
+    	}
+    	else {
+    		LOGGER.debug(FILTERS_CONFIG_KEY + " is not filled for config: " + configId);
     	}
 		return result;
     }
@@ -84,22 +87,7 @@ public class SimpleFilter extends FilterBase<String> {
     	return root;
 
 	}
-
-    @SuppressWarnings("unchecked")
-	public static boolean configIdExists(Map<?, ?> config, String configId) {
-		if (config == null) {
-			throw new IllegalArgumentException("Config can't be null!");
-		}
-
-		Map<?, ?> filterConfigs = (Map<?,?>) config.get(FILTERS_CONFIG_KEY);
-		
-		if (filterConfigs != null) {
-			return filterConfigs.containsKey(configId);
-		}
-		else {
-			return false;
-		}
-	}	
+	
 
 	/**
 	 * Checks if data matches current pattern 

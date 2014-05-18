@@ -8,4 +8,5 @@ import java.lang.annotation.*;
 public @interface FilterParams {
 	Class<? extends Filter> replaces() default NoOpFilter.class;
 	int order();
+	String configIdPath() default "";
 }

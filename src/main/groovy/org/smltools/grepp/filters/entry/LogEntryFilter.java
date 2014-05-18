@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
  * @author Alexander Semelit
  */
 
-@FilterParams(order = 0)
+@FilterParams(configIdPath = ConfigHolder.SAVED_CONFIG_KEY, order = 0)
 public final class LogEntryFilter extends StatefulFilterBase<String> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogEntryFilter.class);
 	private boolean isBlockMatched = false;
@@ -58,9 +58,10 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	@SuppressWarnings("unchecked")
 	@Override
     public boolean fillParamsByConfigId(String configId) {
-    	if (!LogEntryFilter.configIdExists(config, configId)) {
+    	if (!configIdExists(configId)) {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}
+    	this.configId = configId;
 
     	Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
     	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
@@ -109,22 +110,6 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
    		}
 
     	return root;
-	}
-
-
-    @SuppressWarnings("unchecked")
-	public static boolean configIdExists(Map<?, ?> config, String configId) {
-		if (config == null) {
-			throw new IllegalArgumentException("Config can't be null!");
-		}
-
-		Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
-		if (configs != null) {
-			return configs.containsKey(configId);
-		}
-		else {
-			return false;
-		}
 	}
 
 	/**

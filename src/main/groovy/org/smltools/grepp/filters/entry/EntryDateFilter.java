@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 
-@FilterParams(order = 15)
+@FilterParams(configIdPath = ConfigHolder.SAVED_CONFIG_KEY + "|" + EntryDateFilter.LOG_DATE_FORMATS_KEY, order = 15)
 public final class EntryDateFilter extends StatefulFilterBase<String> implements OptionallyStateful<String> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(EntryDateFilter.class);
 	public static final String LOG_DATE_FORMATS_KEY = "logDateFormats";
@@ -81,9 +81,10 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 	@SuppressWarnings("unchecked")
 	@Override
     public boolean fillParamsByConfigId(String configId) {
-    	if (!EntryDateFilter.configIdExists(config, configId)) {
+    	if (!configIdExists(configId)) {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}
+    	this.configId = configId;
 
     	Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
     	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
@@ -106,8 +107,26 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 			return true;
 		}
 		else {
-			throw new PropertiesNotFoundRuntimeException(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY + " is not filled for config: " + configId);
+			LOGGER.debug(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY + " is not filled for config: " + configId);
 		}
+
+		configs = (Map<?, ?>) config.get(LOG_DATE_FORMATS_KEY);
+		customCfg = (Map<?,?>) configs.get(configId);
+
+		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY)) {
+			logDatePtrn = Pattern.compile((String) customCfg.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY));
+		}
+		else {
+			throw new PropertiesNotFoundRuntimeException(LOG_DATE_FORMATS_KEY + "." + configId + "." + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY + " is not filled for config!");
+		}
+
+		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_VALUE_KEY)) {
+			logDateFormat = new SimpleDateFormat((String) customCfg.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_VALUE_KEY));
+		}
+		else {
+			throw new PropertiesNotFoundRuntimeException(LOG_DATE_FORMATS_KEY + "." + configId + "." + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY + " is not filled for config!");
+		}
+		return true;
     }
 
 	@SuppressWarnings("unchecked")
@@ -132,21 +151,6 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
     	ConfigObject savedConfigs = (ConfigObject) result.getProperty(ConfigHolder.SAVED_CONFIG_KEY);
     	((ConfigObject) savedConfigs.getProperty(configId)).put(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY, config);
     	return result;
-	}
-
-    @SuppressWarnings("unchecked")
-	public static boolean configIdExists(Map<?, ?> config, String configId) {
-	if (config == null) {
-			throw new IllegalArgumentException("Config can't be null!");
-		}
-
-		Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
-		if (configs != null) {
-			return configs.containsKey(configId);
-		}
-		else {
-			return false;
-		}
 	}
 
 	/**

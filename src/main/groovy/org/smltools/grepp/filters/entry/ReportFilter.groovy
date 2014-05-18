@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Alexander Semelit 
  */
-@FilterParams(order = 20)
+@FilterParams(configIdPath = ReportFilter.COLUMNS_KEY, order = 20)
 public final class ReportFilter extends StatefulFilterBase<String> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReportFilter.class);
 
@@ -123,9 +123,10 @@ public final class ReportFilter extends StatefulFilterBase<String> {
     @SuppressWarnings("unchecked")
     @Override
     public boolean fillParamsByConfigId(String configId) {
-        if (!ReportFilter.configIdExists(config, configId)) {
+        if (!configIdExists(configId)) {
             throw new ConfigNotExistsRuntimeException(configId);
         }
+        this.configId = configId;
 
         reportPatternBuilder = new StringBuilder()
         //defaults come first
@@ -257,15 +258,6 @@ public final class ReportFilter extends StatefulFilterBase<String> {
         }
 
         return config
-    }
-
-    @SuppressWarnings("unchecked")
-    public static boolean configIdExists(Map<?, ?> config, String configId) {
-        if (config == null) {
-            throw new IllegalArgumentException("Config can't be null!");
-        }
-
-        return config."$COLUMNS_KEY".containsKey(configId)
     }
 
     /**
