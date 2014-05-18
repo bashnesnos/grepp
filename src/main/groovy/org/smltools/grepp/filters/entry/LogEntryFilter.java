@@ -31,15 +31,6 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	private String starter = null;
 	private String dateRegex = null;
 
-	/**
-	 * Creates non-refreshable and non-publicly modifiable, standalone LogEntryFilter
-	 * @param logEntryPtrn
-	 *            pattern to slice data for entries
-	 */
-	public LogEntryFilter() {
-
-	}
-
 	public void setStarter(String starter) {
 		if (starter == null) {
 			throw new IllegalArgumentException("Is null by default; just don't set it");
@@ -64,23 +55,9 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
         flush();
 	}
 
-	public LogEntryFilter(Map<?, ?> config) {
-		super(config);
-	}
-
-
-	/**
-	* Creates LogEntryFilter from config
-	*
-	*/
-	public LogEntryFilter(Map<?, ?> config, String configId) {
-		super(config);
-		fillParamsByConfigIdInternal(configId);
-	}
-
 	@SuppressWarnings("unchecked")
 	@Override
-    protected boolean fillParamsByConfigIdInternal(String configId) {
+    public boolean fillParamsByConfigId(String configId) {
     	if (!LogEntryFilter.configIdExists(config, configId)) {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}

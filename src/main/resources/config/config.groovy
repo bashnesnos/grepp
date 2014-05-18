@@ -1,5 +1,5 @@
 defaults {
-    spoolFileExtension='log'
+    spoolFileExtension='txt'
     resultsDir='results'
     reportSeparator {
         value=','

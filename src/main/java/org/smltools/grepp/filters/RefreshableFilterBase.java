@@ -17,15 +17,6 @@ public abstract class RefreshableFilterBase<T> extends FilterBase<T> implements 
     private static final Logger LOGGER = LoggerFactory.getLogger(RefreshableFilterBase.class);           
     protected boolean isLocked = false;
 
-    public RefreshableFilterBase() {
-    
-    }
-
-    
-    public RefreshableFilterBase(Map<?, ?> config) {
-            super(config);
-    }
-    
     @Override
     public void lock() {
         isLocked = true;
@@ -37,9 +28,13 @@ public abstract class RefreshableFilterBase<T> extends FilterBase<T> implements 
             throw new IllegalArgumentException("configId shoudn't be null!");
         }
 
-        if (this.config == null || isLocked) {
-            LOGGER.debug("{} refresh is locked; config is null? {}", this.getClass().getName(), this.config == null);
+        if (isLocked) {
+            LOGGER.debug("{} refresh is locked;", this.getClass().getName());
             return false;
+        }
+
+        if (this.config == null) {
+            throw new IllegalStateException("Can't refresh by configId if the config itself wasn't supplied explicitly!");
         }
 
         if (this.configId != null && this.configId.equals(configId)) {
@@ -47,7 +42,7 @@ public abstract class RefreshableFilterBase<T> extends FilterBase<T> implements 
         }
 
         try {
-            if (fillParamsByConfigIdInternal(configId)) {
+            if (fillParamsByConfigId(configId)) {
                 this.configId = configId;
                 return true;
             }

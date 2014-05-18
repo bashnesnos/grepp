@@ -72,10 +72,10 @@ public class ConfigHolder extends ConfigObject {
     }
 
     void loadDefaults() {
-        this.defaults.spoolFileExtension = '.log'
+        this.defaults.spoolFileExtension = 'txt'
         this.defaults.resultsDir = 'results'
         this.defaults.reportSeparator.value = ','
-        this.defaults.reportSeparator.spoolFileExtension = '.csv'
+        this.defaults.reportSeparator.spoolFileExtension = 'csv'
     }
 
     void backupConfigFile() {

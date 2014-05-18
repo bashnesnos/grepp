@@ -17,19 +17,16 @@ import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
  */
 
 public abstract class FilterBase<T> implements Filter<T>, Configurable {
-	protected final Map<?, ?> config;
+	protected Map<?, ?> config = null;
 	protected String configId;
 
     public FilterBase() {
-        this.config = null;
-    }
-        
-	public FilterBase(Map<?, ?> config) {
-        if (config == null) {
-			throw new IllegalArgumentException("All the constructor params shouldn't be null! " + (config != null));
-		}
-		this.config = config;
-	}
 
-	protected abstract boolean fillParamsByConfigIdInternal(String configId);
+    }
+
+    @Override
+    public void setConfig(Map<?, ?> config) {
+    	this.config = config;
+    }
+
 }

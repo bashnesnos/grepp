@@ -30,24 +30,6 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     protected long logFileThreshold = -1L //means no threshold at all
     protected long logFileThresholdMltplr = 60L*60L*1000L
 
-    public FileDateFilter(Date from, Date to, Long logFileThreshold)
-    {
-        if (from == null && to == null) {
-            throw new IllegalArgumentException("Either 'from' or 'to' should be supplied")
-        }
-
-        this.from = from
-        this.to = to
-
-        if (logFileThreshold != null) {
-            this.logFileThreshold = logFileThreshold
-        }
-    }
-	
-    public FileDateFilter(Map<?, ?> config) {
-        super(config);
-    }
-
     public void setFileDateOutputFormat(String fileDateFormat) {
         this.fileDateFormat = new SimpleDateFormat(fileDateFormat)
     }
@@ -61,18 +43,9 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
         this.to = to;
     }
 
-    /**
-    * Creates FileDateFilter from config
-    *
-    */
-    public FileDateFilter(Map<?, ?> config, String configId) {
-        super(config);
-        fillParamsByConfigIdInternal(configId);
-    }
-
     @SuppressWarnings("unchecked")
     @Override
-    protected boolean fillParamsByConfigIdInternal(String configId) {
+    public boolean fillParamsByConfigId(String configId) {
         if (!LogEntryFilter.configIdExists(config, configId)) {
             return false
         }

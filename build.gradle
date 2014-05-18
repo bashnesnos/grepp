@@ -122,17 +122,8 @@ import org.slf4j.LoggerFactory;
 public class DoodkiFilter extends FilterBase<String> {
     private static final Logger LOGGER = LoggerFactory.getLogger(DoodkiFilter.class);   
 
-    public DoodkiFilter() {
-
-    }
-
-    public DoodkiFilter(Map<?, ?> config, String configId) {
-        super(config);
-        fillParamsByConfigIdInternal(configId)
-    }
-
     @Override
-    protected boolean fillParamsByConfigIdInternal(String configId) {
+    public boolean fillParamsByConfigId(String configId) {
         return config.doodki.containsKey(configId);
     }
 

@@ -38,37 +38,6 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 	private List<String> threadEndPatternList;
 
 	private Map<?,?> state = new HashMap<Object, Object>();
-	/**
-	 * Creates non-refreshable and non-publicly modifiable, standalone and maybe stateless ThreadFilter
-	 * @param filterPattern
-	 *            pattern to filter data
-	 */
-
-	public ThreadFilter(String filterPattern, List<String> threadStartExtractorList, 
-		List<String> threadSkipEndPatternList, List<String> threadEndPatternList) {
-		super(filterPattern);
-		if (threadStartExtractorList != null) {
-			this.threadStartExtractorList = threadStartExtractorList;
-			if (threadSkipEndPatternList != null) {
-				this.threadSkipEndPatternList = threadSkipEndPatternList;
-			}
-
-			if (threadEndPatternList != null) {
-				this.threadEndPatternList = threadEndPatternList;
-			}
-			else {
-				throw new IllegalArgumentException("Thread end patterns should be supplied, if thread starts were");
-			}
-
-			if (LOGGER.isTraceEnabled()) {
-				LOGGER.trace("{}\n{}\n{}\n{}", threadStartExtractorList, threadStartPatternList, threadSkipEndPatternList, threadEndPatternList);
-			}
-		}
-	}
-
-	public ThreadFilter(Map<?, ?> config) {
-		super(config);
-	}
 
 	public void setThreadExtractorList(List<String> threadStartExtractorList) {
 		GreppUtil.throwIllegalAEifNull(threadStartExtractorList, "Thread strat extractors shouldn't be null");
@@ -87,22 +56,14 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
 		this.threadEndPatternList = threadEndPatternList;
 	}
 
-	/**
-	* Creates LogEntryFilter from config
-	*
-	*/
-	public ThreadFilter(Map<?, ?> config, String configId) {
-		super(config, configId);
-	}
-
 	@SuppressWarnings("unchecked")
 	@Override
-    protected boolean fillParamsByConfigIdInternal(String configId) {
+    public boolean fillParamsByConfigId(String configId) {
     	if (!ThreadFilter.configIdExists(config, configId)) {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}
 
-    	boolean result = super.fillParamsByConfigIdInternal(configId);
+    	boolean result = super.fillParamsByConfigId(configId);
 
     	Map<?, ?> configs = (Map<?,?>) config.get(THREADS_CONFIG_KEY);
     	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
@@ -358,9 +319,13 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
             throw new IllegalArgumentException("configId shoudn't be null!");
         }
 
-        if (this.config == null || isLocked) {
-            LOGGER.debug("{} refresh is locked; config is null? {}", this.getClass().getName(), this.config == null);
+        if (isLocked) {
+            LOGGER.debug("{} refresh is locked;", this.getClass().getName());
             return false;
+        }
+
+        if (this.config == null) {
+            throw new IllegalStateException("Can't refresh by configId if the config itself wasn't supplied explicitly!");
         }
 
         if (this.configId != null && this.configId.equals(configId)) {
@@ -368,7 +333,7 @@ public final class ThreadFilter extends SimpleFilter implements Stateful<String>
         }
 
         try {
-            if (fillParamsByConfigIdInternal(configId)) {
+            if (fillParamsByConfigId(configId)) {
                 this.configId = configId;
                 return true;
             }

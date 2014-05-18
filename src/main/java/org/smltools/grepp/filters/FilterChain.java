@@ -108,20 +108,22 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
         }
     };
 
+    @SuppressWarnings("unchecked")
 	public static <V extends FilterBase> V createFilterFromConfigByConfigId(Class<V> filterClass, Map<?, ?> config, String configId) {
 		if (filterClass == null || config == null || configId == null) {
 			throw new IllegalArgumentException("All the method params shouldn't be null! " + (filterClass != null) + ";" + (config != null) + ";" + (configId != null));
 		}
 
 		try {
-			Constructor<V> constructByConfigId = filterClass.getDeclaredConstructor(Map.class, String.class);
-			V newFilter = constructByConfigId.newInstance(config, configId);
-			newFilter.configId = configId;
+			V newFilter = filterClass.newInstance();
+			newFilter.setConfig(config);
+			if (newFilter.fillParamsByConfigId(configId)) {
+				newFilter.configId = configId;
+			}
+			else {
+				throw new RuntimeException(filterClass + " can't be instantiated from configId: " + configId);
+			}
 			return newFilter;
-		} catch(InvocationTargetException ite) {
-			throw new RuntimeException(ite);
-		} catch (NoSuchMethodException nsme) {
-			throw new UnsupportedOperationException("A particular Filter implementation should have a constructor by Map and configId", nsme);
 		} catch (InstantiationException ie) {
 			throw new RuntimeException(ie);
 		} catch (IllegalAccessException iace) {
@@ -141,7 +143,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 
 	private final List<Filter<T>> filters = new ArrayList<Filter<T>>();
 	private final Aggregator<T> aggregator;
-	private final Map<?, ?> config;
+	private Map<?, ?> config;
 	private Map<?, ?> state = new HashMap();
 	private boolean isLocked = false;
 
@@ -165,6 +167,11 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 				}
 			}
 		}
+	}
+
+	@Override
+	public void setConfig(Map<?, ?> config) {
+		this.config = config;
 	}
 
     @Override
@@ -192,11 +199,38 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
     	return null;
     }
 
+    @SuppressWarnings("unchecked")
+    public <E extends Filter<T>> E getInstance(Class<E> filterClass) {
+    	if (filterClass != null) {
+    		enableFilter(filterClass);
+    	}
+    	else {
+    		throw new IllegalArgumentException("Filter class shouldn't be null!");
+    	}
+
+    	try {
+	    	if (filterOrderList.contains(filterClass)) {
+	    		return (E) filterClass.newInstance();
+	    	}
+	    	else if (replacedFiltersMap.containsKey(filterClass)) {
+	    		return (E) replacedFiltersMap.get(filterClass).newInstance(); //assumed replacing one extends replaced by
+	    	}
+	    }
+	    catch (InstantiationException ie) {
+	    	throw new RuntimeException("A Filter implementation supposed to have a no-argument constructor!", ie);
+	    }
+	    catch (IllegalAccessException iae) {
+			throw new RuntimeException("A Filter implementation supposed to have a public no-argument constructor!", iae);	    	
+	    }
+    	return null;
+    }
 
     public void enableFilter(Class<? extends Filter> filterClass) {
     	if (filterClass != null) {
     		if (replacedFiltersMap.containsKey(filterClass)) {
-    			throw new IllegalArgumentException("Attempt to enable replaced class: " + filterClass.getName() + "; replaced by: "+ replacedFiltersMap.get(filterClass) + "; replacing one should be disabled explicitly first");
+    			LOGGER.debug("Replaced class: " + filterClass.getName() + "; replaced by: "+ replacedFiltersMap.get(filterClass) + "; enabling replacing class");
+    			enableFilter(replacedFiltersMap.get(filterClass));
+    			return;
     		}
 
     		if (!filterOrderList.contains(filterClass)) {
@@ -205,6 +239,10 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 	        	if (params != null) {
 	        		Class<? extends Filter> classToReplace = params.replaces();
 	        		if (classToReplace != null && classToReplace != NoOpFilter.class) {
+	        			if (!classToReplace.isAssignableFrom(filterClass)) {
+	        				throw new IllegalArgumentException("Replacing class " + filterClass + " should extend replacable " + classToReplace + "!");
+	        			}
+
 	        			if (!replacedFiltersMap.containsKey(classToReplace)) {
 	        				filterOrderList.remove(classToReplace);
 	        				replacedFiltersMap.put(classToReplace, filterClass);
@@ -387,6 +425,11 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
         return root;
     }
 
+    @Override
+    public boolean fillParamsByConfigId(String configId) {
+    	return refreshByConfigId(configId);
+    }
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean refreshByConfigId(String configId) {
@@ -395,6 +438,10 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 		boolean hasChanged = false;
 		for (Filter<?> filter: filters) {
             if (filter instanceof Refreshable) {
+            	if (filter instanceof Configurable) {
+            		((Configurable) filter).setConfig(config);
+            	}
+            	
                 hasChanged |= ((Refreshable) filter).refreshByConfigId(configId);
             }
 		}

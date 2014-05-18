@@ -35,17 +35,6 @@ public class SimpleFilter extends FilterBase<String> {
 	protected StringBuilder patternBuilder = new StringBuilder("(?ms)"); //for multiline support
 	protected List<String> patternParts = new ArrayList<String>();
 	protected Map<String, Qualifier> patternPartQualifierMap = new HashMap<String, Qualifier>();
-	/**
-	 * Creates non-refreshable and non-publicly modifiable, standalone and maybe stateless SimpleFilter
-	 * @param filterPattern
-	 *            pattern to filter data
-	 */
-
-	public SimpleFilter(String filterPattern)
-	{
-		setFilterPattern(filterPattern);
-	}
-
 
 	public void setFilterPattern(String filterPattern) {
 		this.filterPattern = filterPattern;
@@ -60,24 +49,9 @@ public class SimpleFilter extends FilterBase<String> {
 		return filterPattern;
 	}
 
-	public SimpleFilter(Map<?, ?> config) {
-		super(config);
-	}
-
-	/**
-	* Creates SimpleFilter from config
-	*
-	*/
-	public SimpleFilter(Map<?, ?> config, String configId) {
-		super(config);
-		if (!fillParamsByConfigIdInternal(configId)) {
-			throw new PropertiesNotFoundRuntimeException(FILTERS_CONFIG_KEY + "." + configId + "doesn't exist!");
-		}
-	}
-
 	@SuppressWarnings("unchecked")
 	@Override
-    protected boolean fillParamsByConfigIdInternal(String configId) {
+    public boolean fillParamsByConfigId(String configId) {
     	boolean result = false;
     	if (SimpleFilter.configIdExists(config, configId)) {
 			Map<?, ?> configs = (Map<?,?>) config.get(FILTERS_CONFIG_KEY);

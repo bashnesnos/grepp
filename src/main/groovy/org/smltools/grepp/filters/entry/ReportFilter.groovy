@@ -100,19 +100,6 @@ public final class ReportFilter extends StatefulFilterBase<String> {
     private String spoolFileExtension
     private List<? extends ReportMethod> filterMethods = []
 
-    /**
-    * Creates new ReportFilter on top of supplied filter chain and fills in params from supplied config. <br>
-    * Also it parses from config.xml post filter pattern configuration basing on fulfilled POST_PROCESSING parameter.
-    *
-    */
-    public ReportFilter() {
-
-    }
-
-    public ReportFilter(Map<?, ?> config) {
-        super(config);
-    }
-
     public void setSpoolFileExtension(String spoolFileExtension) {
         this.spoolFileExtension = spoolFileExtension
     }
@@ -133,18 +120,9 @@ public final class ReportFilter extends StatefulFilterBase<String> {
         addColumnToHeader(colName)
     }
 
-    /**
-    * Creates ReportFilter from config
-    *
-    */
-    public ReportFilter(Map<?, ?> config, String configId) {
-        super(config);
-        fillParamsByConfigIdInternal(configId);
-    }
-
     @SuppressWarnings("unchecked")
     @Override
-    protected boolean fillParamsByConfigIdInternal(String configId) {
+    public boolean fillParamsByConfigId(String configId) {
         if (!ReportFilter.configIdExists(config, configId)) {
             throw new ConfigNotExistsRuntimeException(configId);
         }

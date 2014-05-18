@@ -122,7 +122,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.add(args:1, argName:"configId", "Instructs to save given configuraion as a config. <configId> should be unique")
         cli.dateProp(args:2, valueSeparator:";", argName:"format;regex", "Loads date entry filter with <format> (SimpleDateFormat compliant) and <regex> to extract the date from entries")
         cli.threadProp(args:3, valueSeparator:";", argName:"start;skipend;end", "Loads thread filter with <start>, <skipend> (leave as blank if not needed) and <end> regexes")
-        cli.repProp(args:1, argName:"type(regex,colName);...", "Loads post filter with <type(regex,colName)> in the given order. Type should be equal to one of the post filter methods. Separate with ';' if multiple columns. You need to escape ',' and ';' with \\ in the <regex> part for correct processing")
+        cli.repProp(args:1, argName:"type(regex,colName);...", "Loads report filter with <type(regex,colName)> in the given order. Type should be equal to one of the post filter methods. Separate with ';' if multiple columns. You need to escape ',' and ';' with \\ in the <regex> part for correct processing")
         cli.lock("Locks the filter chains after full initialization. I.e. it means if any file processed won't update filter params even if such are configured for it")
         cli.noff("No File Filtering - i.e. turns off file filtering based on date etc.")
         def options = cli.parse(args)
@@ -174,7 +174,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		Deque<ParamParser> varParsers = new ArrayDeque<ParamParser>();
 
         FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>(config, new StringAggregator(), new ArrayList<File>().class)
-        fileFilterChain.add(new FileSortFilter())
+        fileFilterChain.add(fileFilterChain.getInstance(FileSortFilter.class))
 
 		FilterParser filterParser = new FilterParser()
 		FileNameParser fileNameParser = new FileNameParser()
@@ -182,7 +182,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		def logEntryFilter
 
 		if (options.l) {
-			logEntryFilter = new LogEntryFilter()
+			logEntryFilter = entryFilterChain.getInstance(LogEntryFilter.class)
 			logEntryFilter.setStarter(options.l)
 			logEntryFilter.lock()
 			entryFilterChain.add(logEntryFilter)
@@ -190,7 +190,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.p) {
 			varParsers.remove(filterParser)
-			entryFilterChain.add(new PropertiesFilter())
+			entryFilterChain.add(entryFilterChain.getInstance(PropertiesFilter.class))
 			entryFilterChain.disableFilter(ReportFilter.class)
 			entryFilterChain.disableFilter(SimpleFilter.class)
 			entryFilterChain.disableFilter(ThreadFilter.class)
@@ -202,7 +202,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		if (options.repProp) {
-			def reportFilter = new ReportFilter(config)
+			def reportFilter = entryFilterChain.getInstance(ReportFilter.class)
 			reportFilter.setColumnSeparator(config.defaults.reportSeparator.value)
 			reportFilter.setSpoolFileExtension(config.defaults.reportSeparator.spoolFileExtension)
 
@@ -234,13 +234,15 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			dtimeParser.parseVar(runtimeConfig, options.ds[1])
 
 			if (!options.noff) {
-				def fileDateFilter = new FileDateFilter(config)
+				def fileDateFilter = fileFilterChain.getInstance(FileDateFilter.class)
+				fileDateFilter.setConfig(config)
 				fileDateFilter.setFrom(runtimeConfig.dateFilter.from)
 				fileDateFilter.setTo(runtimeConfig.dateFilter.to)
 				fileFilterChain.add(fileDateFilter)
 			}
 
-			def entryDateFilter = new EntryDateFilter(config)
+			def entryDateFilter = entryFilterChain.getInstance(EntryDateFilter.class)
+			entryDateFilter.setConfig(config)
 			entryDateFilter.setFrom(runtimeConfig.dateFilter.from)
 			entryDateFilter.setTo(runtimeConfig.dateFilter.to)
 
@@ -249,7 +251,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 				entryDateFilter.setLogDatePattern(options.dateProps[1])
 				entryDateFilter.lock()
 				if (logEntryFilter == null) { //enabling if null; otherwise it's useless
-					logEntryFilter = new LogEntryFilter()
+					logEntryFilter = entryFilterChain.getInstance(LogEntryFilter.class)
 					logEntryFilter.lock()
 					entryFilterChain.add(logEntryFilter)
 				}
@@ -286,20 +288,16 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		if (runtimeConfig.containsKey('filterPattern')) {
+			def mainFilter = entryFilterChain.getInstance(SimpleFilter.class)
+			mainFilter.setFilterPattern(runtimeConfig.filterPattern)
 			if (options.e) {
-				def threadFilter = new ThreadFilter(config)
-				threadFilter.setFilterPattern(runtimeConfig.filterPattern)
 				if (options.threadProp)	{
-					threadFilter.setThreadExtractorList(options.threadProps[0].size() > 0 ? [options.threadProps[0]] : null)
-					threadFilter.setThreadSkipEndPatternList(options.threadProps[1].size() > 0 ? [options.threadProps[1]] : null)
-					threadFilter.setThreadEndPatternList(options.threadProps[2].size() > 0 ? [options.threadProps[2]] : null)
+					mainFilter.setThreadExtractorList(options.threadProps[0].size() > 0 ? [options.threadProps[0]] : null)
+					mainFilter.setThreadSkipEndPatternList(options.threadProps[1].size() > 0 ? [options.threadProps[1]] : null)
+					mainFilter.setThreadEndPatternList(options.threadProps[2].size() > 0 ? [options.threadProps[2]] : null)
 				}
-
-				entryFilterChain.add(threadFilter)
 			}
-			else {
-				entryFilterChain.add(new SimpleFilter(runtimeConfig.filterPattern))
-			}
+			entryFilterChain.add(mainFilter)
 		}
 
 		if (options.lock) {

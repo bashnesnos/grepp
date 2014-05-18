@@ -30,7 +30,7 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 	private static final Logger LOGGER = LoggerFactory.getLogger(EntryDateFilter.class);
 	public static final String LOG_DATE_FORMATS_KEY = "logDateFormats";
 
-	private final boolean isStateOptional;
+	private boolean isStateOptional;
 	private Date from;
 	private Date to;
 	private boolean isDateFromPassed = false;
@@ -42,22 +42,13 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 	 * @param logDatePtrn
 	 *            pattern to slice data for entries
 	 */
-	public EntryDateFilter(String logDatePtrn, String logDateFormat, Date from, Date to) {		
-		setLogDatePattern(logDatePtrn);
-		setLogDateFormat(logDateFormat);
-
-		if (from != null || to != null) {
-			this.from = from;
-			this.to = to;
-		}
-		else {
-			throw new IllegalArgumentException("Either 'from' or 'to' date should be supplied");	
-		}
+	public EntryDateFilter() {		
 		isStateOptional = true;
 	}
 
-	public EntryDateFilter(Map<?, ?> config) {
-		super(config);
+	@Override
+	public void setConfig(Map<?, ?> config) {
+		super.setConfig(config);
 		isStateOptional = false;
 	}
 
@@ -87,19 +78,9 @@ public final class EntryDateFilter extends StatefulFilterBase<String> implements
 		}
 	}
 
-	/**
-	* Creates EntryDateFilter from config
-	*
-	*/
-	public EntryDateFilter(Map<?, ?> config, String configId) {
-		super(config);
-		fillParamsByConfigIdInternal(configId);
-        isStateOptional = false;
-	}
-
 	@SuppressWarnings("unchecked")
 	@Override
-    protected boolean fillParamsByConfigIdInternal(String configId) {
+    public boolean fillParamsByConfigId(String configId) {
     	if (!EntryDateFilter.configIdExists(config, configId)) {
     		throw new ConfigNotExistsRuntimeException(configId);
     	}
