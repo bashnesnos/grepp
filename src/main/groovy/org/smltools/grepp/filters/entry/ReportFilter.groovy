@@ -52,7 +52,7 @@ public final class ReportFilter extends StatefulFilterBase<String> {
         if (System.getProperty(GREPP_HOME_SYSTEM_OPTION) != null) {
             File pluginDir = new File(System.getProperty(GREPP_HOME_SYSTEM_OPTION), GREPP_REPORT_FILTER_PLUGIN_DIR);
             if (pluginDir.exists() && pluginDir.isDirectory()) {
-                LOGGER.trace("Plugin dir {} exists; plugging in postFilterMethods enabled", GREPP_REPORT_FILTER_PLUGIN_DIR)
+                LOGGER.trace("Plugin dir {} exists; plugging in ReportMethods enabled", GREPP_REPORT_FILTER_PLUGIN_DIR)
                 for (File pluginFile: pluginDir.listFiles()) {
                     LOGGER.trace("Found file: {}", pluginFile.name)
                     Class<?> pluginClass = GreppUtil.loadGroovyClass(pluginFile);

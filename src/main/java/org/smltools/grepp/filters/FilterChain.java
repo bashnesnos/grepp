@@ -128,6 +128,27 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 		} 
 	}
 
+	public static Map<Object, List<Class<? extends Filter>>> getConfigIdToFilterClassMap(Map<?, ?> config) {
+		Map<Object, List<Class<? extends Filter>>> result = new HashMap<Object, List<Class<? extends Filter>>>();
+		for (Class<? extends Filter> filterClass : REGISTERED_FILTERS_LIST) {
+			FilterParams filterParams = filterClass.getAnnotation(FilterParams.class);
+			if (filterParams != null && !"".equals(filterParams.configIdPath()) && filterParams.isStatic()) {
+				String configId = filterParams.configIdPath();
+				LOGGER.debug("Putting static configId {} for {}", configId, filterClass);
+				result.put(configId, Collections.<Class<? extends Filter>> singletonList(filterClass));
+			}
+			else if (Configurable.class.isAssignableFrom(filterClass)){
+				for (Object configId: FilterBase.configIdsSet(filterClass, config)) {
+					if (result.get(configId) == null) {
+						result.put(configId, new ArrayList<Class<? extends Filter>>());
+					}
+					result.get(configId).add(filterClass);
+				}
+			}
+		}
+		return result;
+	}
+
     private List<Class<? extends Filter>> filterOrderList = new ArrayList<Class<? extends Filter>>();
     private Map<Class<? extends Filter>, Class<? extends Filter>> replacedFiltersMap = new HashMap<Class<? extends Filter>, Class<? extends Filter>>();
     private Comparator<Filter<?>> naturalByOrderedList = new Comparator<Filter<?>>() {
@@ -293,17 +314,26 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 
         boolean wasAdded = false;
         for (Class<? extends Filter> filterClass: filterOrderList) {
-			if (!has(filterClass) && Configurable.class.isAssignableFrom(filterClass)) {
-				if (FilterBase.configIdExists(filterClass, config, configId)) {
-                    add((Filter) createFilterFromConfigByConfigId((Class<? extends Configurable>) filterClass, config, configId));
-                    wasAdded = true;
-            	}
-	        }
+			if (!has(filterClass)) {
+				FilterParams filterParams = filterClass.getAnnotation(FilterParams.class);
+				if (filterParams != null && filterParams.isStatic()) {
+					if (filterParams.configIdPath().equals(configId)) {
+						add(getInstance(filterClass));
+						wasAdded = true;
+					}
+				}
+				else if (Configurable.class.isAssignableFrom(filterClass)) {
+					if (FilterBase.configIdExists(filterClass, config, configId)) {
+	                    add((Filter) createFilterFromConfigByConfigId((Class<? extends Configurable>) filterClass, config, configId));
+	                    wasAdded = true;
+	            	}
+		        }
+	    	}
 		}
         return wasAdded;
 	}
 
-    @SuppressWarnings("unchecked")
+	@Override
 	public boolean configIdExists(String configId) {
 		boolean exists = false;
         for (Class<? extends Filter> filterClass: filterOrderList) {
@@ -311,6 +341,15 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
         }
         return exists;
 	}
+
+	@Override
+	public Set<Object> configIdsSet() {
+		Set<Object> result = new HashSet<Object>();
+        for (Class<? extends Filter> filterClass: filterOrderList) {
+        	result.addAll(FilterBase.configIdsSet(filterClass, config));
+        }
+        return result;
+	}	
 
 	/**
 	 * Main filtering method. Sequence is the following: <li>1. {@link

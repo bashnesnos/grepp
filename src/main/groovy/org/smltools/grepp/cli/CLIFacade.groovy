@@ -56,31 +56,16 @@ public class CLIFacade {
 	}
 
 
-	/**
-	 * Main method for the command-line arguments processing.
-	 * <p>
-	 * It processes arguments in the following way:
-	 *   <li>1. Flags starting with - and options starting with --</li>
-	 *   <li>2. All other arguments</li>
-	 * <p>
-	 * All other arguments are parsed via subscribed {@link varParsers}. <br>
-	 * I.e. if option, or flag requires some arguments to be parsed immediately after it was specified, a valid subclass of {@link ParserBase} should be instantiated and subscribed in the option/flag handler. <br>
-	 * {@link varParsers} are iterated in a LIFO manner. Only the last one recieves an argument for parsing. As soon as parser recieves all the required arguments, it should unsubscribe, so further arguments are passed to the next parser. <br>
-	 * By default the following parser are instantiated:
-	 *   <li>1. {@link FilterParser}</li>
-	 *   <li>2. {@link FileNameParser}</li>
-	 *
-	 * @param args Array of strings containing arguments for parsing.
-	 */
-
-	public OptionAccessor parseOptions(String[] args)
-	{
-		if (args == null || args.length == 0) throw new IllegalArgumentException("Invalid arguments")
-		
+	public CliBuilder getCliBuilder() {
 		def cli = new CliBuilder(usage:"grepp [options] filter_regex [filename [filename]]"
             , width: 100
             , header:"Options:"
             , footer: """
+===========================
+Extra options:
+${FilterChain.getConfigIdToFilterClassMap(config).collect { configId, classes -> 
+	String.format("--%-20s\t\t\tmay configure: %s", configId, classes.collect { it.simpleName }.join(','))
+}.join('\n')}            
 ===========================
 Parameters:
 filter_regex     - a string to find in the input. Could be replaced with pre-configured filter_regex, for this just put '--filter_regex_id'
@@ -124,7 +109,34 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.threadProp(args:3, valueSeparator:";", argName:"start;skipend;end", "Loads thread filter with <start>, <skipend> (leave as blank if not needed) and <end> regexes")
         cli.repProp(args:1, argName:"type(regex,colName);...", "Loads report filter with <type(regex,colName)> in the given order. Type should be equal to one of the post filter methods. Separate with ';' if multiple columns. You need to escape ',' and ';' with \\ in the <regex> part for correct processing")
         cli.lock("Locks the filter chains after full initialization. I.e. it means if any file processed won't update filter params even if such are configured for it")
-        cli.noff("No File Filtering - i.e. turns off file filtering based on date etc.")
+        cli.noff("No File Filtering - i.e. turns off file filtering based on date etc.")		
+
+        return cli
+	}
+
+	/**
+	 * Main method for the command-line arguments processing.
+	 * <p>
+	 * It processes arguments in the following way:
+	 *   <li>1. Flags starting with - and options starting with --</li>
+	 *   <li>2. All other arguments</li>
+	 * <p>
+	 * All other arguments are parsed via subscribed {@link varParsers}. <br>
+	 * I.e. if option, or flag requires some arguments to be parsed immediately after it was specified, a valid subclass of {@link ParserBase} should be instantiated and subscribed in the option/flag handler. <br>
+	 * {@link varParsers} are iterated in a LIFO manner. Only the last one recieves an argument for parsing. As soon as parser recieves all the required arguments, it should unsubscribe, so further arguments are passed to the next parser. <br>
+	 * By default the following parser are instantiated:
+	 *   <li>1. {@link FilterParser}</li>
+	 *   <li>2. {@link FileNameParser}</li>
+	 *
+	 * @param args Array of strings containing arguments for parsing.
+	 */
+
+	public OptionAccessor parseOptions(String[] args)
+	{
+		if (args == null || args.length == 0) throw new IllegalArgumentException("Invalid arguments")
+		
+		def cli = getCliBuilder()
+
         def options = cli.parse(args)
         if (options.h) {
         	cli.usage()

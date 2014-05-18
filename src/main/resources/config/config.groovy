@@ -127,6 +127,3 @@ reportSeparators {
         spoolFileExtension='.txt'
     }
 }
-doodki {
-    test_doodki="aga"
-}

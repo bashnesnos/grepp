@@ -104,39 +104,11 @@ class TestMethod extends ReportMethodBase<String> {
         pluginFile = new File(pluginFile, "DoodkiFilter.groovy")
         pluginFile.createNewFile()
         pluginFile.write("""\
-import java.util.Map;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import groovy.util.ConfigObject;
-import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
-import org.smltools.grepp.filters.FilterBase;
+import org.smltools.grepp.filters.Filter;
 import org.smltools.grepp.filters.FilterParams;
-import org.smltools.grepp.filters.enums.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-@FilterParams(configIdPath = "doodki", order = 99)
-public class DoodkiFilter extends FilterBase<String> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DoodkiFilter.class);   
-
-    @Override
-    public boolean fillParamsByConfigId(String configId) {
-        return config.doodki.containsKey(configId);
-    }
-
-    @Override
-    public ConfigObject getAsConfig(String configId) {
-        return new ConfigObject();
-
-    }
-
-    /**
-     * Checks if data matches current pattern 
-     * @throws IllegalArgumentException if blockData is not String
-     */
+@FilterParams(configIdPath = "doodki", isStatic = true, order = 99)
+public class DoodkiFilter implements Filter<String> {
 
     @Override
     public String filter(String blockData) {

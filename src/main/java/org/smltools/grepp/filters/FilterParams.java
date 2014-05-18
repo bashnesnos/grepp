@@ -9,4 +9,6 @@ public @interface FilterParams {
 	Class<? extends Filter> replaces() default NoOpFilter.class;
 	int order();
 	String configIdPath() default "";
+	boolean isStatic() default false;
+	String[] mandatoryProps() default {""};
 }

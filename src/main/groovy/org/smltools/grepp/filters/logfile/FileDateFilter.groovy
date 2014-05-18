@@ -20,7 +20,7 @@ import groovy.util.ConfigObject;
  *
  */
 @Slf4j("LOGGER")
-@FilterParams(configIdPath = ConfigHolder.SAVED_CONFIG_KEY, order = 0)
+@FilterParams(configIdPath = ConfigHolder.SAVED_CONFIG_KEY, mandatoryProps = [ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY], order = 0)
 public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     //Checking dates everywhere
 
@@ -53,7 +53,7 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
         def customCfg = config.savedConfigs."$configId"
 
         if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY)) {
-            logFileThreshold = customCfg.logThreshold
+            logFileThreshold = customCfg."$ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY"
             this.configId = configId;            
             return true
         }

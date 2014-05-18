@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 
-@FilterParams(configIdPath = ConfigHolder.SAVED_CONFIG_KEY + "|" + EntryDateFilter.LOG_DATE_FORMATS_KEY, order = 15)
+@FilterParams(configIdPath = ConfigHolder.SAVED_CONFIG_KEY + "|" + EntryDateFilter.LOG_DATE_FORMATS_KEY, mandatoryProps = {ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY, ""}, order = 15)
 public final class EntryDateFilter extends StatefulFilterBase<String> implements OptionallyStateful<String> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(EntryDateFilter.class);
 	public static final String LOG_DATE_FORMATS_KEY = "logDateFormats";

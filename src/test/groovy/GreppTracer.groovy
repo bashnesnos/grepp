@@ -12,11 +12,14 @@ import org.smltools.grepp.filters.FilterChain
 
 def BASE_HOME = System.getProperty("grepp.home")
 //def HOME = BASE_HOME + "\\build\\resources\\main\\config"
-def RESOURCES = BASE_HOME + "\\build\\resources\\test"
-def GREPP_CONFIG = BASE_HOME + "\\build\\resources\\main\\config\\config.groovy"
+def RESOURCES = System.getProperty("grepp.test.resources")
+def GREPP_CONFIG = System.getProperty("grepp.config")
 ConfigHolder config = new ConfigHolder(new File(GREPP_CONFIG).toURI().toURL())
 CLIFacade facade = new CLIFacade(config);
-def options = facade.parseOptions("--repProp group(command=\"(.*?)\",cmd);counter((operand),count_of_operand) oo $RESOURCES\\processing_report_test.log".split(" "))
-def runtimeConfig = facade.makeRuntimeConfig()
-facade.makeFilterChains(runtimeConfig, options)
-println runtimeConfig.entryFilterChain.getAsConfig('new_report')
+println FilterChain.getConfigIdToFilterClassMap(config).collect { configId, classes -> 
+	String.format("--%-20s\t\t\tmay configure: %s", configId, classes.collect { it.simpleName }.join(','))
+}.join('\n')
+//def options = facade.parseOptions("--repProp group(command=\"(.*?)\",cmd);counter((operand),count_of_operand) oo $RESOURCES\\processing_report_test.log".split(" "))
+//def runtimeConfig = facade.makeRuntimeConfig()
+//facade.makeFilterChains(runtimeConfig, options)
+//println runtimeConfig.entryFilterChain.getAsConfig('new_report')

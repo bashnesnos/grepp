@@ -146,7 +146,7 @@ doodki!
 doodki!"""		
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--test_doodki oo $RESOURCES\\processing_report_test.log".split(" "))
+			Grepp.main("--doodki oo $RESOURCES\\processing_report_test.log".split(" "))
 		}
 	}
 
