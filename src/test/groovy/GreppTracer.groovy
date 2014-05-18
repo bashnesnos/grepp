@@ -11,8 +11,6 @@ import org.smltools.grepp.filters.StringAggregator
 import org.smltools.grepp.filters.FilterChain
 
 def BASE_HOME = System.getProperty("grepp.home")
-//def HOME = BASE_HOME + "\\build\\resources\\main\\config"
-def RESOURCES = System.getProperty("grepp.test.resources")
 def GREPP_CONFIG = System.getProperty("grepp.config")
 ConfigHolder config = new ConfigHolder(new File(GREPP_CONFIG).toURI().toURL())
 CLIFacade facade = new CLIFacade(config);
