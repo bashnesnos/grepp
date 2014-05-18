@@ -5,6 +5,6 @@ import java.lang.annotation.*;
 @Inherited
 @Retention(value=RetentionPolicy.RUNTIME)
 @Target(value=ElementType.TYPE)
-public @interface PostFilterParams {
+public @interface ReportMethodParams {
 	String id();
 }

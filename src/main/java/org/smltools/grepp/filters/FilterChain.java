@@ -56,7 +56,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 	    	addFilterByName("org.smltools.grepp.filters.entry.LogEntryFilter");
 	    	addFilterByName("org.smltools.grepp.filters.entry.SimpleFilter");
 	    	addFilterByName("org.smltools.grepp.filters.entry.ThreadFilter");
-	    	addFilterByName("org.smltools.grepp.filters.entry.PostFilter");
+	    	addFilterByName("org.smltools.grepp.filters.entry.ReportFilter");
 	    	addFilterByName("org.smltools.grepp.filters.entry.PropertiesFilter");
 	    	
 	    	if (System.getProperty(GREPP_HOME_SYSTEM_OPTION) != null) {

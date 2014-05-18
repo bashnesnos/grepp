@@ -1,7 +1,7 @@
 defaults {
     spoolFileExtension='log'
     resultsDir='results'
-    postProcessSeparator {
+    reportSeparator {
         value=','
         spoolFileExtension='csv'
     }
@@ -55,7 +55,7 @@ filterAliases {
     count_ops='oo'
     avg_timings='oo'
 }
-postProcessColumns {
+reportColumns {
    test_ops {
         filter {
             colName='some_cmd'
@@ -117,7 +117,7 @@ postProcessColumns {
         }
     }
 }
-postProcessSeparators {
+reportSeparators {
     csv {
         value=','
         spoolFileExtension='.csv'

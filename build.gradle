@@ -81,17 +81,17 @@ test {
         newCP.getFiles().each {print it.getCanonicalPath() + ";"}
     }
     doFirst{
-        def pluginFile = new File(rootDir.getAbsolutePath() + '/build/test/plugin/postFilterMethods')
+        def pluginFile = new File(rootDir.getAbsolutePath() + '/build/test/plugin/reportMethods')
         pluginFile.mkdirs()
         pluginFile = new File(pluginFile, "TestPlugin.groovy")
         pluginFile.createNewFile()
         pluginFile.write("""\
 import java.util.regex.Matcher
-import org.smltools.grepp.filters.PostFilterParams
-import org.smltools.grepp.filters.PostFilterMethodBase
+import org.smltools.grepp.filters.ReportMethodParams
+import org.smltools.grepp.filters.ReportMethodBase
 
-@PostFilterParams(id=\"test\")
-class TestMethod extends PostFilterMethodBase<String> {
+@ReportMethodParams(id=\"test\")
+class TestMethod extends ReportMethodBase<String> {
     @Override
     public String processMatchResults(Matcher mtchResults, Integer groupIdx) {
         return \"test\"

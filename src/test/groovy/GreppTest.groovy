@@ -126,7 +126,7 @@ class GreppTest extends GroovyTestCase {
 		assertTrue("Separator wasn't identified", "\\\\".equals(runtimeConfig.folderSeparator))
 	}
 
-	void testPluginForPostFilterMethod() {
+	void testPluginForReportFilterMethod() {
 		def expectedResult = """\
 some_cmd,count_of_operands
 Foo,test
@@ -306,7 +306,7 @@ Foo Koo
 		}
 	}
 
-	void testPostFiltering() {
+	void testReportFiltering() {
 
 		def expectedResult = """\
 some_cmd,count_of_operands
@@ -319,7 +319,7 @@ Foo,1"""
 		}
 	}
 
-	void testPostDefaultGroupFiltering() {
+	void testReportDefaultGroupFiltering() {
 
 		def expectedResult = """\
 some_cmd,count_of_operands
@@ -332,7 +332,7 @@ Koo,1
 		}
 	}
 
-	void testPostDefaultStringGroupFiltering() {
+	void testReportDefaultStringGroupFiltering() {
 
 		def expectedResult = """\
 some_cmd,operands
@@ -346,7 +346,7 @@ Koo,this
 	}
 
 
-	void testPostAverageFiltering() {
+	void testReportAverageFiltering() {
 
 		def expectedResult = """\
 some_cmd,avg_processing

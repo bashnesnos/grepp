@@ -2,7 +2,7 @@ package org.smltools.grepp.filters;
 
 import java.util.Map;
 
-public interface PostFilterGroupMethod<T> extends PostFilterMethod<T> {
+public interface ReportGroupMethod<T> extends ReportMethod<T> {
 	String getAggregatorKey();
 	T processGroup(Map group);
 }

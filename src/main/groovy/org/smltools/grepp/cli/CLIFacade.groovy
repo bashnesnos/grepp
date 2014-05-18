@@ -12,7 +12,7 @@ import org.smltools.grepp.filters.entry.LogEntryFilter
 import org.smltools.grepp.filters.entry.SimpleFilter
 import org.smltools.grepp.filters.entry.ThreadFilter
 import org.smltools.grepp.filters.entry.PropertiesFilter
-import org.smltools.grepp.filters.entry.PostFilter
+import org.smltools.grepp.filters.entry.ReportFilter
 import org.smltools.grepp.util.GreppUtil
 import org.smltools.grepp.filters.enums.*
 import org.smltools.grepp.filters.logfile.FileDateFilter
@@ -191,7 +191,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		if (options.p) {
 			varParsers.remove(filterParser)
 			entryFilterChain.add(new PropertiesFilter())
-			entryFilterChain.disableFilter(PostFilter.class)
+			entryFilterChain.disableFilter(ReportFilter.class)
 			entryFilterChain.disableFilter(SimpleFilter.class)
 			entryFilterChain.disableFilter(ThreadFilter.class)
 			entryFilterChain.disableFilter(EntryDateFilter.class)
@@ -202,21 +202,21 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		if (options.repProp) {
-			def postFilter = new PostFilter()
-			postFilter.setColumnSeparator(config.defaults.postProcessSeparator.value)
-			postFilter.setSpoolFileExtension(config.defaults.postProcessSeparator.spoolFileExtension)
+			def reportFilter = new ReportFilter(config)
+			reportFilter.setColumnSeparator(config.defaults.reportSeparator.value)
+			reportFilter.setSpoolFileExtension(config.defaults.reportSeparator.spoolFileExtension)
 
 			options.repProp.split(/(?<!\\);/).each { prop ->
 				def mtchr = prop =~ /(\w+?)\((.*)\)/
 				if (mtchr.matches()) {
 				    def type = mtchr.group(1)
 				    def regexAndColName = mtchr.group(2).split(/(?<!\\),/)
-				    postFilter.addFilterMethodByType(type, regexAndColName[0], (regexAndColName.length > 1) ? regexAndColName[1] : null)
+				    reportFilter.addFilterMethodByType(type, regexAndColName[0], (regexAndColName.length > 1) ? regexAndColName[1] : null)
 				}
 			}			
 
-			postFilter.lock()
-			entryFilterChain.add(postFilter)
+			reportFilter.lock()
+			entryFilterChain.add(reportFilter)
 		}
 
 		if (options.e) {
@@ -308,8 +308,8 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			fileFilterChain.lock()	
 		}
 
-		if (entryFilterChain.has(PostFilter.class)) {
-			runtimeConfig.spoolFileExtension = entryFilterChain.get(PostFilter.class).getSpoolFileExtension()
+		if (entryFilterChain.has(ReportFilter.class)) {
+			runtimeConfig.spoolFileExtension = entryFilterChain.get(ReportFilter.class).getSpoolFileExtension()
 		}
 
 		runtimeConfig.entryFilterChain = entryFilterChain

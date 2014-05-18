@@ -2,7 +2,7 @@ package org.smltools.grepp.filters;
 
 import java.util.regex.Pattern;
 
-public abstract class PostFilterMethodBase<T> implements PostFilterMethod<T> {
+public abstract class ReportMethodBase<T> implements ReportMethod<T> {
     protected Pattern pattern;
     protected String colName;
 
