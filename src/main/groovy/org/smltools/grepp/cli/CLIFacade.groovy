@@ -57,7 +57,7 @@ public class CLIFacade {
 
 
 	public CliBuilder getCliBuilder() {
-		def cli = new CliBuilder(usage:"grepp [options] filter_regex [filename [filename]]"
+		def cli = new CliBuilder(usage:"grepp [options] [extra_options|filter_regex] [filename [filename]]"
             , width: 100
             , header:"Options:"
             , footer: """
@@ -68,7 +68,7 @@ ${FilterChain.getConfigIdToFilterClassMap(config).collect { configId, classes ->
 }.join('\n')}            
 ===========================
 Parameters:
-filter_regex     - a string to find in the input. Could be replaced with pre-configured filter_regex, for this just put '--filter_regex_id'
+filter_regex     - a string to find in the input. Is optional if any of the supplied <extra_options> configures it
 filename         - filename for analysis. Could be multiple, or with wildcard *. In case of piping (i.e. cat bla.txt | grepp blabla) filename should be omitted.
 ===========================
 Examples:
