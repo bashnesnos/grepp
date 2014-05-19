@@ -239,6 +239,10 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			entryFilterChain.enableFilter(SimpleFilter.class)
 		}
 
+		if (options.dateProp && !options.d) {
+			println "dateProp option is ignored if the d option is not supplied"
+		}
+
 		if (options.d) {
 			def dtimeParser = new DateTimeParser()
 			log.trace('Got date options: {}', options.ds)
@@ -307,15 +311,19 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		if (runtimeConfig.containsKey('filterPattern')) {
-			def mainFilter = entryFilterChain.getInstance(SimpleFilter.class)
-			mainFilter.setFilterPattern(runtimeConfig.filterPattern)
-			if (options.e) {
-				if (options.threadProp)	{
-					mainFilter.setThreadExtractorList(options.threadProps[0].size() > 0 ? [options.threadProps[0]] : null)
-					mainFilter.setThreadSkipEndPatternList(options.threadProps[1].size() > 0 ? [options.threadProps[1]] : null)
-					mainFilter.setThreadEndPatternList(options.threadProps[2].size() > 0 ? [options.threadProps[2]] : null)
-				}
+			def mainFilter
+			if (options.threadProp)	{ //enabling threadFilter; otherwise it's useless
+				entryFilterChain.enableFilter(ThreadFilter.class)
+				mainFilter = entryFilterChain.getInstance(SimpleFilter.class)
+				mainFilter.setThreadExtractorList(options.threadProps[0].size() > 0 ? [options.threadProps[0]] : null)
+				mainFilter.setThreadSkipEndPatternList(options.threadProps[1].size() > 0 ? [options.threadProps[1]] : null)
+				mainFilter.setThreadEndPatternList(options.threadProps[2].size() > 0 ? [options.threadProps[2]] : null)
 			}
+			else {
+				mainFilter = entryFilterChain.getInstance(SimpleFilter.class)
+			}
+			 
+			mainFilter.setFilterPattern(runtimeConfig.filterPattern)
 			entryFilterChain.add(mainFilter)
 		}
 

@@ -29,7 +29,7 @@ dependencies {
         compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2', classifier: 'indy'
         testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2', classifier: 'indy'
     }
-    else { //works with 1.6 & 1.8
+    else { //works with 1.6, 1.7, 1.8
         compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
         testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
     }
