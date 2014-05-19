@@ -106,7 +106,10 @@ public class FileDateFilter extends RefreshableFilterBase<List<File>> {
         if (file == null) return
 
         if (config != null) {
-            refreshByConfigId(ConfigHolder.findConfigIdByFileName(config, file.getCanonicalPath())) //refreshing first; so the logThreshold is re-initialized
+            def configId = ConfigHolder.findConfigIdByFileName(config, file.getCanonicalPath())
+            if (configId != null) {
+                refreshByConfigId(configId) //refreshing first; so the logThreshold is re-initialized
+            }
         }
 
         Date fileTime = new Date(file.lastModified())

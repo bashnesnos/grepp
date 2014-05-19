@@ -36,7 +36,7 @@ class InputStreamProcessor implements DataProcessor<InputStream> {
 	 */
     void processData(InputStream data)
     {
-        if (data == null) return
+        if (data == null || data.available() == 0) return
         def curLine = 0
         GreppOutput output = output //shadowing to get rid of GetEffectivePogo in the loop
 		

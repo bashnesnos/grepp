@@ -485,7 +485,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		GreppUtil.resetLogging(infoConfig)
 	}
 
-       	public static PrintWriter getConsolePrinter() {
+    public static PrintWriter getConsolePrinter() {
 		def console = System.console()
 		if (console != null) {
 			return console.writer()
