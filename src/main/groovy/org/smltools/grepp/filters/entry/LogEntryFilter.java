@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
  */
 
 @FilterParams(configIdPath = ConfigHolder.SAVED_CONFIG_KEY, order = 0)
-public final class LogEntryFilter extends StatefulFilterBase<String> {
+public class LogEntryFilter extends StatefulFilterBase<String> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogEntryFilter.class);
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = new StringBuilder();
@@ -124,25 +124,16 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 
 	@Override
     public String filter(String blockData) {
-  		if ( logEntryPtrn.matcher(blockData).find() ) //finding match of current blockData
-  		{
-  			if (!isBlockMatched)
-  			{
+  		if ( logEntryPtrn.matcher(blockData).find() ) { //finding match of current blockData
+  			if (!isBlockMatched) {
   				isBlockMatched = true;
-  				if (LOGGER.isTraceEnabled()) LOGGER.trace("appending");
   				appendCurBlock(blockData);
   			}
-  			else if (isBlockMatched)
-  			{
-  				if (LOGGER.isTraceEnabled()) LOGGER.trace("returning block");
-				String passingVal = curBlock.toString();
-        		startNewBlock(blockData);
-  				return passingVal;
+  			else if (isBlockMatched) {
+        		return terminateBlock(blockData);
   			}
   		}
-  		else if (isBlockMatched)
-  		{
-  			if (LOGGER.isTraceEnabled()) LOGGER.trace("appending");
+  		else if (isBlockMatched) {
   			appendCurBlock(blockData);
   		}
   		return null;
@@ -155,11 +146,14 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	 *            String to be appended
 	 */
 
-	private void appendCurBlock(String line)
-    {
-        if (curBlock != null)
-        {
-            if (curBlock.length() != 0) curBlock = curBlock.append('\n');
+	private void appendCurBlock(String line) {
+        if (curBlock != null) {
+        	if (LOGGER.isTraceEnabled()) {
+        		LOGGER.trace("appending");
+        	}
+            if (curBlock.length() != 0) {
+            	curBlock = curBlock.append('\n');
+            }
             curBlock = curBlock.append(line);
         }
     }
@@ -168,19 +162,23 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	 * Implementation of appender to start accumulating new block and to clear
 	 * out previous block data from buffer.
 	 * 
-	 * @param line
+	 * @param blockData
 	 *            String to be appended. If null was supplied simply clears
 	 *            previous data from buffer
 	 */
 
-	private void startNewBlock(String line)
-    {
-        flush();
-        if (line != null)
-        {
-            if (LOGGER.isTraceEnabled()) LOGGER.trace("appending end, since it is the start of new block");
-            appendCurBlock(line);
+	protected String terminateBlock(String blockData) {
+		if (LOGGER.isTraceEnabled()) LOGGER.trace("returning block");
+		String passingVal = curBlock.toString();
+        resetBuffer();
+        if (blockData != null) {
+            appendCurBlock(blockData);
         }
+        return passingVal;
+    }
+
+    protected void resetBuffer() {
+    	curBlock.setLength(0);
     }
 
 	/**
@@ -189,7 +187,7 @@ public final class LogEntryFilter extends StatefulFilterBase<String> {
 	 */
 	@Override
 	public void flush() {
-        curBlock.setLength(0);
+        resetBuffer();
     }
 
 	/**
