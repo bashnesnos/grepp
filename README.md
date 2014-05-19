@@ -4,9 +4,9 @@ Grepp
 # Overview
 
 An attempt to build an ultimate text-file analysing tool.
-Java for cross-platforming
-Groovy to make it more dynamic
-Gradle to flex the distribution process
+* Java for cross-platforming
+* Groovy to make it more dynamic
+* Gradle to flex the distribution process
 
 ## Features
 
@@ -46,6 +46,7 @@ TODO: make it pluggable too, since at the moment only log4j.properties are suppo
 Different sorts of: group by pattern, count stuff, calculate average (i.e. of your response times). Dump it ot a csv (so you can build a nice graph).
 
 Reporting accepts plugging new methods in (like if you want a 90% time calculation and it's not implemented). Thanks to Groovy.
+
 TODO: add a DSL for it, so plugging in is easier than writing a full blown java/groovy Class
 
 ### Pluggable features
@@ -67,6 +68,7 @@ TODO: ready-to-go binaries for java 1.5, 1.6, 1.7 (indy version) would need to b
 # Build
 
 Uses a Gradle Wrapper, so just pull the repo, and _gradlew install_ which will build a version for your current Java version.
+
 It would appear in the _greppInstall_ folder:
 ````
 grepp/
@@ -80,4 +82,5 @@ grepp/
 # Documentation
 
 Run the _greppInstall/bin/grepp_ with the '-h' flag to display usage tips.
+
 Anyway it is a big TODO.
