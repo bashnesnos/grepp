@@ -17,6 +17,8 @@ import org.smltools.grepp.filters.ReportMethod
 import org.smltools.grepp.filters.ReportMethodBase
 import org.smltools.grepp.filters.ReportGroupMethod
 import org.smltools.grepp.filters.ReportAggregator
+import org.smltools.grepp.filters.ReportAggregatorBase
+import org.smltools.grepp.filters.ReportAggregatorParams
 import static org.smltools.grepp.Constants.*
 import groovy.util.ConfigObject;
 import org.slf4j.Logger;
@@ -33,32 +35,36 @@ import org.slf4j.LoggerFactory;
 public class ReportFilter extends StatefulFilterBase<String> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReportFilter.class);
 
-    public static final String SEPARATOR_KEY = 'reportSeparator'
-    public static final String SPOOL_EXTENSION_KEY = 'spoolFileExtension'
+    public static final String AGGREGATOR_KEY = 'aggregator'
+    public static final String PRINT_HEADER_KEY = 'printHeader'
     public static final String VALUE_KEY = 'value'
     public static final String COLUMNS_KEY = 'reportColumns'
     public static final String COLUMN_NAME_KEY = 'colName'
-    public static final String GREPP_REPORT_FILTER_PLUGIN_DIR = "/plugin/reportMethods";
+    public static final String GREPP_REPORT_METHOD_PLUGIN_DIR = "/plugin/reportMethods";
+    public static final String GREPP_REPORT_AGGREGATOR_PLUGIN_DIR = "/plugin/reportAggregators";
 
     public static final String GROUP_RESERVED_TYPE_NAME = "group";
     public static final String MULTIPLE_MATCH_SEPARATOR = ";";
-    private static final Map<String, Class<? extends ReportMethod>> ID_TO_FILTER_CLASS_MAP = new HashMap<String, Class<? extends ReportMethod>>()
+    private static final Map<String, Class<? extends ReportMethod>> ID_TO_METHOD_CLASS_MAP = new HashMap<String, Class<? extends ReportMethod>>()
+    private static final Map<String, Class<? extends ReportAggregator>> ID_TO_AGGREGATOR_CLASS_MAP = new HashMap<String, Class<? extends ReportMethod>>()
 
     static {
-        addIdToFilterClassMapping(null, SimpleMatchingMethod.class)
-        addIdToFilterClassMapping(null, RepeatingSimpleMatchingMethod.class)
-        addIdToFilterClassMapping(null, CountingMethod.class)
-        addIdToFilterClassMapping(null, AveragingMethod.class)
+        addIdToMethodClassMapping(null, SimpleMatchingMethod.class)
+        addIdToMethodClassMapping(null, RepeatingSimpleMatchingMethod.class)
+        addIdToMethodClassMapping(null, CountingMethod.class)
+        addIdToMethodClassMapping(null, AveragingMethod.class)
+        
+        addIdToAggregatorClassMapping(null, CsvAggregator.class)
 
         if (System.getProperty(GREPP_HOME_SYSTEM_OPTION) != null) {
-            File pluginDir = new File(System.getProperty(GREPP_HOME_SYSTEM_OPTION), GREPP_REPORT_FILTER_PLUGIN_DIR);
+            File pluginDir = new File(System.getProperty(GREPP_HOME_SYSTEM_OPTION), GREPP_REPORT_METHOD_PLUGIN_DIR);
             if (pluginDir.exists() && pluginDir.isDirectory()) {
-                LOGGER.trace("Plugin dir {} exists; plugging in ReportMethods enabled", GREPP_REPORT_FILTER_PLUGIN_DIR)
+                LOGGER.trace("Plugin dir {} exists; plugging in ReportMethods enabled", GREPP_REPORT_METHOD_PLUGIN_DIR)
                 for (File pluginFile: pluginDir.listFiles()) {
                     LOGGER.trace("Found file: {}", pluginFile.name)
                     Class<?> pluginClass = GreppUtil.loadGroovyClass(pluginFile);
                     if (pluginClass != null && ReportMethod.isAssignableFrom(pluginClass)) {
-                        addIdToFilterClassMapping(null, pluginClass);
+                        addIdToMethodClassMapping(null, pluginClass);
                     }
                     else {
                         LOGGER.error("{} was ignored class: {}", pluginFile.name, pluginClass)
@@ -66,12 +72,32 @@ public class ReportFilter extends StatefulFilterBase<String> {
                 }
             }
             else {
-                LOGGER.trace("Plugin dir {} doesn't exist; i.e. disabled", GREPP_REPORT_FILTER_PLUGIN_DIR)
+                LOGGER.trace("Plugin dir {} doesn't exist; i.e. disabled", GREPP_REPORT_METHOD_PLUGIN_DIR)
+            }
+
+            pluginDir = new File(System.getProperty(GREPP_HOME_SYSTEM_OPTION), GREPP_REPORT_AGGREGATOR_PLUGIN_DIR);
+            if (pluginDir.exists() && pluginDir.isDirectory()) {
+                LOGGER.trace("Plugin dir {} exists; plugging in ReportAggregators enabled", GREPP_REPORT_AGGREGATOR_PLUGIN_DIR)
+                for (File pluginFile: pluginDir.listFiles()) {
+                    LOGGER.trace("Found file: {}", pluginFile.name)
+                    Class<?> pluginClass = GreppUtil.loadGroovyClass(pluginFile);
+                    if (pluginClass != null && ReportAggregator.isAssignableFrom(pluginClass)) {
+                        addIdToAggregatorClassMapping(null, pluginClass);
+                    }
+                    else {
+                        LOGGER.error("{} was ignored class: {}", pluginFile.name, pluginClass)
+                    }
+                }
+            }
+            else {
+                LOGGER.trace("Plugin dir {} doesn't exist; i.e. disabled", GREPP_REPORT_AGGREGATOR_PLUGIN_DIR)
             }
         }        
+
+        
     }
 
-    private static void addIdToFilterClassMapping(String filterId, Class<? extends ReportMethod> filterClass) {
+    private static void addIdToMethodClassMapping(String filterId, Class<? extends ReportMethod> filterClass) {
         if (filterId == null) {
             ReportMethodParams reportMethodParams = filterClass.getAnnotation(ReportMethodParams.class)
             if (reportMethodParams != null) {
@@ -81,14 +107,31 @@ public class ReportFilter extends StatefulFilterBase<String> {
                 throw new IllegalArgumentException("Either filterId shouldn't be null, or " + filterClass.name + " should be annotated with ReportMethodParams")
             }
         }
-        if (!ID_TO_FILTER_CLASS_MAP.containsKey(filterId)) {
-            ID_TO_FILTER_CLASS_MAP.put(filterId, filterClass)
+        if (!ID_TO_METHOD_CLASS_MAP.containsKey(filterId)) {
+            ID_TO_METHOD_CLASS_MAP.put(filterId, filterClass)
         }
         else {
             throw new IllegalArgumentException("Filter id " + filterId + " already registered!")
         }
     }
 
+    private static void addIdToAggregatorClassMapping(String aggregatorId, Class<? extends ReportAggregator> aggregatorClass) {
+        if (aggregatorId == null) {
+            ReportAggregatorParams reportAggregatorParams = aggregatorClass.getAnnotation(ReportAggregatorParams.class)
+            if (reportAggregatorParams != null) {
+                aggregatorId = reportAggregatorParams.id()
+            }
+            else {
+                throw new IllegalArgumentException("Either aggregatorId shouldn't be null, or " + aggregatorClass.name + " should be annotated with ReportAggregatorParams")
+            }
+        }
+        if (!ID_TO_AGGREGATOR_CLASS_MAP.containsKey(aggregatorId)) {
+            ID_TO_AGGREGATOR_CLASS_MAP.put(aggregatorId, aggregatorClass)
+        }
+        else {
+            throw new IllegalArgumentException("Filter id " + aggregatorId + " already registered!")
+        }
+    }
 
     //Postprocessing stuff
     private Pattern reportPattern = null
@@ -96,15 +139,34 @@ public class ReportFilter extends StatefulFilterBase<String> {
     private GroupingMethod groupingMethod = null
     private StringBuilder result = new StringBuilder()
     private List<? extends ReportMethod> filterMethods = []
-    ReportAggregator aggregator = new CsvAggregator()
+    
+    ReportAggregator aggregator = null
+    private boolean isHeaderPrinted = false
+    private boolean printHeader = true
+
+
+    public void setPrintHeader(boolean printHeader) {
+        this.printHeader = printHeader;
+    }
 
     public String getSpoolFileExtension() {
         return aggregator.getSpoolFileExtension()
     }
 
-    public void addFilterMethodByType(String type, String pattern, String colName) {
-        GreppUtil.throwIllegalAEifNull("'type' and 'pattern' shouldn't be null!", type, pattern)
-        addFilterByType(type, Pattern.compile(pattern), colName)
+    public void setAggregatorById(String id) {
+        GreppUtil.throwIllegalAEifNull(id, "ReportAggregator 'id' shouldn't be null!", id)
+        Class<? extends ReportAggregator> aggregatorClass = ID_TO_AGGREGATOR_CLASS_MAP.get(id)
+        if (aggregatorClass != null) {
+            aggregator = aggregatorClass.newInstance()
+        }
+        else {
+            throw new IllegalArgumentException("Unknown ReportAggregator id: " + id)
+        }
+    }
+
+    public void addReportMethodByType(String type, String pattern, String colName) {
+        GreppUtil.throwIllegalAEifNull("ReportMethod 'type' and 'pattern' shouldn't be null!", type, pattern)
+        addMethodByType(type, Pattern.compile(pattern), colName)
         appendFilterPattern(pattern)
         if (colName != null) {
             aggregator.addColumn(colName)
@@ -123,7 +185,6 @@ public class ReportFilter extends StatefulFilterBase<String> {
         this.configId = configId;
 
         reportPatternBuilder = new StringBuilder()
-        //defaults come first
         def sortedHandlers = config."$COLUMNS_KEY"."$configId"
 
         if (sortedHandlers.containsKey(GROUP_RESERVED_TYPE_NAME)) { //group comes first
@@ -134,19 +195,23 @@ public class ReportFilter extends StatefulFilterBase<String> {
             config."$COLUMNS_KEY"."$configId" = sortedHandlers            
         }
 
-//        def separatorProps = sortedHandlers.find { type, props -> type.equals(SEPARATOR_KEY) }
-//        if (separatorProps != null) {
-//            columnSeparator = separatorProps.value
-//            spoolFileExtension = separatorProps.spoolFileExtension
-//        }
-//
-//        if (columnSeparator == null || spoolFileExtension == null || columnSeparator.size() < 1 || spoolFileExtension.size() < 1) {
-//            throw new PropertiesNotFoundRuntimeException("Both " + VALUE_KEY + " and " + SPOOL_EXTENSION_KEY + " should be filled either in defaults." + SEPARATOR_KEY + " or " + COLUMNS_KEY + "." + configId + "." + SEPARATOR_KEY);
-//        }
+        if (sortedHandlers.containsKey(AGGREGATOR_KEY)) {
+            setAggregatorById(sortedHandlers."$AGGREGATOR_KEY")
+        }
+        else {
+            setAggregatorById(config.defaults.report.aggregator) //setting default
+        }
+
+        if (sortedHandlers.containsKey(PRINT_HEADER_KEY)) {
+            setPrintHeader(sortedHandlers."$PRINT_HEADER_KEY")
+        }
+        else {
+            setPrintHeader(config.defaults.report.printHeader) //setting default
+        }
 
         sortedHandlers.each { type, props -> 
-            if (!type.equals(SEPARATOR_KEY)) {
-                LOGGER.trace("postProcessColumn type: {}; props: {}", type, props.values())
+            if (!type.equals(AGGREGATOR_KEY) && !type.equals(PRINT_HEADER_KEY)) {
+                LOGGER.trace("reportColumn type: {}; props: {}", type, props.values())
 
                 if (!props.containsKey(VALUE_KEY)) {
                     throw new PropertiesNotFoundRuntimeException(COLUMNS_KEY + "." + configId + "." + type + "." + VALUE_KEY + " should be filled")
@@ -154,7 +219,7 @@ public class ReportFilter extends StatefulFilterBase<String> {
 
                 def curPtrn = props.value
                 appendFilterPattern(curPtrn)
-                addFilterByType(type, Pattern.compile(curPtrn), props.containsKey(COLUMN_NAME_KEY) ? props.colName : null)
+                addMethodByType(type, Pattern.compile(curPtrn), props.containsKey(COLUMN_NAME_KEY) ? props.colName : null)
                 
                 if (props.containsKey(COLUMN_NAME_KEY)) {
                     aggregator.addColumn(props.colName)
@@ -174,7 +239,7 @@ public class ReportFilter extends StatefulFilterBase<String> {
         reportPatternBuilder.size() == 0 ? reportPatternBuilder.append("(?ms)").append(pattern) : reportPatternBuilder.append(Qualifier.and.getPattern()).append(pattern)
     }
 
-    private void addFilterByType(String type, Pattern ptrn, String colName) {
+    private void addMethodByType(String type, Pattern ptrn, String colName) {
         switch (type) {
             case GROUP_RESERVED_TYPE_NAME:
                 groupingMethod = new GroupingMethod(this)
@@ -188,7 +253,7 @@ public class ReportFilter extends StatefulFilterBase<String> {
                 filterMethods = [groupingMethod]
                 break
             default:
-                Class<? extends ReportMethod> filterClass = ID_TO_FILTER_CLASS_MAP.get(type)
+                Class<? extends ReportMethod> filterClass = ID_TO_METHOD_CLASS_MAP.get(type)
                 if (filterClass != null) {
                     def method = filterClass.newInstance()
                     if (method instanceof ReportMethodBase) {
@@ -230,6 +295,10 @@ public class ReportFilter extends StatefulFilterBase<String> {
         else {
             root."$COLUMNS_KEY"."$configId".merge(gatherConfigFromMethods(filterMethods))
         }
+
+        root."$COLUMNS_KEY"."$configId"."$AGGREGATOR_KEY" = aggregator.getId()
+        root."$COLUMNS_KEY"."$configId"."$PRINT_HEADER_KEY" = printHeader
+
         return root
     }
 
@@ -274,7 +343,14 @@ public class ReportFilter extends StatefulFilterBase<String> {
             throw new IllegalStateException("filterMethods should be supplied either via configId or explicitly!")
         }
 
-        aggregator.addHeader()
+        if (aggregator == null) {
+            throw new IllegalStateException("aggregator should be supplied either via configId or explicitly!")
+        }
+
+        if (printHeader && !isHeaderPrinted) {
+            isHeaderPrinted = true
+            aggregator.addHeader()
+        }
 
         Matcher postPPatternMatcher = reportPattern.matcher(blockData)
         if (postPPatternMatcher.find()) {//bulk matching all patterns. If any of them won't be matched nothing will be returned
@@ -437,7 +513,6 @@ public class ReportFilter extends StatefulFilterBase<String> {
          * 
          */
         public String processGroups() {
-            papa.aggregator.addHeader()
             groupMap.each { groupName, groupValue ->
                 papa.aggregator.addRow()
                 papa.aggregator.addCell(groupName) //the group by field
@@ -457,26 +532,15 @@ public class ReportFilter extends StatefulFilterBase<String> {
 
 }
 
-class CsvAggregator implements ReportAggregator {
+@ReportAggregatorParams(id = "csv", spoolFileExtension = CsvAggregator.SPOOL_FILE_EXTENSION)
+class CsvAggregator extends ReportAggregatorBase {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReportAggregator.class);
 
     private List<String> columns = new ArrayList<String>();
-    private boolean printHeader = true;
-    private boolean isHeaderPrinted = false;
     private StringBuilder aggregator = new StringBuilder();
     private Deque<String> curRowColumns = null;
     public static final String SPOOL_FILE_EXTENSION = "csv";
     public static final String COLUMN_SEPARATOR = ",";
-
-    @Override
-    public String getSpoolFileExtension() {
-        return SPOOL_FILE_EXTENSION;
-    }
-
-    @Override
-    public void setPrintHeader(boolean printHeader) {
-        this.printHeader = printHeader;
-    }
 
     @Override
     public void addColumn(String columnName) {
@@ -518,7 +582,6 @@ class CsvAggregator implements ReportAggregator {
 
     @Override
     public void flush() {
-        isHeaderPrinted = false
         aggregator.setLength(0)
         columns.clear()
         curRowColumns.clear()
@@ -526,11 +589,8 @@ class CsvAggregator implements ReportAggregator {
 
     @Override
     public CsvAggregator addHeader() {
-        if (printHeader && !isHeaderPrinted) {
-            LOGGER.trace("Adding header row")
-            isHeaderPrinted = true
-            aggregator.append(columns.join(COLUMN_SEPARATOR))
-        }
+        LOGGER.trace("Adding header row")
+        aggregator.append(columns.join(COLUMN_SEPARATOR))
         return this
     }
 

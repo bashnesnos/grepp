@@ -111,6 +111,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.lock("Locks the filter chains after full initialization. I.e. it means if any file processed won't update filter params even if such are configured for it")
         cli.noff("No File Filtering - i.e. turns off file filtering based on date etc.")		
         cli.norx("No RegeX - i.e. treats regex special symbols as usual chars. Extended %or%, %and% etc. are still available though")
+        cli.nohd("No HeaDer - i.e. forces header ommitting for a report filter")
 
         return cli
 	}
@@ -237,18 +238,29 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.repProp) {
 			def reportFilter = entryFilterChain.getInstance(ReportFilter.class)
-// default aggregator would be set by default			
-//			reportFilter.setColumnSeparator(config.defaults.reportSeparator.value)
-//			reportFilter.setSpoolFileExtension(config.defaults.reportSeparator.spoolFileExtension)
+			// default aggregator would be set by default			
+			reportFilter.setAggregatorById(config.defaults.report.aggregator)
 
 			options.repProp.split(/(?<!\\);/).each { prop ->
 				def mtchr = prop =~ /(\w+?)\((.*)\)/
 				if (mtchr.matches()) {
 				    def type = mtchr.group(1)
 				    def regexAndColName = mtchr.group(2).split(/(?<!\\),/)
-				    reportFilter.addFilterMethodByType(type, regexAndColName[0], (regexAndColName.length > 1) ? regexAndColName[1] : null)
+				    reportFilter.addReportMethodByType(type, regexAndColName[0], (regexAndColName.length > 1) ? regexAndColName[1] : null)
+				}
+				else {
+					mthcr = prop =~ /agg=(.*)/
+					if (mthcr.matches()) {
+						def agg = mtchr.group(1)
+						reportFilter.setAggregatorById(agg)
+					}
+					else {
+						LOGGER.warn("repProp $prop matched neither method type declaration nor aggregator type declaration")
+					}
 				}
 			}			
+
+			reportFilter.setPrintHeader(config.defaults.report.printHeader)
 
 			reportFilter.lock()
 			entryFilterChain.add(reportFilter)
@@ -338,7 +350,12 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		if (entryFilterChain.has(ReportFilter.class)) {
-			runtimeConfig.spoolFileExtension = entryFilterChain.get(ReportFilter.class).getSpoolFileExtension()
+			def reportFilter = entryFilterChain.get(ReportFilter.class)
+			runtimeConfig.spoolFileExtension = reportFilter.getSpoolFileExtension()
+
+			if (options.nohd) {
+				reportFilter.setPrintHeader(false)
+			}
 		}
 
 		runtimeConfig.entryFilterChain = entryFilterChain

@@ -1,9 +1,9 @@
 defaults {
     spoolFileExtension='txt'
     resultsDir='results'
-    reportSeparator {
-        value=','
-        spoolFileExtension='csv'
+    report {
+        aggregator = 'csv'
+        printHeader = true
     }
 }
 logDateFormats {
@@ -115,15 +115,5 @@ reportColumns {
             colName='avg_operands'
             value='(operand)'
         }
-    }
-}
-reportSeparators {
-    csv {
-        value=','
-        spoolFileExtension='csv'
-    }
-    piped {
-        value='|'
-        spoolFileExtension='txt'
     }
 }
