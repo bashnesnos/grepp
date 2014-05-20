@@ -27,26 +27,26 @@ import org.slf4j.LoggerFactory;
 public class SimpleFilter extends FilterBase<String> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SimpleFilter.class);	
 	public final static String FILTERS_CONFIG_KEY = "filterAliases";
+	public final static String FILTERS_CONFIG_VALUE_KEY = "value";
+	public final static String FILTERS_CONFIG_REGEX_KEY = "noRegex";
 
-	protected String filterPattern;	
-
-	//Complex pattern processing and stuff
-	protected Pattern currentPattern;
-	protected StringBuilder patternBuilder = new StringBuilder("(?ms)"); //for multiline support
-	protected List<String> patternParts = new ArrayList<String>();
-	protected Map<String, Qualifier> patternPartQualifierMap = new HashMap<String, Qualifier>();
+	private Pattern filterPattern;
+	private StringBuilder patternBuilder = new StringBuilder("(?ms)"); //for extended patterns
+	private boolean noRegex = false;
 
 	public void setFilterPattern(String filterPattern) {
-		this.filterPattern = filterPattern;
+		setFilterPattern(filterPattern, false);
+	}
+
+	public void setFilterPattern(String filterPattern, boolean noRegex) {
+		this.noRegex = noRegex;
 		patternBuilder = new StringBuilder("(?ms)"); 
-		patternParts = new ArrayList<String>();
-		patternPartQualifierMap = new HashMap<String, Qualifier>();
-		extractPatternParts(filterPattern);
-		currentPattern = Pattern.compile(patternBuilder.toString());
+		extractPatternParts(noRegex ? Pattern.quote(filterPattern) : filterPattern);
+		this.filterPattern = Pattern.compile(patternBuilder.toString());
 	}
 
 	public String getFilterPattern() {
-		return filterPattern;
+		return filterPattern.pattern();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -58,11 +58,25 @@ public class SimpleFilter extends FilterBase<String> {
 
     	boolean result = false;
 		Map<?, ?> configs = (Map<?,?>) config.get(FILTERS_CONFIG_KEY);
-    	String customFilter = (String) configs.get(configId);
+    	Object customFilter = (Object) configs.get(configId);
     	if (customFilter != null) {
-    		setFilterPattern(customFilter);
-    		this.configId = configId;
-    		result |= true;
+    		if (customFilter instanceof String) {
+    			setFilterPattern((String) customFilter);
+	    		this.configId = configId;
+    			result |= true;
+    		}
+    		else {
+    			Map<?, ?> customFilterProps = (Map<?, ?>) customFilter;
+    			if (customFilterProps.containsKey(FILTERS_CONFIG_VALUE_KEY)) {
+    				Boolean noRegex = customFilterProps.containsKey(FILTERS_CONFIG_REGEX_KEY) ? (Boolean) customFilterProps.get(FILTERS_CONFIG_REGEX_KEY) : false;
+    				setFilterPattern((String) customFilterProps.get(FILTERS_CONFIG_VALUE_KEY), noRegex);
+		    		this.configId = configId;
+		    		result |= true;
+    			}
+    			else {
+    				LOGGER.debug(FILTERS_CONFIG_VALUE_KEY + " is not filled for config: " + configId);
+    			}
+    		}
     	}
     	else {
     		LOGGER.debug(FILTERS_CONFIG_KEY + " is not filled for config: " + configId);
@@ -83,7 +97,14 @@ public class SimpleFilter extends FilterBase<String> {
 
         ConfigObject root = new ConfigObject();
     	ConfigObject filterAliases = (ConfigObject) root.getProperty(FILTERS_CONFIG_KEY);
-    	filterAliases.put(configId, filterPattern);
+    	if (noRegex) {
+    		ConfigObject filterConfig = (ConfigObject) filterAliases.getProperty(configId);
+    		filterConfig.put(FILTERS_CONFIG_VALUE_KEY, filterPattern.pattern());
+    		filterConfig.put(FILTERS_CONFIG_REGEX_KEY, noRegex);
+    	}
+    	else {
+    		filterAliases.put(configId, filterPattern.pattern());
+    	}
     	return root;
 
 	}
@@ -96,11 +117,11 @@ public class SimpleFilter extends FilterBase<String> {
 
 	@Override
 	public String filter(String blockData) {
-		if (currentPattern == null) {
+		if (filterPattern == null) {
 			throw new IllegalStateException("Filtering pattern can't be null. It should be either supllied via configId or set explicitly");
 		}
 
-		Matcher blockMtchr = currentPattern.matcher(blockData);
+		Matcher blockMtchr = filterPattern.matcher(blockData);
 		if (blockMtchr.find()) {
 			return blockData;
 		}
@@ -122,33 +143,10 @@ public class SimpleFilter extends FilterBase<String> {
 		if (LOGGER.isTraceEnabled()) LOGGER.trace("adding complex pattern: val={} qual={}", val, qualifier);
 
 		if (qualifier != null) patternBuilder = patternBuilder.append(Qualifier.valueOf(qualifier).getPattern());
-		patternBuilder = patternBuilder.append(val);
-
-		patternParts.add(val);
-		patternPartQualifierMap.put(val, qualifier != null ? Qualifier.valueOf(qualifier) : null);
+		patternBuilder = patternBuilder.append("(?:").append(val).append(")");
 
 		if (LOGGER.isTraceEnabled()) {
-			LOGGER.trace(patternParts.toString());
-			LOGGER.trace(patternPartQualifierMap.toString());
-		}
-	}
-
-	/**
-	 * Removes supplied pattern with it's qualifier if any.
-	 * 
-	 * @param val pattern for removal
-	 */
-	protected void removeExtendedFilterPattern(String val)
-	{
-		Qualifier qlfr = patternPartQualifierMap.get(val);
-		String ptrn = (qlfr != null ? qlfr.getPattern() : "") + val;
-		int ptrnIndex = patternBuilder.indexOf(ptrn);
-		if (LOGGER.isTraceEnabled()) LOGGER.trace("to delete:/{}/ index:{}", ptrn, ptrnIndex);
-		if (ptrnIndex != -1)
-		{
-			patternBuilder = patternBuilder.delete(ptrnIndex, ptrnIndex + ptrn.length());
-			patternParts.remove(val);
-			patternPartQualifierMap.remove(val);
+			LOGGER.trace("Built so far: {}", patternBuilder.toString());
 		}
 	}
 
@@ -166,20 +164,16 @@ public class SimpleFilter extends FilterBase<String> {
 
 		if (LOGGER.isTraceEnabled()) LOGGER.trace("Trying to match supplied pattern /{}/ if it contains /{}/", val, qRegex);
 		Matcher qualifierMatcher = Pattern.compile(qRegex).matcher(val); //matching any qualifiers with % signs
-		if (qualifierMatcher.find())
-		{
-			if (LOGGER.isTraceEnabled()) LOGGER.trace("Processing complex pattern");
+		if (qualifierMatcher.find()) {
+			if (LOGGER.isTraceEnabled()) LOGGER.trace("Processing extended pattern");
 			String[] tokens = val.split("%");
 			String nextQualifier = null;
-			if (tokens != null)
-			{
+			if (tokens != null)	{
 				qRegex = qRegex.replaceAll("%", ""); //matching only qualifier names
-				for (String grp : tokens)
-				{
+				for (String grp : tokens) {
 					if (LOGGER.isTraceEnabled()) LOGGER.trace("Next group in match: {}", grp);
 					qualifierMatcher = Pattern.compile(qRegex).matcher(grp);
-					if (qualifierMatcher.matches())
-					{
+					if (qualifierMatcher.matches())	{
 						nextQualifier = qualifierMatcher.group();
 						continue;
 					}
@@ -189,12 +183,11 @@ public class SimpleFilter extends FilterBase<String> {
 
 				}
 			}
-			else throw new IllegalArgumentException("Check your complex pattern:/" + val + "/");
+			else throw new IllegalArgumentException("Check your extended pattern:/" + val + "/");
 		}
-		else
-		{
-			if (LOGGER.isTraceEnabled()) LOGGER.trace("No extended pattern supplied, might be a preserve thread");
-			addExtendedFilterPattern(val, null);
+		else {
+			if (LOGGER.isTraceEnabled()) LOGGER.trace("No extended pattern supplied; keeping things simple");
+			patternBuilder.append(val);
 		}
 	}
 

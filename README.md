@@ -20,7 +20,7 @@ TODO: provide a no-regex option
 
 You can specify a regex, or some static text which will be used to 'split' the file into the entries. It will literally split the file, since each match would be treated as the end and start of the entry at the same time.
 
-Or, you can specify and start and end pattern (e.g. <root> and </root>) to check certain blocks of text.
+Or, you can specify and start and end pattern (e.g. &lt;root&gt; and &lt;/root&gt;) to check certain blocks of text.
 
 ### Narrowing search by date range
 

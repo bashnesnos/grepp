@@ -238,9 +238,12 @@ Voo
 		def expectedResult = """\
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo Man Chu
-#basic"""
+#basic
+2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
+Voo
+#complex"""
 		assertGreppOutput(expectedResult) {
-			Grepp.main((String[]) ["Foo%and%Man Chu%or%#basic" //don't need to split here
+			Grepp.main((String[]) ["Foo%and%Man Chu%or%#complex" //don't need to split here
 				, "$HOME\\processing_test.log"])
 		}
 	}
@@ -266,7 +269,8 @@ Foo Man Chu
 <root>
 	<header>mes1</header>
 	<info>Look for me!</info>
-</root>"""		
+</root>
+<root><header>mes1</header><info>Look for this one too!</info></root>"""		
 
 		assertGreppOutput(expectedResult) {
 			Grepp.main("-l <root>;</root> Look $HOME\\payload_test.log".split(" "))
