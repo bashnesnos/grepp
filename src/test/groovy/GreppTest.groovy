@@ -260,6 +260,19 @@ Foo Man Chu
 		}
 	}
 
+	void testLogEntryStartEndFiltering() {
+
+		def expectedResult = """\
+<root>
+	<header>mes1</header>
+	<info>Look for me!</info>
+</root>"""		
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("-l <root>;</root> Look $HOME\\payload_test.log".split(" "))
+		}
+	}
+
 	void testTimeFiltering() {
 
 		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())

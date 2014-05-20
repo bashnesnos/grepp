@@ -20,7 +20,7 @@ TODO: provide a no-regex option
 
 You can specify a regex, or some static text which will be used to 'split' the file into the entries. It will literally split the file, since each match would be treated as the end and start of the entry at the same time.
 
-TODO: provide an option to specify start & end patterns
+Or, you can specify and start and end pattern (e.g. <root> and </root>) to check certain blocks of text.
 
 ### Narrowing search by date range
 
@@ -31,9 +31,7 @@ Is regex-based, though common date formats would be provided out of the box and 
 ### Joining your threads
 
 Sometimes it's essential to get the whole logging info for a thread, where something interesting has happened. So why not?
-Specify thread start pattern, thread end pattern and grepp will join them into one piece.
-
-TODO: well, currently thread log entries after the match are printed, i.e. the stuff before is not. Just realized that while typing this
+Specify thread start pattern, thread end pattern and grepp will join them into one piece and order by the appearance order.
 
 ### Parse most of a regex configuration required from your logging subsystem configuration file
 

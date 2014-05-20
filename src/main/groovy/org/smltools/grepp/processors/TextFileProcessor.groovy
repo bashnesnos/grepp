@@ -59,7 +59,7 @@ class TextFileProcessor implements DataProcessor<List<File>>
     {
         if (data == null) return
         log.info("File {} started", data.name)
-        def curLine = 0
+        def curLine = 1
         GreppOutput output = output //shadowing to get rid of GetEffectivePogo in the loop
         try {
             data.eachLine { String line ->

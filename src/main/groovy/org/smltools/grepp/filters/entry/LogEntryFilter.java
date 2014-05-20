@@ -13,6 +13,7 @@ import org.smltools.grepp.filters.RefreshableFilterBase;
 import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.Event;
 import groovy.util.ConfigObject;
+import org.smltools.grepp.util.GreppUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +32,7 @@ public class LogEntryFilter extends RefreshableFilterBase<String> implements Sta
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = new StringBuilder();
 	private Pattern logEntryPtrn = null;
+	private Pattern logEntryTerminatorPtrn = null;
 	private String starter = null;
 	private String dateRegex = null;
     protected Map<?,?> state = new HashMap<Object, Object>();
@@ -54,8 +56,19 @@ public class LogEntryFilter extends RefreshableFilterBase<String> implements Sta
 		if (dateRegex == null) {
 			throw new IllegalArgumentException("Is null by default; just don't set it");
 		}
+		
+		if (logEntryTerminatorPtrn != null) { //not adding date regex if the logEntryTerminator is set
+			return;
+		}
+
 		this.dateRegex = dateRegex;
 		setLogEntryPattern();
+	}
+
+	public void setLogEntryTerminatorPattern(String logEntryTerminatorPtrn) {
+		GreppUtil.throwIllegalAEifNull(starter, "LogEntryTerminator shouldn't be set only after starter is set");
+		this.logEntryTerminatorPtrn = Pattern.compile(logEntryTerminatorPtrn);
+		LOGGER.debug("Entry terminator pattern :/{}/", logEntryTerminatorPtrn);
 	}
 
 	private void setLogEntryPattern() {
@@ -64,6 +77,8 @@ public class LogEntryFilter extends RefreshableFilterBase<String> implements Sta
         this.setState(null);
         flush();
 	}
+
+
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -76,30 +91,34 @@ public class LogEntryFilter extends RefreshableFilterBase<String> implements Sta
     	Map<?, ?> configs = (Map<?,?>) config.get(ConfigHolder.SAVED_CONFIG_KEY);
     	Map<?, ?> customCfg = (Map<?,?>) configs.get(configId);
 
-		String starter = null;
-		String dateRegex = null;
+    	//invalidating any previous
+		logEntryPtrn = null;
+		logEntryTerminatorPtrn = null;
+		starter = null;
+		dateRegex = null;		
 
-		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_STARTER_KEY))
-		{
-			starter = (String) customCfg.get(ConfigHolder.SAVED_CONFIG_STARTER_KEY);
+
+		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_STARTER_KEY)) {
+			setStarter((String) customCfg.get(ConfigHolder.SAVED_CONFIG_STARTER_KEY));
 		}
 
-		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY))
-		{
-			dateRegex = (String) ((Map<?, ?>) customCfg.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY)).get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY);
+		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_TERMINATOR_KEY)) {
+			setLogEntryTerminatorPattern((String) customCfg.get(ConfigHolder.SAVED_CONFIG_TERMINATOR_KEY));
+		}
+
+		if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY)) {
+			setDateRegex((String) ((Map<?, ?>) customCfg.get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY)).get(ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY));
 		}
 		
-		if (starter != null || dateRegex != null) 
-		{
-			this.starter = starter; //so we can dump it to config unchanged
+		if (starter != null || dateRegex != null) {
 			logEntryPtrn = Pattern.compile((starter != null ? starter : "") + (dateRegex != null ? dateRegex : "" ));
-			LOGGER.debug("Entry pattern :/{}/", logEntryPtrn.pattern());
-			return true;
+			LOGGER.debug("Entry start pattern :/{}/", logEntryPtrn.pattern());
 		}
-		else
-		{
+		else {
 			throw new PropertiesNotFoundRuntimeException("Either " + ConfigHolder.SAVED_CONFIG_STARTER_KEY + " or " + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_KEY + "." + ConfigHolder.SAVED_CONFIG_DATE_FORMAT_REGEX_KEY + " should be filled for config: " + configId);
 		}
+
+		return true;
     }
 
     @Override
@@ -117,6 +136,11 @@ public class LogEntryFilter extends RefreshableFilterBase<String> implements Sta
         if (starter != null) {
 	    	ConfigObject savedConfigs = (ConfigObject) root.getProperty(ConfigHolder.SAVED_CONFIG_KEY);
     		((ConfigObject) savedConfigs.getProperty(configId)).put(ConfigHolder.SAVED_CONFIG_STARTER_KEY, starter);
+   		}
+
+   		if (logEntryTerminatorPtrn != null) {
+	    	ConfigObject savedConfigs = (ConfigObject) root.getProperty(ConfigHolder.SAVED_CONFIG_KEY);
+    		((ConfigObject) savedConfigs.getProperty(configId)).put(ConfigHolder.SAVED_CONFIG_TERMINATOR_KEY, logEntryTerminatorPtrn.pattern());
    		}
 
     	return root;
@@ -139,14 +163,35 @@ public class LogEntryFilter extends RefreshableFilterBase<String> implements Sta
   				isBlockMatched = true;
   				appendCurBlock(blockData);
   			}
-  			else if (isBlockMatched) {
+  			else if (logEntryTerminatorPtrn == null) {
+  		       	if (LOGGER.isTraceEnabled()) {
+    	    		LOGGER.trace("Terminating by entry start");
+	        	}  				
+	        	isBlockMatched = true;
         		return terminateBlock(blockData);
+  			}
+  			else { //start matched while the previous match is not terminated 
+  		       	if (LOGGER.isTraceEnabled()) {
+    	    		LOGGER.trace("Start of next block inside the first; if it's a thread, use ThreadLogEntryFilter instead");
+	        	}
+  				appendCurBlock(blockData);
   			}
   		}
   		else if (isBlockMatched) {
+			if (logEntryTerminatorPtrn != null && logEntryTerminatorPtrn.matcher(blockData).find()) {
+				appendCurBlock(blockData);
+				isBlockMatched = false;
+				return terminateBlock(null);
+			}
   			appendCurBlock(blockData);
   		}
+
+       	if (LOGGER.isTraceEnabled()) {
+			LOGGER.trace("Block continues? {};", isBlockMatched);
+    	}
+
   		return getNoMatchResult();
+
     }
 
     protected String getNoMatchResult() {
@@ -161,15 +206,13 @@ public class LogEntryFilter extends RefreshableFilterBase<String> implements Sta
 	 */
 
 	private void appendCurBlock(String line) {
-        if (curBlock != null) {
-        	if (LOGGER.isTraceEnabled()) {
-        		LOGGER.trace("appending");
-        	}
-            if (curBlock.length() != 0) {
-            	curBlock = curBlock.append('\n');
-            }
-            curBlock = curBlock.append(line);
+    	if (LOGGER.isTraceEnabled()) {
+    		LOGGER.trace("appending");
+    	}
+        if (curBlock.length() != 0) {
+        	curBlock.append('\n');
         }
+        curBlock.append(line);
     }
 
 	/**
@@ -182,12 +225,16 @@ public class LogEntryFilter extends RefreshableFilterBase<String> implements Sta
 	 */
 
 	protected String terminateBlock(String blockData) {
-		if (LOGGER.isTraceEnabled()) LOGGER.trace("returning block");
+		if (LOGGER.isTraceEnabled()) {
+			LOGGER.trace("returning block");
+		}
+
 		String passingVal = curBlock.toString();
         resetBuffer();
         if (blockData != null) {
             appendCurBlock(blockData);
         }
+
         return passingVal;
     }
 
@@ -201,6 +248,7 @@ public class LogEntryFilter extends RefreshableFilterBase<String> implements Sta
 	 */
 	@Override
 	public void flush() {
+    	isBlockMatched = false;		
         resetBuffer();
     }
 

@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat
 import org.smltools.grepp.filters.entry.PropertiesFilter
 import groovy.xml.MarkupBuilder
 import org.smltools.grepp.cli.CLIFacade
-import org.smltools.grepp.filters.entry.ThreadFilter
 import java.lang.reflect.*
 import org.smltools.grepp.filters.StringAggregator
 import org.smltools.grepp.filters.FilterChain

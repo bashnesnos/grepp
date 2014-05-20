@@ -213,7 +213,11 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 				logEntryFilter = entryFilterChain.getInstance(LogEntryFilter.class)
 				entryFilterChain.add(logEntryFilter)
 			}
-			logEntryFilter.setStarter(options.l)
+			def starterNTerminator = options.l.split(';')
+			logEntryFilter.setStarter(starterNTerminator[0])
+			if (starterNTerminator.length > 1) {
+				logEntryFilter.setLogEntryTerminatorPattern(starterNTerminator[1])
+			}
 		}
 
 		if (options.p) {
