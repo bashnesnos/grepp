@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  * @author Alexander Semelit 
  */
 @FilterParams(configIdPath = ReportFilter.COLUMNS_KEY, order = 20)
-public final class ReportFilter extends StatefulFilterBase<String> {
+public class ReportFilter extends StatefulFilterBase<String> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReportFilter.class);
 
     public static final String SEPARATOR_KEY = 'reportSeparator'

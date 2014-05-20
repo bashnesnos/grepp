@@ -9,7 +9,7 @@ import org.smltools.grepp.filters.FilterParams
 
 @Slf4j("LOGGER")
 @FilterParams(order = 20)
-public final class PropertiesFilter implements Filter<String> {
+public class PropertiesFilter implements Filter<String> {
 	//CW stands for Conversion Word
 	private static String CW_STARTER = "%"
 	private static String CW_OPTION_START = "\\{"

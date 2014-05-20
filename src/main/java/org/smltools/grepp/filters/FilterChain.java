@@ -55,7 +55,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 	    	addFilterByName("org.smltools.grepp.filters.entry.EntryDateFilter");
 	    	addFilterByName("org.smltools.grepp.filters.entry.LogEntryFilter");
 	    	addFilterByName("org.smltools.grepp.filters.entry.SimpleFilter");
-	    	addFilterByName("org.smltools.grepp.filters.entry.ThreadFilter");
+	    	addFilterByName("org.smltools.grepp.filters.entry.ThreadLogEntryFilter");
 	    	addFilterByName("org.smltools.grepp.filters.entry.ReportFilter");
 	    	addFilterByName("org.smltools.grepp.filters.entry.PropertiesFilter");
 	    	
@@ -200,7 +200,7 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 
     public boolean has(Class<? extends Filter> filterClass) {
     	for (Filter<T> filter: filters) {
-    		if (filter.getClass().equals(filterClass)) {
+    		if (filterClass.isAssignableFrom(filter.getClass())) {
     			return true;
     		}
     	}
@@ -402,17 +402,24 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 
 		LOGGER.trace("Processing event: {}", event);
 
-		T flushedData;
 		Iterator<Filter<T>> filterIterator = filters.iterator();
 		do {
 			Filter<T> curFilter = filterIterator.next();
             if (curFilter instanceof Stateful<?>) {
-				flushedData = ((Stateful<T>) curFilter).processEvent(event);
+				Object flushedData = ((Stateful<?>) curFilter).processEvent(event);
 				if (flushedData != null) {
 					LOGGER.trace("Filtering flushed data from {}", curFilter.getClass());
 					try {
-						flushedData = filterAfter(curFilter, flushedData);
-						aggregator.add(flushedData);
+						if (flushedData instanceof List<?>) {
+							for (T flushedDataPart : (List<T>) flushedData) {
+								T flushedDataPartFiltered = filterAfter(curFilter, flushedDataPart);
+								aggregator.add(flushedDataPartFiltered);
+							}
+						}
+						else {
+							T flushedDataFiltered = filterAfter(curFilter, (T) flushedData);
+							aggregator.add(flushedDataFiltered);
+						}
 					}
 					catch (FilteringIsInterruptedException fiie) {
 						LOGGER.debug("Filtering interrupted during event " + event + " processing", fiie);

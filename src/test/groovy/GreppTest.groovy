@@ -152,13 +152,19 @@ doodki!"""
 	void testOnTheFlyLockedConfig() {
 		def expectedResult = """\
 2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
-Too early for main time tests
+Important information: fo
 
-2000-01-01 10:05:56,952 [ACTIVE] ThreadStart: '10' 
-Still too early for main time tests
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
+This important stuff was missed before
+
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
+Too early for main time tests
 
 2000-01-01 10:05:56,953 [ACTIVE] ThreadStart: '15'
 The end
+
+2000-01-01 10:05:56,952 [ACTIVE] ThreadStart: '10' 
+Still too early for main time tests
 
 2000-01-01 10:05:56,955 [ACTIVE] ThreadStart: '10'
 A bit more stuff

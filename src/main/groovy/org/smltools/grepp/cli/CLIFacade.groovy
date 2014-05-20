@@ -10,7 +10,7 @@ import org.smltools.grepp.filters.StringAggregator
 import org.smltools.grepp.filters.entry.EntryDateFilter
 import org.smltools.grepp.filters.entry.LogEntryFilter
 import org.smltools.grepp.filters.entry.SimpleFilter
-import org.smltools.grepp.filters.entry.ThreadFilter
+import org.smltools.grepp.filters.entry.ThreadLogEntryFilter
 import org.smltools.grepp.filters.entry.PropertiesFilter
 import org.smltools.grepp.filters.entry.ReportFilter
 import org.smltools.grepp.util.GreppUtil
@@ -193,11 +193,27 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		varParsers.addAll([filterParser, fileNameParser])
 		def logEntryFilter
 
+		if (options.e || options.threadProp) {
+			entryFilterChain.enableFilter(ThreadLogEntryFilter.class)
+			if (options.threadProp) {
+				logEntryFilter = entryFilterChain.getInstance(LogEntryFilter.class)
+				logEntryFilter.setThreadExtractorList(options.threadProps[0].size() > 0 ? [options.threadProps[0]] : null)
+				logEntryFilter.setThreadSkipEndPatternList(options.threadProps[1].size() > 0 ? [options.threadProps[1]] : null)
+				logEntryFilter.setThreadEndPatternList(options.threadProps[2].size() > 0 ? [options.threadProps[2]] : null)
+				entryFilterChain.add(logEntryFilter)
+			}
+		}
+		else {
+			entryFilterChain.disableFilter(ThreadLogEntryFilter.class)
+			entryFilterChain.enableFilter(LogEntryFilter.class)
+		}
+
 		if (options.l) {
-			logEntryFilter = entryFilterChain.getInstance(LogEntryFilter.class)
+			if (logEntryFilter == null) {
+				logEntryFilter = entryFilterChain.getInstance(LogEntryFilter.class)
+				entryFilterChain.add(logEntryFilter)
+			}
 			logEntryFilter.setStarter(options.l)
-			logEntryFilter.lock()
-			entryFilterChain.add(logEntryFilter)
 		}
 
 		if (options.p) {
@@ -205,7 +221,8 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			entryFilterChain.add(entryFilterChain.getInstance(PropertiesFilter.class))
 			entryFilterChain.disableFilter(ReportFilter.class)
 			entryFilterChain.disableFilter(SimpleFilter.class)
-			entryFilterChain.disableFilter(ThreadFilter.class)
+			entryFilterChain.disableFilter(ThreadLogEntryFilter.class) //force disabling this
+			entryFilterChain.enableFilter(LogEntryFilter.class)
 			entryFilterChain.disableFilter(EntryDateFilter.class)
 			fileFilterChain.disableFilter(FileDateFilter.class)			
 		}
@@ -229,14 +246,6 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 			reportFilter.lock()
 			entryFilterChain.add(reportFilter)
-		}
-
-		if (options.e) {
-			entryFilterChain.enableFilter(ThreadFilter.class)			
-		}
-		else {
-			entryFilterChain.disableFilter(ThreadFilter.class)	
-			entryFilterChain.enableFilter(SimpleFilter.class)
 		}
 
 		if (options.dateProp && !options.d) {
@@ -291,7 +300,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			if (!processConfigId([entryFilterChain, fileFilterChain], arg)) {
 				ParamParser<?> paramParser = varParsers.pop()
 				if (paramParser instanceof FilterParser) {
-					if (entryFilterChain.has(SimpleFilter.class) || entryFilterChain.has(ThreadFilter.class)) {
+					if (entryFilterChain.has(SimpleFilter.class)) {
 						paramParser = varParsers.pop() //i.e. skipping filterParser
 					}
 				}
@@ -301,7 +310,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			} 
 		}
 
-		if (entryFilterChain.has(EntryDateFilter.class) && !entryFilterChain.has(LogEntryFilter)) { //anyway we're lookin for dates here
+		if (entryFilterChain.has(EntryDateFilter.class) && !entryFilterChain.has(LogEntryFilter.class)) { //anyway we're lookin for dates here
 			def dateRegex = entryFilterChain.get(EntryDateFilter.class).getLogDatePattern()
 			if (dateRegex != null) { //if it's not yet initialized then we're not adding entryFilter
 				logEntryFilter = entryFilterChain.getInstance(LogEntryFilter.class)
@@ -311,18 +320,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		if (runtimeConfig.containsKey('filterPattern')) {
-			def mainFilter
-			if (options.threadProp)	{ //enabling threadFilter; otherwise it's useless
-				entryFilterChain.enableFilter(ThreadFilter.class)
-				mainFilter = entryFilterChain.getInstance(SimpleFilter.class)
-				mainFilter.setThreadExtractorList(options.threadProps[0].size() > 0 ? [options.threadProps[0]] : null)
-				mainFilter.setThreadSkipEndPatternList(options.threadProps[1].size() > 0 ? [options.threadProps[1]] : null)
-				mainFilter.setThreadEndPatternList(options.threadProps[2].size() > 0 ? [options.threadProps[2]] : null)
-			}
-			else {
-				mainFilter = entryFilterChain.getInstance(SimpleFilter.class)
-			}
-			 
+			def mainFilter = entryFilterChain.getInstance(SimpleFilter.class)
 			mainFilter.setFilterPattern(runtimeConfig.filterPattern)
 			entryFilterChain.add(mainFilter)
 		}

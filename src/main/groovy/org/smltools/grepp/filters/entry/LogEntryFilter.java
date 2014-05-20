@@ -1,12 +1,15 @@
 package org.smltools.grepp.filters.entry;
 
 import java.util.Map;
+import java.util.List;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 import org.smltools.grepp.config.ConfigHolder;
 import org.smltools.grepp.exceptions.ConfigNotExistsRuntimeException;
 import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
-import org.smltools.grepp.filters.StatefulFilterBase;
+import org.smltools.grepp.filters.Stateful;
+import org.smltools.grepp.filters.RefreshableFilterBase;
 import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.Event;
 import groovy.util.ConfigObject;
@@ -23,13 +26,20 @@ import org.slf4j.LoggerFactory;
  */
 
 @FilterParams(configIdPath = ConfigHolder.SAVED_CONFIG_KEY, order = 0)
-public class LogEntryFilter extends StatefulFilterBase<String> {
+public class LogEntryFilter extends RefreshableFilterBase<String> implements Stateful<List<String>> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(LogEntryFilter.class);
 	private boolean isBlockMatched = false;
 	private StringBuilder curBlock = new StringBuilder();
 	private Pattern logEntryPtrn = null;
 	private String starter = null;
 	private String dateRegex = null;
+    protected Map<?,?> state = new HashMap<Object, Object>();
+    
+    @Override
+    public void setState(Map<?,?> state) {
+    	this.state = state;
+    	//currently thinking should we really store all state outside, or have it just for something global
+    }
 
 	public void setStarter(String starter) {
 		if (starter == null) {
@@ -136,7 +146,11 @@ public class LogEntryFilter extends StatefulFilterBase<String> {
   		else if (isBlockMatched) {
   			appendCurBlock(blockData);
   		}
-  		return null;
+  		return getNoMatchResult();
+    }
+
+    protected String getNoMatchResult() {
+    	return null;
     }
 
 	/**
@@ -190,19 +204,26 @@ public class LogEntryFilter extends StatefulFilterBase<String> {
         resetBuffer();
     }
 
+    @Override
+    public List<String> processEvent(Event event) {
+		if (event == null) {
+			throw new IllegalArgumentException("Event shouldn't be null!");
+		}
+		else {
+			return processEventInternal(event);
+		}
+    }
+
 	/**
 	 * 
 	 * Listens for CHUNK_ENDED event to return current accumulated block
 	 */
-
-	@Override
-	protected String processEventInternal(Event event) {
-        switch (event)
-        {
+	protected List<String> processEventInternal(Event event) {
+        switch (event) {
             case CHUNK_ENDED: {
 				String passingVal = curBlock.toString();
         		flush();
-  				return passingVal;
+  				return Collections.singletonList(passingVal);
             }
             default: {
             	return null;
