@@ -216,7 +216,7 @@ public final class GreppUtil {
 	}
 
 	public static String escapeRegexes(String stringWithRegex) {
-		return stringWithRegex.replaceAll("(\\\\)(?!['])", "$1$1");
+		return stringWithRegex.replaceAll("(\\\\)(?!['])", "$1$1"); //escapes unescaped, since ConfigObject doesn't hadnle those cases pretty well...
 	}
 
 }

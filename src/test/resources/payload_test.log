@@ -1,14 +1,19 @@
 2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
-Foo Koo
+<root>
+	<header>mes1</header>
+	<info>Skip this</header>
+</root>
 
 2013-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
 Too
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '5' 
 Boo
-\this^should|be$matched[with]no?pain(*)\
 
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '7' 
-Moo
+<root>
+	<header>mes1</header>
+	<info>Look for me!</info>
+</root>
 
 2014-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' ThreadEnd1
 Goo
@@ -21,3 +26,4 @@ Loo
 Voo
 #complex
 2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
+<root><header>mes1</header><info>Look for this one too!</info></root>

@@ -263,6 +263,25 @@ Foo Man Chu
 		}
 	}
 
+	void testBasicNoRegexFiltering() {
+
+		def expectedResult = """\
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '5' 
+Boo
+\\this^should|be\$matched[with]no?pain(*)\\
+"""
+		//though the last \ causes some pain in ConfigObject saving
+		assertGreppOutput(expectedResult) {
+			Grepp.main("-add norx_test -norx \\this^should|be\$matched[with]no?pain(*) $HOME\\processing_test.log".split(" "))
+		}
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--norx_test $HOME\\processing_test.log".split(" "))
+		}
+
+
+	}
+
 	void testLogEntryStartEndFiltering() {
 
 		def expectedResult = """\

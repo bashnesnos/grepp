@@ -24,7 +24,6 @@ build/
 ########
 # General
 ########
-*.log
 .classpath
 .project
 .settings/

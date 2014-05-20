@@ -11,6 +11,7 @@ import org.smltools.grepp.exceptions.PropertiesNotFoundRuntimeException;
 import org.smltools.grepp.filters.FilterBase;
 import org.smltools.grepp.filters.FilterParams;
 import org.smltools.grepp.filters.enums.*;
+import org.smltools.grepp.util.GreppUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,8 @@ public class SimpleFilter extends FilterBase<String> {
 	public final static String FILTERS_CONFIG_VALUE_KEY = "value";
 	public final static String FILTERS_CONFIG_REGEX_KEY = "noRegex";
 
+	private String givenFilterPattern;
+
 	private Pattern filterPattern;
 	private StringBuilder patternBuilder = new StringBuilder("(?ms)"); //for extended patterns
 	private boolean noRegex = false;
@@ -40,6 +43,7 @@ public class SimpleFilter extends FilterBase<String> {
 
 	public void setFilterPattern(String filterPattern, boolean noRegex) {
 		this.noRegex = noRegex;
+		this.givenFilterPattern = filterPattern;
 		patternBuilder = new StringBuilder("(?ms)"); 
 		extractPatternParts(noRegex ? Pattern.quote(filterPattern) : filterPattern);
 		this.filterPattern = Pattern.compile(patternBuilder.toString());
@@ -99,11 +103,11 @@ public class SimpleFilter extends FilterBase<String> {
     	ConfigObject filterAliases = (ConfigObject) root.getProperty(FILTERS_CONFIG_KEY);
     	if (noRegex) {
     		ConfigObject filterConfig = (ConfigObject) filterAliases.getProperty(configId);
-    		filterConfig.put(FILTERS_CONFIG_VALUE_KEY, filterPattern.pattern());
+    		filterConfig.put(FILTERS_CONFIG_VALUE_KEY, givenFilterPattern);
     		filterConfig.put(FILTERS_CONFIG_REGEX_KEY, noRegex);
     	}
     	else {
-    		filterAliases.put(configId, filterPattern.pattern());
+    		filterAliases.put(configId, givenFilterPattern);
     	}
     	return root;
 

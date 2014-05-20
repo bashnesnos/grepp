@@ -9,13 +9,15 @@ import java.lang.reflect.*
 import org.smltools.grepp.filters.StringAggregator
 import org.smltools.grepp.filters.FilterChain
 
-def BASE_HOME = System.getProperty("grepp.home")
+def HOME = System.getProperty("grepp.home")
 def GREPP_CONFIG = System.getProperty("grepp.config")
 ConfigHolder config = new ConfigHolder(new File(GREPP_CONFIG).toURI().toURL())
 CLIFacade facade = new CLIFacade(config);
-println FilterChain.getConfigIdToFilterClassMap(config).collect { configId, classes -> 
-	String.format("--%-20s\t\t\tmay configure: %s", configId, classes.collect { it.simpleName }.join(','))
-}.join('\n')
+		def options = facade.parseOptions("--to_test --predef $HOME\\fpTest*".split())
+		def runtimeConfig = facade.makeRuntimeConfig()
+		def entryFilterChain = facade.makeFilterChains(runtimeConfig, options).entryFilterChain
+		def newConfig = entryFilterChain.getAsConfig(null)
+println newConfig
 //def options = facade.parseOptions("--repProp group(command=\"(.*?)\",cmd);counter((operand),count_of_operand) oo $RESOURCES\\processing_report_test.log".split(" "))
 //def runtimeConfig = facade.makeRuntimeConfig()
 //facade.makeFilterChains(runtimeConfig, options)

@@ -110,6 +110,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.repProp(args:1, argName:"type(regex,colName);...", "Loads report filter with <type(regex,colName)> in the given order. Type should be equal to one of the post filter methods. Separate with ';' if multiple columns. You need to escape ',' and ';' with \\ in the <regex> part for correct processing")
         cli.lock("Locks the filter chains after full initialization. I.e. it means if any file processed won't update filter params even if such are configured for it")
         cli.noff("No File Filtering - i.e. turns off file filtering based on date etc.")		
+        cli.norx("No RegeX - i.e. treats regex special symbols as usual chars. Extended %or%, %and% etc. are still available though")
 
         return cli
 	}
@@ -325,7 +326,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (runtimeConfig.containsKey('filterPattern')) {
 			def mainFilter = entryFilterChain.getInstance(SimpleFilter.class)
-			mainFilter.setFilterPattern(runtimeConfig.filterPattern)
+			mainFilter.setFilterPattern(runtimeConfig.filterPattern, options.norx)
 			entryFilterChain.add(mainFilter)
 		}
 

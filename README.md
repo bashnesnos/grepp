@@ -14,7 +14,7 @@ An attempt to build an ultimate text-file analysing tool.
 
 Regex-based, i.e. regexes are enabled by default. Which doesn't restrict you to search for simple strings and means you would need to escape regex characters if they shouldn't be treated as a regex. 
 
-TODO: provide a no-regex option
+A no-regex option is provided as well, if you really need to match regex special symbols in your pattern.
 
 ### Splitting file into log entries
 
