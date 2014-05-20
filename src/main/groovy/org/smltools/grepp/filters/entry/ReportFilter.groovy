@@ -16,6 +16,7 @@ import org.smltools.grepp.filters.ReportMethodParams
 import org.smltools.grepp.filters.ReportMethod
 import org.smltools.grepp.filters.ReportMethodBase
 import org.smltools.grepp.filters.ReportGroupMethod
+import org.smltools.grepp.filters.ReportAggregator
 import static org.smltools.grepp.Constants.*
 import groovy.util.ConfigObject;
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ public class ReportFilter extends StatefulFilterBase<String> {
     public static final String GREPP_REPORT_FILTER_PLUGIN_DIR = "/plugin/reportMethods";
 
     public static final String GROUP_RESERVED_TYPE_NAME = "group";
-
+    public static final String MULTIPLE_MATCH_SEPARATOR = ";";
     private static final Map<String, Class<? extends ReportMethod>> ID_TO_FILTER_CLASS_MAP = new HashMap<String, Class<? extends ReportMethod>>()
 
     static {
@@ -92,32 +93,25 @@ public class ReportFilter extends StatefulFilterBase<String> {
     //Postprocessing stuff
     private Pattern reportPattern = null
     private StringBuilder reportPatternBuilder = null
-    String columnSeparator = null
-    String reportHeader = null
     private GroupingMethod groupingMethod = null
-    boolean isHeaderPrinted = false
     private StringBuilder result = new StringBuilder()
-    private String spoolFileExtension
     private List<? extends ReportMethod> filterMethods = []
-
-    public void setSpoolFileExtension(String spoolFileExtension) {
-        this.spoolFileExtension = spoolFileExtension
-    }
+    ReportAggregator aggregator = new CsvAggregator()
 
     public String getSpoolFileExtension() {
-        return spoolFileExtension
-    }
-
-    public void setColumnSeparator(String columnSeparator) {
-        GreppUtil.throwIllegalAEifNull(columnSeparator, "Column separator shouldn't be null")
-        this.columnSeparator = columnSeparator
+        return aggregator.getSpoolFileExtension()
     }
 
     public void addFilterMethodByType(String type, String pattern, String colName) {
         GreppUtil.throwIllegalAEifNull("'type' and 'pattern' shouldn't be null!", type, pattern)
         addFilterByType(type, Pattern.compile(pattern), colName)
         appendFilterPattern(pattern)
-        addColumnToHeader(colName)
+        if (colName != null) {
+            aggregator.addColumn(colName)
+        }
+        else {
+            aggregator.addColumn(type)
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -130,9 +124,6 @@ public class ReportFilter extends StatefulFilterBase<String> {
 
         reportPatternBuilder = new StringBuilder()
         //defaults come first
-        columnSeparator = config.defaults."$SEPARATOR_KEY".value
-        spoolFileExtension = config.defaults."$SEPARATOR_KEY".spoolFileExtension
-
         def sortedHandlers = config."$COLUMNS_KEY"."$configId"
 
         if (sortedHandlers.containsKey(GROUP_RESERVED_TYPE_NAME)) { //group comes first
@@ -143,15 +134,15 @@ public class ReportFilter extends StatefulFilterBase<String> {
             config."$COLUMNS_KEY"."$configId" = sortedHandlers            
         }
 
-        def separatorProps = sortedHandlers.find { type, props -> type.equals(SEPARATOR_KEY) }
-        if (separatorProps != null) {
-            columnSeparator = separatorProps.value
-            spoolFileExtension = separatorProps.spoolFileExtension
-        }
-
-        if (columnSeparator == null || spoolFileExtension == null || columnSeparator.size() < 1 || spoolFileExtension.size() < 1) {
-            throw new PropertiesNotFoundRuntimeException("Both " + VALUE_KEY + " and " + SPOOL_EXTENSION_KEY + " should be filled either in defaults." + SEPARATOR_KEY + " or " + COLUMNS_KEY + "." + configId + "." + SEPARATOR_KEY);
-        }
+//        def separatorProps = sortedHandlers.find { type, props -> type.equals(SEPARATOR_KEY) }
+//        if (separatorProps != null) {
+//            columnSeparator = separatorProps.value
+//            spoolFileExtension = separatorProps.spoolFileExtension
+//        }
+//
+//        if (columnSeparator == null || spoolFileExtension == null || columnSeparator.size() < 1 || spoolFileExtension.size() < 1) {
+//            throw new PropertiesNotFoundRuntimeException("Both " + VALUE_KEY + " and " + SPOOL_EXTENSION_KEY + " should be filled either in defaults." + SEPARATOR_KEY + " or " + COLUMNS_KEY + "." + configId + "." + SEPARATOR_KEY);
+//        }
 
         sortedHandlers.each { type, props -> 
             if (!type.equals(SEPARATOR_KEY)) {
@@ -166,7 +157,10 @@ public class ReportFilter extends StatefulFilterBase<String> {
                 addFilterByType(type, Pattern.compile(curPtrn), props.containsKey(COLUMN_NAME_KEY) ? props.colName : null)
                 
                 if (props.containsKey(COLUMN_NAME_KEY)) {
-                    addColumnToHeader(props.colName)
+                    aggregator.addColumn(props.colName)
+                }
+                else {
+                    aggregator.addColumn(type) //defaulting to type name
                 }
             }
         }
@@ -178,13 +172,6 @@ public class ReportFilter extends StatefulFilterBase<String> {
             reportPatternBuilder = new StringBuilder()
         }
         reportPatternBuilder.size() == 0 ? reportPatternBuilder.append("(?ms)").append(pattern) : reportPatternBuilder.append(Qualifier.and.getPattern()).append(pattern)
-    }
-
-    private void addColumnToHeader(String colName) {
-        GreppUtil.throwIllegalAEifNull(columnSeparator, "columnSeparator should be supplied either via configId or explicitly")
-        if (colName != null) {
-            reportHeader = (reportHeader != null) ? reportHeader + columnSeparator + colName : colName
-        }
     }
 
     private void addFilterByType(String type, Pattern ptrn, String colName) {
@@ -287,57 +274,35 @@ public class ReportFilter extends StatefulFilterBase<String> {
             throw new IllegalStateException("filterMethods should be supplied either via configId or explicitly!")
         }
 
-         result.setLength(0) //invalidating result first
-         Matcher postPPatternMatcher = reportPattern.matcher(blockData)
-         if (postPPatternMatcher.find()) {//bulk matching all patterns. If any of them won't be matched nothing will be returned
+        aggregator.addHeader()
+
+        Matcher postPPatternMatcher = reportPattern.matcher(blockData)
+        if (postPPatternMatcher.find()) {//bulk matching all patterns. If any of them won't be matched nothing will be returned
             int groupIdx = 1
+            aggregator.addRow()
             filterMethods.each { method ->
                 LOGGER.trace("Aggregating post processing, agg={} method={} groupIdx={} \nmtch found", result, method.getClass().getName(), groupIdx)
                 def methodResult = method.processMatchResults(postPPatternMatcher, groupIdx++)
-                if (methodResult != null) //omitting printing since one of the results was null. Might be a grouping
-                {
+                if (methodResult != null) {//omitting printing since one of the results was null. Might be a grouping
                     if (methodResult instanceof List) {
-                        methodResult.each {
-                            aggregatorAppend(result, columnSeparator, methodResult)
-                            result.append('\n')
-                        }
-                        result.deleteCharAt(result.length())
+                        aggregator.addCell(methodResult.join(MULTIPLE_MATCH_SEPARATOR))
                     }
                     else {
-                        aggregatorAppend(result, columnSeparator, methodResult)   
+                        aggregator.addCell(methodResult.toString())
                     }
                 }
             }
-            if (reportHeader != null && !isHeaderPrinted && groupingMethod == null) {   
-                isHeaderPrinted = true
-                result.insert(0, reportHeader + "\n")
-            }
-         }
-        
-        return (result != null && result.size() > 0) ? result.toString() : null
+        }
+        return aggregator.buildRow()
     }
 
     
     @Override
     public void flush() {
-        isHeaderPrinted = false
+        aggregator.flush()
         if (groupingMethod != null) {
             groupingMethod.flush()
         }
-    }
-	
-	/**
-	 * Method handles value escaping with separator during appending to accumulator.
-	 * 
-	 * @param agg accumulator object
-	 * @param sep column separator string
-	 * @param val value to be appended. Is considered as something providing toString() method
-	 * @return accumulator object containing appended value
-	 */
-	
-    StringBuilder aggregatorAppend(StringBuilder agg, String sep, def val)
-    {
-        return (agg.size() > 0) ? agg.append(sep).append(val) : agg.append(val)
     }
 
 
@@ -458,7 +423,7 @@ public class ReportFilter extends StatefulFilterBase<String> {
             if (aggregatedResults == null) return ""
             switch (aggregatedResults[0]) {
                 case String:
-                    return aggregatedResults.join(';')
+                    return aggregatedResults.join(ReportFilter.MULTIPLE_MATCH_SEPARATOR)
                 default:
                     return aggregatedResults.sum()
             }
@@ -472,24 +437,132 @@ public class ReportFilter extends StatefulFilterBase<String> {
          * 
          */
         public String processGroups() {
-            StringBuilder rslt = new StringBuilder( papa.reportHeader != null && !papa.isHeaderPrinted ? papa.reportHeader + "\n" : "");
+            papa.aggregator.addHeader()
             groupMap.each { groupName, groupValue ->
-                rslt.append(groupName)
+                papa.aggregator.addRow()
+                papa.aggregator.addCell(groupName) //the group by field
                 methodsToGroup.each { method ->
                     if (method instanceof ReportGroupMethod) {
-                        papa.aggregatorAppend(rslt, papa.columnSeparator, method.processGroup(groupValue))
+                        papa.aggregator.addCell(method.processGroup(groupValue).toString())
                     }
                     else {
-                        papa.aggregatorAppend(rslt, papa.columnSeparator, defaultProcessGroup(groupValue[method.getClass().getName()]))
+                        papa.aggregator.addCell(defaultProcessGroup(groupValue[method.getClass().getName()]))
                     }
                 }
-                rslt.append("\n")
             }
-            return rslt.toString()
+            return papa.aggregator.buildReport()
         }
 
     }
 
+}
+
+class CsvAggregator implements ReportAggregator {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReportAggregator.class);
+
+    private List<String> columns = new ArrayList<String>();
+    private boolean printHeader = true;
+    private boolean isHeaderPrinted = false;
+    private StringBuilder aggregator = new StringBuilder();
+    private Deque<String> curRowColumns = null;
+    public static final String SPOOL_FILE_EXTENSION = "csv";
+    public static final String COLUMN_SEPARATOR = ",";
+
+    @Override
+    public String getSpoolFileExtension() {
+        return SPOOL_FILE_EXTENSION;
+    }
+
+    @Override
+    public void setPrintHeader(boolean printHeader) {
+        this.printHeader = printHeader;
+    }
+
+    @Override
+    public void addColumn(String columnName) {
+        columns.add(columnName);
+    }
+
+    @Override
+    public CsvAggregator addRow() {
+        if (columns.isEmpty()) {
+            throw new IllegalStateException("Columns should be supplied to determine number of cells in a row")
+        }
+
+        if (aggregator.length() > 0) {
+            LOGGER.trace("Adding next row")
+            aggregator.append('\n')
+        }
+
+        LOGGER.trace("Refreshing current row columns")
+        curRowColumns = new ArrayDeque<String>(columns) //copying
+        return this
+    }
+
+    @Override
+    public CsvAggregator addCell(String value) {
+        if (!curRowColumns.isEmpty()) {
+            LOGGER.trace("Filled {}", curRowColumns.pop())
+            if (columns.size() - curRowColumns.size() == 1) {
+                aggregator.append(value ?: "")
+            }
+            else {
+                aggregator.append(COLUMN_SEPARATOR).append(value ?: "")
+            }
+        }
+        else {
+            throw new IllegalStateException("Can't add cell, if all the row columns are filled")
+        }
+        return this
+    }
+
+    @Override
+    public void flush() {
+        isHeaderPrinted = false
+        aggregator.setLength(0)
+        columns.clear()
+        curRowColumns.clear()
+    }
+
+    @Override
+    public CsvAggregator addHeader() {
+        if (printHeader && !isHeaderPrinted) {
+            LOGGER.trace("Adding header row")
+            isHeaderPrinted = true
+            aggregator.append(columns.join(COLUMN_SEPARATOR))
+        }
+        return this
+    }
+
+    @Override
+    public String buildRow() {
+        if (aggregator.length() > 0) {
+            LOGGER.trace("Building current row")
+            if (curRowColumns.size() == columns.size()) { //i.e. no cells were filled in the last row
+                aggregator.deleteCharAt(aggregator.length() - 1) //deleting carriage return
+            }
+            String result = aggregator.toString()
+            aggregator.setLength(0)
+            curRowColumns.clear()  //keeping other state
+            return result 
+        }
+        else {
+            return null
+        }
+    }
+
+    @Override
+    public String buildReport() {
+        if (aggregator.length() > 0) {
+            String result = aggregator.toString()
+            flush() //clearing it for the next
+            return result
+        }
+        else {
+            flush()
+            return null
+        }
+    }
 }
 
 @ReportMethodParams(id="filter")

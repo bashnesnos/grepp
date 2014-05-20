@@ -45,6 +45,7 @@ Different sorts of: group by pattern, count stuff, calculate average (i.e. of yo
 
 Reporting accepts plugging new methods in (like if you want a 90% time calculation and it's not implemented). Thanks to Groovy.
 
+TODO: report aggregation format is almost generalized and pluggable; finish that
 TODO: add a DSL for it, so plugging in is easier than writing a full blown java/groovy Class
 
 ### Pluggable features

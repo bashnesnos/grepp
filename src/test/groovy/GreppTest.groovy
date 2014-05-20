@@ -381,8 +381,7 @@ Foo,1"""
 		def expectedResult = """\
 some_cmd,count_of_operands
 Foo,4
-Koo,1
-"""
+Koo,1"""
 
 		assertGreppOutput(expectedResult) {
 			Grepp.main("--group_ops $HOME\\processing_report_test.log".split(" "))
@@ -394,8 +393,7 @@ Koo,1
 		def expectedResult = """\
 some_cmd,operands
 Foo,alpha;bravo;delta;gamma
-Koo,this
-"""
+Koo,this"""
 
 		assertGreppOutput(expectedResult) {
 			Grepp.main("--group_op_values $HOME\\processing_report_test.log".split(" "))
@@ -408,8 +406,7 @@ Koo,this
 		def expectedResult = """\
 some_cmd,avg_processing
 Foo,150
-Koo,200
-"""
+Koo,200"""
 		assertGreppOutput(expectedResult) {
 			Grepp.main("--avg_timings $HOME\\processing_report_test.log".split(" "))
 		}

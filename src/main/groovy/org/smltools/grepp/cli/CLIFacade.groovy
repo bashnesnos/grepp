@@ -237,8 +237,9 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.repProp) {
 			def reportFilter = entryFilterChain.getInstance(ReportFilter.class)
-			reportFilter.setColumnSeparator(config.defaults.reportSeparator.value)
-			reportFilter.setSpoolFileExtension(config.defaults.reportSeparator.spoolFileExtension)
+// default aggregator would be set by default			
+//			reportFilter.setColumnSeparator(config.defaults.reportSeparator.value)
+//			reportFilter.setSpoolFileExtension(config.defaults.reportSeparator.spoolFileExtension)
 
 			options.repProp.split(/(?<!\\);/).each { prop ->
 				def mtchr = prop =~ /(\w+?)\((.*)\)/
