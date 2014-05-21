@@ -3,13 +3,16 @@ package org.smltools.grepp.filters.entry
 import java.util.regex.*
 import org.smltools.grepp.filters.Filter
 import org.smltools.grepp.util.GreppUtil
+import org.smltools.grepp.util.PropertiesParserBase
+import org.smltools.grepp.util.PropertiesParserParams
 import groovy.util.ConfigObject
 import groovy.util.logging.Slf4j
 import org.smltools.grepp.filters.FilterParams
 
 @Slf4j("LOGGER")
 @FilterParams(order = 20)
-public class PropertiesFilter implements Filter<String> {
+@PropertiesParserParams(id = "log4j")
+public class PropertiesFilter extends PropertiesParserBase implements Filter<String> {
 	//CW stands for Conversion Word
 	private static String CW_STARTER = "%"
 	private static String CW_OPTION_START = "\\{"

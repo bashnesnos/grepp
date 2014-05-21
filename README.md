@@ -37,7 +37,7 @@ Specify thread start pattern, thread end pattern and grepp will join them into o
 
 Last but not least. Just point grepp to a properties file and let it suck all the info it can find, so you can work with all the above straight away.
 
-TODO: make it pluggable too, since at the moment only 'log4j.properties' is supported.
+TODO: plugability added, now test it adding new prop filter, logback.xml for example
 
 ### Build a report from log file
 

@@ -8,7 +8,7 @@ public abstract class ReportAggregatorBase implements ReportAggregator {
             return aggParams.id();
         }
         else {
-            throw new IllegalArgumentException(this.getClass() + " should have ReportAggregatorParams annotation or override getSpoolFileExtension method!");
+            throw new IllegalArgumentException(this.getClass() + " should have ReportAggregatorParams annotation or override getId method!");
         }        
     }
 

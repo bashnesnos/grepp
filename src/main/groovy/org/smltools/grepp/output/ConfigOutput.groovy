@@ -19,6 +19,10 @@ final class ConfigOutput extends SimpleOutput<String> {
             super(config, filterChain)
    	}
 
+	@Override
+	public void printToOutput(String data) {
+		printNotFiltered( filterChain != null ? filterChain.filter(data) : data)
+	}
 
 	@Override
 	protected void printNotFiltered(String data) {

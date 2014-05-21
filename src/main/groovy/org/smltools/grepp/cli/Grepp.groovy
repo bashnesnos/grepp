@@ -38,7 +38,7 @@ class Grepp {
 		catch(Exception e)
 		{
 			log.error("An unexpected exception occured", e)
-			System.err.println("Error occured")
+			System.err.println("Error occured! " + e.getMessage())
 		}
 				
 		log.info("Processing time = {} sec", ((new Date().getTime() - startTime.getTime())/1000))

@@ -478,7 +478,7 @@ logDateFormats {
 
 	void testPropertiesProcessing() {
 
-		Grepp.main("--parse $HOME\\test.properties".split(" "))
+		Grepp.main("--parse log4j $HOME\\test.properties".split(" "))
 
 		def changedConfig = new ConfigHolder(new URL('file', '/', GREPP_CONFIG))
 		assertTrue(changedConfig.savedConfigs.containsKey('cwms_debug_'))

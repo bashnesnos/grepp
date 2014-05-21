@@ -21,14 +21,14 @@ import org.smltools.grepp.output.RefreshableOutput;
 public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String> {
 	
 	protected PrintWriter printer;
-        protected ConfigHolder config;
+    protected ConfigHolder config;
 	protected FilterChain<T> filterChain;
 	
-	SimpleOutput(ConfigHolder config, FilterChain<T> filterChain) {
+	public SimpleOutput(ConfigHolder config, FilterChain<T> filterChain) {
 		this(config, filterChain, null)
 	}
 	
-	SimpleOutput(ConfigHolder config, FilterChain<T> filterChain, PrintWriter printer) {
+	public SimpleOutput(ConfigHolder config, FilterChain<T> filterChain, PrintWriter printer) {
 		this.printer = printer
 		this.config = config
 		this.filterChain = filterChain

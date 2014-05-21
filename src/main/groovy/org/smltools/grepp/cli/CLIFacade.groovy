@@ -5,6 +5,7 @@ import groovy.util.ConfigObject
 import groovy.util.OptionAccessor
 import org.smltools.grepp.cli.varparsers.*
 import org.smltools.grepp.config.ConfigHolder
+import org.smltools.grepp.filters.Filter
 import org.smltools.grepp.filters.FilterChain
 import org.smltools.grepp.filters.StringAggregator
 import org.smltools.grepp.filters.entry.EntryDateFilter
@@ -14,6 +15,8 @@ import org.smltools.grepp.filters.entry.ThreadLogEntryFilter
 import org.smltools.grepp.filters.entry.PropertiesFilter
 import org.smltools.grepp.filters.entry.ReportFilter
 import org.smltools.grepp.util.GreppUtil
+import org.smltools.grepp.util.PropertiesParserFactory
+import org.smltools.grepp.util.PropertiesParser
 import org.smltools.grepp.filters.enums.*
 import org.smltools.grepp.filters.logfile.FileDateFilter
 import org.smltools.grepp.filters.logfile.FileSortFilter
@@ -31,7 +34,7 @@ import static org.smltools.grepp.Constants.*
  * @author Alexander Semelit 
  *
  */
-@Slf4j
+@Slf4j("LOGGER")
 public class CLIFacade {
 	
 	protected ConfigHolder config;
@@ -47,7 +50,7 @@ public class CLIFacade {
 	// INITIALIZATION
 
 	public void setWorkingDir(File cwd) {
-		log.trace("Directory limited to {}", cwd.getAbsolutePath())
+		LOGGER.trace("Directory limited to {}", cwd.getAbsolutePath())
 		curWorkDir = cwd
 	}
 	
@@ -94,7 +97,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
         cli.m("Toggles non-stop file traversing")
         cli.h("Print this message")
         cli.l(args:1, argName:"entry_regex", "Tells grepp to split the input in blocks, treating <entry_regex> as a start of the next block (so it's a block end at the same time).\n<entry_regex> - a string which will be used to \"split\" the input. Is optinal, as by default it will be looked up by the filename in config. Anyway, if not found input would be processed by line.")
-        cli.p(longOpt:"parse", "Toggles logging .properties file to grepp config parsing")
+        cli.p(longOpt:"parse", args:1, argName:"parser_id" , "Toggles logging properties file to grepp config parsing. <parser_id> is an id of one of the available parsers")
         cli.e("Toggles thread ID preserving, i.e. all the records for a thread will be fetched")
         cli.d(args:2, valueSeparator:";", argName:"from;to", """Tells grepp to include files/log entries within the supplied timeframe.
             <from to> - string representing date constraints for current search. 
@@ -224,14 +227,26 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.p) {
 			varParsers.remove(filterParser)
-			fileFilterChain.disableFilter(FileDateFilter.class)
-			entryFilterChain.add(entryFilterChain.getInstance(PropertiesFilter.class))
-			entryFilterChain.disableFilter(ReportFilter.class)
-			entryFilterChain.disableFilter(SimpleFilter.class)
-			entryFilterChain.disableFilter(ThreadLogEntryFilter.class) //force disabling this
-			entryFilterChain.disableFilter(EntryDateFilter.class)
 
-			entryFilterChain.enableFilter(LogEntryFilter.class) //may be disable this if properties are going to be something else but Filter
+			PropertiesParser propParser = PropertiesParserFactory.getParserInstanceById(options.p)
+
+			switch(propParser) {
+				case Filter:
+					fileFilterChain.disableFilter(FileDateFilter.class)
+					entryFilterChain.add(propParser)
+					entryFilterChain.disableFilter(ReportFilter.class)
+					entryFilterChain.disableFilter(SimpleFilter.class)
+					entryFilterChain.disableFilter(ThreadLogEntryFilter.class) //force disabling this
+					entryFilterChain.disableFilter(EntryDateFilter.class)
+
+					entryFilterChain.enableFilter(LogEntryFilter.class) //may be disable this if properties are going to be something else but Filter
+					break
+				case DataProcessor:
+					//here dataProcessor init
+					break
+				default:
+					throw new IllegalArgumentException("Unsupported properties parser implementation: " + propParser.class)
+			}
 		}
 		else {
 			entryFilterChain.disableFilter(PropertiesFilter.class)
@@ -273,7 +288,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.d) {
 			def dtimeParser = new DateTimeParser()
-			log.trace('Got date options: {}', options.ds)
+			LOGGER.trace('Got date options: {}', options.ds)
 			dtimeParser.parseVar(runtimeConfig, options.ds[0])
 			dtimeParser.parseVar(runtimeConfig, options.ds[1])
 
@@ -309,7 +324,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		for (arg in options.arguments()) {
-			log.debug("next arg: {}", arg);
+			LOGGER.debug("next arg: {}", arg);
 
 			if (arg =~/^-(?![-0-9])/) //such flags should be processed by CliBuilder in parseOptions()
 			{
@@ -345,7 +360,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		if (options.lock) {
-			log.trace("Locking filter chains")
+			LOGGER.trace("Locking filter chains")
 			entryFilterChain.lock()
 			fileFilterChain.lock()	
 		}
@@ -369,16 +384,16 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		PrintWriter printer = null
 		GreppOutput output = null
 		if (options.p) {
-			log.info("Creating config output")
+			LOGGER.info("Creating config output")
 			output = new ConfigOutput(config, entryFilterChain)
 		}
 		else if (options.s) {
-			log.info("Creating file output")
+			LOGGER.info("Creating file output")
 			printer = getFilePrinter(runtimeConfig)
 			output = new SimpleOutput<String>(config, entryFilterChain, printer)
 		}
 		else {
-			log.info("Creating console output")
+			LOGGER.info("Creating console output")
 			printer = getConsolePrinter()
 			output = new SimpleOutput<String>(config, entryFilterChain, printer)
 		}
@@ -424,7 +439,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		}
 
 		if (options.add) {
-			log.info("Saving config to {}", options.add)
+			LOGGER.info("Saving config to {}", options.add)
 			config.merge(entryFilterChain.getAsConfig(options.add))
 			config.merge(fileFilterChain.getAsConfig(options.add))
 			config.save()
@@ -468,7 +483,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 	protected void enforceTrace()
 	{
-		log.debug("Enabling trace")
+		LOGGER.debug("Enabling trace")
 		String traceConfig ="""\
 <configuration>
 
@@ -495,7 +510,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 	protected void enforceInfo()
 	{
-		log.debug("Redirecting info to STDOUT")
+		LOGGER.debug("Redirecting info to STDOUT")
 		String infoConfig ="""\
 <configuration>
 
@@ -521,7 +536,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			return console.writer()
 		}
 		else {
-			log.debug("There is no associated console to use with this output! Defaulting to System.out.");
+			LOGGER.debug("There is no associated console to use with this output! Defaulting to System.out.");
 			return new PrintWriter(System.out, true)
 		}
 	}
@@ -530,7 +545,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		def outputDir = new File(runtimeConfig.home, runtimeConfig.resultsDir)
 		if (!outputDir.exists()) outputDir.mkdir()
 		def out_file = new File(outputDir, runtimeConfig.spoolFileName + "." + runtimeConfig.spoolExtension)
-		log.trace("Creating new file: {}", out_file.getCanonicalPath())
+		LOGGER.trace("Creating new file: {}", out_file.getCanonicalPath())
 		out_file.createNewFile()
 		return new PrintWriter(new FileWriter(out_file), true) //autoflushing PrintWriter
 	}
