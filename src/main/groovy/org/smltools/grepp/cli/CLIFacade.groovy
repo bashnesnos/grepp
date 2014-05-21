@@ -224,13 +224,14 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 		if (options.p) {
 			varParsers.remove(filterParser)
+			fileFilterChain.disableFilter(FileDateFilter.class)
 			entryFilterChain.add(entryFilterChain.getInstance(PropertiesFilter.class))
 			entryFilterChain.disableFilter(ReportFilter.class)
 			entryFilterChain.disableFilter(SimpleFilter.class)
 			entryFilterChain.disableFilter(ThreadLogEntryFilter.class) //force disabling this
-			entryFilterChain.enableFilter(LogEntryFilter.class)
 			entryFilterChain.disableFilter(EntryDateFilter.class)
-			fileFilterChain.disableFilter(FileDateFilter.class)			
+
+			entryFilterChain.enableFilter(LogEntryFilter.class) //may be disable this if properties are going to be something else but Filter
 		}
 		else {
 			entryFilterChain.disableFilter(PropertiesFilter.class)
@@ -249,8 +250,8 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 				    reportFilter.addReportMethodByType(type, regexAndColName[0], (regexAndColName.length > 1) ? regexAndColName[1] : null)
 				}
 				else {
-					mthcr = prop =~ /agg=(.*)/
-					if (mthcr.matches()) {
+					mtchr = prop =~ /agg=(.*)/
+					if (mtchr.matches()) {
 						def agg = mtchr.group(1)
 						reportFilter.setAggregatorById(agg)
 					}
@@ -318,7 +319,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			if (!processConfigId([entryFilterChain, fileFilterChain], arg)) {
 				ParamParser<?> paramParser = varParsers.pop()
 				if (paramParser instanceof FilterParser) {
-					if (entryFilterChain.has(SimpleFilter.class)) {
+					if (entryFilterChain.has(SimpleFilter.class) || !entryFilterChain.isEnabled(SimpleFilter.class)) {
 						paramParser = varParsers.pop() //i.e. skipping filterParser
 					}
 				}

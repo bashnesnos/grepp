@@ -243,6 +243,11 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
     	return null;
     }
 
+    public boolean isEnabled(Class<? extends Filter> filterClass) {
+    	Class<? extends Filter> replacingFilterClass = replacedFiltersMap.get(filterClass);
+    	return filterOrderList.contains(filterClass) || (replacingFilterClass != null ? filterOrderList.contains(replacingFilterClass) : false);
+    }
+
     public void enableFilter(Class<? extends Filter> filterClass) {
     	if (filterClass != null) {
     		if (replacedFiltersMap.containsKey(filterClass)) {

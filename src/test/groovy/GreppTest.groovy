@@ -137,6 +137,22 @@ Foo,test"""
 		}
 	}
 
+	void testOnTheFlyPluginForReportAggregator() {
+		def expectedResult = """\
+Foo|test
+Koo|test
+Foo|test"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("-add fly_report -nohd -repProp agg=piped_text;filter(name=\"?(.*?)\",some_cmd);test((operand),count_of_operands) oo $HOME\\processing_report_test.log".split(" "))
+		}
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--fly_report $HOME\\processing_report_test.log".split(" "))
+		}
+
+	}
+
 	void testPluginForFilter() {
 		def expectedResult = """\
 doodki!

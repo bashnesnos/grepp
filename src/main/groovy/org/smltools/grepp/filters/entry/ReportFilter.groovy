@@ -534,7 +534,7 @@ public class ReportFilter extends StatefulFilterBase<String> {
 
 @ReportAggregatorParams(id = "csv", spoolFileExtension = CsvAggregator.SPOOL_FILE_EXTENSION)
 class CsvAggregator extends ReportAggregatorBase {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReportAggregator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CsvAggregator.class);
 
     private List<String> columns = new ArrayList<String>();
     private StringBuilder aggregator = new StringBuilder();

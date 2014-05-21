@@ -37,16 +37,16 @@ Specify thread start pattern, thread end pattern and grepp will join them into o
 
 Last but not least. Just point grepp to a properties file and let it suck all the info it can find, so you can work with all the above straight away.
 
-TODO: make it pluggable too, since at the moment only log4j.properties are supported.
+TODO: make it pluggable too, since at the moment only 'log4j.properties' is supported.
 
 ### Build a report from log file
 
-Different sorts of: group by pattern, count stuff, calculate average (i.e. of your response times). Dump it ot a csv (so you can build a nice graph).
+Different sorts of: group by pattern, count stuff, calculate average (i.e. of your response times). Dump it to a csv (so you can build a nice graph). Or make your own report aggregator, plug it in and dump it to whatever format you want.
 
 Reporting accepts plugging new methods in (like if you want a 90% time calculation and it's not implemented). Thanks to Groovy.
 
-TODO: report aggregation format is almost generalized and pluggable; finish that
 TODO: add a DSL for it, so plugging in is easier than writing a full blown java/groovy Class
+TODO: add a DSL for report aggregation too
 
 ### Pluggable features
 
