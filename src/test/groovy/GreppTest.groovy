@@ -487,6 +487,17 @@ logDateFormats {
 		assertTrue(changedConfig.savedConfigs.cwms_debug_.pattern == "cwms_debug_.*\\.log")
 	}
 
+	void testPropertiesPluginProcessing() {
+
+		Grepp.main("--parse logback $HOME\\config\\logback.xml".split(" "))
+
+		def changedConfig = new ConfigHolder(new URL('file', '/', GREPP_CONFIG))
+		assertTrue(changedConfig.savedConfigs.containsKey('grepp'))
+		assertTrue(changedConfig.logDateFormats.containsKey('grepp'))
+		assertTrue(changedConfig.savedConfigs.grepp.dateFormat.value == "HH:mm:ss.SSS")
+		assertTrue(changedConfig.savedConfigs.grepp.pattern == "grepp\\.log")
+	}
+
 	void testInputStreamProcessing() {
 		def tPipeOut = new PipedOutputStream()
 		def tPipeIn = new PipedInputStream(tPipeOut)

@@ -23,7 +23,7 @@ public interface GreppOutput<T> {
 	 * 
 	 * @param data Data to be printed
 	 */
-	void printToOutput(T data);
+	void print(T data);
 	
     void flush();
         
@@ -32,5 +32,5 @@ public interface GreppOutput<T> {
 	 * Releases output resources
 	 * 
 	 */
-	void closeOutput();
+	void close();
 }

@@ -12,28 +12,23 @@ import groovy.util.ConfigSlurper
  *
  */
 
-@Slf4j
-final class ConfigOutput extends SimpleOutput<String> {
+@Slf4j("LOGGER")
+public class ConfigOutput extends SimpleOutput<String> {
 		
 	public ConfigOutput(ConfigHolder config, FilterChain<String> filterChain) {
-            super(config, filterChain)
+        super(config, filterChain)
    	}
-
-	@Override
-	public void printToOutput(String data) {
-		printNotFiltered( filterChain != null ? filterChain.filter(data) : data)
-	}
 
 	@Override
 	protected void printNotFiltered(String data) {
 		if (data != null) {
-			log.trace("Got config: {}", data)
+			LOGGER.trace("Got config: {}", data)
             config.merge(new ConfigSlurper().parse(data))
             config.save()
 		}
 		else {
-            log.debug("No custom config found")
+            LOGGER.debug("No custom config found")
 		}
 	}
-
+	
 }

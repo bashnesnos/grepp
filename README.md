@@ -37,7 +37,7 @@ Specify thread start pattern, thread end pattern and grepp will join them into o
 
 Last but not least. Just point grepp to a properties file and let it suck all the info it can find, so you can work with all the above straight away.
 
-TODO: plugability added, now test it adding new prop filter, logback.xml for example
+TODO: plugability added and tested. Refactor it a bit, so it looks nicer. DSL is not needed
 
 ### Build a report from log file
 

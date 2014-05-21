@@ -15,6 +15,7 @@ import org.smltools.grepp.filters.entry.ThreadLogEntryFilter
 import org.smltools.grepp.filters.entry.PropertiesFilter
 import org.smltools.grepp.filters.entry.ReportFilter
 import org.smltools.grepp.util.GreppUtil
+import org.smltools.grepp.util.PropertiesParserProcessorBase
 import org.smltools.grepp.util.PropertiesParserFactory
 import org.smltools.grepp.util.PropertiesParser
 import org.smltools.grepp.filters.enums.*
@@ -241,8 +242,14 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
 					entryFilterChain.enableFilter(LogEntryFilter.class) //may be disable this if properties are going to be something else but Filter
 					break
-				case DataProcessor:
-					//here dataProcessor init
+				case PropertiesParserProcessorBase:
+					runtimeConfig.propertiesProcessor = propParser
+					fileFilterChain.disableFilter(FileDateFilter.class)
+					entryFilterChain.disableFilter(ReportFilter.class)
+					entryFilterChain.disableFilter(SimpleFilter.class)
+					entryFilterChain.disableFilter(ThreadLogEntryFilter.class) //force disabling this
+					entryFilterChain.disableFilter(EntryDateFilter.class)
+					entryFilterChain.disableFilter(LogEntryFilter.class) //may be disable this if properties are going to be something else but Filter
 					break
 				default:
 					throw new IllegalArgumentException("Unsupported properties parser implementation: " + propParser.class)
@@ -334,7 +341,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			if (!processConfigId([entryFilterChain, fileFilterChain], arg)) {
 				ParamParser<?> paramParser = varParsers.pop()
 				if (paramParser instanceof FilterParser) {
-					if (entryFilterChain.has(SimpleFilter.class) || !entryFilterChain.isEnabled(SimpleFilter.class)) {
+					if (!entryFilterChain.isEnabled(SimpleFilter.class) || entryFilterChain.has(SimpleFilter.class)) {
 						paramParser = varParsers.pop() //i.e. skipping filterParser
 					}
 				}
@@ -342,6 +349,10 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 					varParsers.push(paramParser)
 				}
 			} 
+		}
+
+		if (runtimeConfig.containsKey('propertiesProcessor')) { //no need in filter chains
+			return runtimeConfig
 		}
 
 		if (entryFilterChain.has(EntryDateFilter.class) && !entryFilterChain.has(LogEntryFilter.class)) { //anyway we're lookin for dates here
@@ -418,36 +429,44 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 		def options = parseOptions(args)
 		def runtimeConfig = makeRuntimeConfig()
 		makeFilterChains(runtimeConfig, options)
-		def entryFilterChain = runtimeConfig.entryFilterChain
-		def fileFilterChain = runtimeConfig.fileFilterChain
+		def entryFilterChain = runtimeConfig.containsKey('entryFilterChain') ? runtimeConfig.entryFilterChain : null
+		def fileFilterChain = runtimeConfig.containsKey('fileFilterChain') ? runtimeConfig.fileFilterChain : null
+		def propertiesProcessor = runtimeConfig.containsKey('propertiesProcessor') ? runtimeConfig.propertiesProcessor : null
 
-		if (runtimeConfig.data.containsKey('files')) {
-        	List<File> filteredData = fileFilterChain.filter(runtimeConfig.data.files)
-			if (filteredData != null) {
-				runtimeConfig.data.files = filteredData
-			}
-			else {
-				return //nothing to process
-			}
-		}		
+		if (propertiesProcessor == null) {
+			if (runtimeConfig.data.containsKey('files')) {
+	        	List<File> filteredData = fileFilterChain.filter(runtimeConfig.data.files)
+				if (filteredData != null) {
+					runtimeConfig.data.files = filteredData
+				}
+				else {
+					return //nothing to process
+				}
+			}		
 
-		if (options.add) {
-			if (entryFilterChain.configIdExists(options.add) || fileFilterChain.configIdExists(options.add)) {
-				println "ConfigId $options.add already exists for a given filter chain; try different one or remove the old one"
-				return
+			if (options.add) {
+				if (entryFilterChain.configIdExists(options.add) || fileFilterChain.configIdExists(options.add)) {
+					println "ConfigId $options.add already exists for a given filter chain; try different one or remove the old one"
+					return
+				}
 			}
+
+			if (options.add) {
+				LOGGER.info("Saving config to {}", options.add)
+				config.merge(entryFilterChain.getAsConfig(options.add))
+				config.merge(fileFilterChain.getAsConfig(options.add))
+				config.save()
+			}
+			
+			def output = makeOutput(runtimeConfig, entryFilterChain, options)
+			def processor = makeProcessor(runtimeConfig, output, options)
+			processor.process(runtimeConfig.data)
 		}
-
-		if (options.add) {
-			LOGGER.info("Saving config to {}", options.add)
-			config.merge(entryFilterChain.getAsConfig(options.add))
-			config.merge(fileFilterChain.getAsConfig(options.add))
-			config.save()
+		else {
+			def output = makeOutput(runtimeConfig, entryFilterChain, options)
+			propertiesProcessor.setGreppOutput(output)
+			propertiesProcessor.process(runtimeConfig.data.containsKey('files') ? runtimeConfig.data.files : null)
 		}
-
-		def output = makeOutput(runtimeConfig, entryFilterChain, options)
-		def processor = makeProcessor(runtimeConfig, output, options)
-		processor.process(runtimeConfig.data)
 	}
 
 	/**

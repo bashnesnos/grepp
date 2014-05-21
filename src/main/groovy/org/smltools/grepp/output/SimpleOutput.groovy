@@ -17,7 +17,7 @@ import org.smltools.grepp.output.RefreshableOutput;
  *
  */
 
-@Slf4j
+@Slf4j("LOGGER")
 public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String> {
 	
 	protected PrintWriter printer;
@@ -36,16 +36,18 @@ public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String
 	
     @Override
     public void flush() {
-        filterChain.flush()
+    	if (filterChain != null) {
+        	filterChain.flush()
+        }
     }
     
 	@Override
-	public void printToOutput(T data) {
-		printNotFiltered(filterChain.filter(data))
+	public void print(T data) {
+		printNotFiltered(filterChain != null ? filterChain.filter(data) : data)
 	}
 
 	@Override
-	public void closeOutput() {
+	public void close() {
 		flush()
 		if (printer != null) {
 			printer.close();
@@ -54,25 +56,27 @@ public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String
 
 	@Override
 	public void refreshFilters(String fileName) {
-        String configId = ConfigHolder.findConfigIdByFileName(config, fileName)
-		if (configId != null) {
-			filterChain.refreshByConfigId(configId)
+		if (filterChain != null) {
+	        String configId = ConfigHolder.findConfigIdByFileName(config, fileName)
+			if (configId != null) {
+				filterChain.refreshByConfigId(configId)
+			}
 		}
 	}
 	
 	@Override
 	public void processEvent(Event event) {
-		printNotFiltered(filterChain.processEvent(event))
+		if (filterChain != null) {
+			printNotFiltered(filterChain.processEvent(event))
+		}
 	}
 
 	protected void printNotFiltered(T data) {
-		if (data != null)
-		{
+		if (data != null) {
 			printer.println(data)
 		}
-		else
-		{
-			log.trace("data is null, not printing it")
+		else {
+			LOGGER.trace("Nothing to print")
 		}
 	}
 	

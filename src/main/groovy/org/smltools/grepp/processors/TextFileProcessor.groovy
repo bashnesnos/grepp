@@ -6,6 +6,7 @@ import java.util.regex.Matcher
 import java.lang.StringBuilder
 import org.smltools.grepp.filters.enums.Event
 import org.smltools.grepp.output.GreppOutput
+import org.smltools.grepp.output.RefreshableOutput
 import org.smltools.grepp.processors.DataProcessor;
 import org.smltools.grepp.exceptions.*
 
@@ -15,9 +16,8 @@ import org.smltools.grepp.exceptions.*
  * @author Alexander Semelit
  *
  */
-@Slf4j
-class TextFileProcessor implements DataProcessor<List<File>>
-{
+@Slf4j("LOGGER")
+public class TextFileProcessor implements DataProcessor<List<File>> {
    
     private boolean isMerging;
 	private GreppOutput<String> output;
@@ -29,11 +29,10 @@ class TextFileProcessor implements DataProcessor<List<File>>
 	 * @param filterChain_ FilterBase chain which will be used to filter each file line
 	 * @param filesFilterChain_ FilterBase chain which will be used to filter filename List
 	 */
-    TextFileProcessor(GreppOutput<String> output_, boolean isMerging_) 
-    {
-		output = output_
-        isMerging = isMerging_
-        log.trace("Is merging? {}", isMerging_)
+    public TextFileProcessor(GreppOutput<String> output, boolean isMerging) {
+		this.output = output
+        this.isMerging = isMerging
+        LOGGER.trace("Is merging? {}", isMerging)
     }
 
 
@@ -43,11 +42,12 @@ class TextFileProcessor implements DataProcessor<List<File>>
 	 * @param file_ a File instance which is needed to be initialized.
 	 * @return File instance if it was successfully initialized. null otherwise
 	 */
-    private File initFile(File file_)
-    {
-        log.info("Initializating {}", file_.name)
-		output.refreshFilters(file_.name)
-        return file_
+    private File initFile(File file) {
+        LOGGER.info("Initializating {}", file.name)
+        if (output instanceof RefreshableOutput) {
+			output.refreshFilters(file.name)
+		}
+        return file
     }
 
 	/**
@@ -55,28 +55,27 @@ class TextFileProcessor implements DataProcessor<List<File>>
 	 * 
 	 * @param data a File which needs to be processed
 	 */
-    void processSingleFile(File data)
-    {
+    protected void processSingleFile(File data) {
         if (data == null) return
-        log.info("File {} started", data.name)
+        LOGGER.info("File {} started", data.name)
         def curLine = 1
         GreppOutput output = output //shadowing to get rid of GetEffectivePogo in the loop
         try {
             data.eachLine { String line ->
-                log.trace("curLine: {}", curLine)
+                LOGGER.trace("curLine: {}", curLine)
                 curLine += 1
-                output.printToOutput(line)
+                output.print(line)
             }
         }
         catch(FilteringIsInterruptedException e) {
-            log.trace("No point to read file further as identified by filter chain")
+            LOGGER.trace("No point to read file further as identified by filter chain")
         }
 
         if (!isMerging) { 
         	output.processEvent(Event.CHUNK_ENDED)
         }
-
-        log.info("File {} ended. Lines processed: {}", data.name, curLine)
+        
+        LOGGER.info("File {} ended. Lines processed: {}", data.name, curLine)
     }
 
 	@Override
@@ -86,10 +85,10 @@ class TextFileProcessor implements DataProcessor<List<File>>
 				processSingleFile(initFile(it))
 			}
 			output.processEvent(Event.ALL_CHUNKS_PROCESSED)
-			output.closeOutput()
+			output.close()
 		}
 		else {
-			log.trace("Data is null; nothing to process")
+			LOGGER.trace("No files given; nothing to process")
 		}
 	}
 }
