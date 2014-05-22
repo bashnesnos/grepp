@@ -11,6 +11,10 @@ def curJre = System.properties['java.version']
 //org.gradle.project.jreLibPath - e.g. D:\Alex\jdk1.6.0_26\jre\lib - populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
 //org.gradle.project.printTestClasspath -e.g. true - prints test classpath if true
 
+def checkJre = { jreVer ->
+    return project.hasProperty('jdk') ? jdk =~ jreVer : curJre =~ jreVer
+}
+
 repositories {
     mavenCentral()
 }
@@ -20,12 +24,12 @@ dependencies {
     compile group: 'ch.qos.logback', name:'logback-classic', version: '1.1.1'
     compile group: 'commons-cli', name:'commons-cli', version: '1.2'
 
-    if (curJre =~ /1.5/ || (project.hasProperty('jdk') && jdk =~ /1.5/)) {
+    if (checkJre(/1.5/)) {
         compile group: 'org.livetribe', name:'livetribe-jsr223', version: '2.0.1', transitive: true //for 1.5 compatibility
         compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
         testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
     }
-    else if (curJre =~ /1.7/ || (project.hasProperty('jdk') && jdk =~ /1.7/)) { //-indy doesn't really work properly on jre1.8
+    else if (checkJre(/1.7/)) { //-indy doesn't really work properly on jre1.8
         compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2', classifier: 'indy'
         testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2', classifier: 'indy'
     }

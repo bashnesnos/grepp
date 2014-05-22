@@ -35,9 +35,9 @@ Specify thread start pattern, thread end pattern and grepp will join them into o
 
 ### Parse most of a regex configuration required from your logging subsystem configuration file
 
-Last but not least. Just point grepp to a properties file and let it suck all the info it can find, so you can work with all the above straight away.
+Just point grepp to a properties file and let it suck all the info it can find, so you can work with all the above straight away. Supports basic log4j.properties now.
 
-TODO: plugability added and tested. Refactor it a bit, so it looks nicer. DSL is not needed
+Other logging configuration systems could be supported via plugins.
 
 ### Build a report from log file
 
