@@ -164,19 +164,21 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 	private Map<?, ?> config;
 	private Map<?, ?> state = new HashMap();
 	private boolean isLocked = false;
+	private Class<T> chainType;
 
-	public FilterChain(Map<?, ?> config, Aggregator<T> aggregator, Class<T> type) {
-		if (config == null || aggregator == null || type == null) {
-			throw new IllegalArgumentException("All constructor params shouldn't be null: " + (config != null) + ";" + (aggregator != null) + ";" + (type != null));
+	public FilterChain(Map<?, ?> config, Aggregator<T> aggregator, Class<T> chainType) {
+		if (config == null || aggregator == null || chainType == null) {
+			throw new IllegalArgumentException("All constructor params shouldn't be null: " + (config != null) + ";" + (aggregator != null) + ";" + (chainType != null));
 		}
 
+		this.chainType = chainType;
 		this.config = config;
 		this.aggregator = aggregator;
 
 		//filter class pick-up here
 		for (Class<? extends Filter> filterClass: REGISTERED_FILTERS_LIST) {
 			Class<?> parameter = GreppUtil.findParameterClass(filterClass);
-			if (parameter != null && parameter.isAssignableFrom(type)) {
+			if (parameter != null && parameter.isAssignableFrom(chainType)) {
 				if (!replacedFiltersMap.containsKey(filterClass)) {
 					enableFilter(filterClass);
 				}
@@ -416,9 +418,15 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 					LOGGER.trace("Filtering flushed data from {}", curFilter.getClass());
 					try {
 						if (flushedData instanceof List<?>) {
-							for (T flushedDataPart : (List<T>) flushedData) {
-								T flushedDataPartFiltered = filterAfter(curFilter, flushedDataPart);
-								aggregator.add(flushedDataPartFiltered);
+							Class<?> parameter = GreppUtil.findParameterClass(curFilter.getClass());
+							if (parameter != null && parameter.isAssignableFrom(chainType)) {
+								for (T flushedDataPart : (List<T>) flushedData) {
+									T flushedDataPartFiltered = filterAfter(curFilter, flushedDataPart);
+									aggregator.add(flushedDataPartFiltered);
+								}
+							}
+							else {
+								throw new IllegalArgumentException(curFilter.getClass() + " allowed to implement Stateful<" + chainType + "> or Stateful<List<" + chainType + ">>; actually: " + flushedData.getClass());
 							}
 						}
 						else {
