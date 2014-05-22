@@ -1,7 +1,5 @@
 package org.smltools.grepp.util;
 
-import org.smltools.grepp.processors.DataProcessor;
-import org.smltools.grepp.output.GreppOutput;
 import java.util.List;
 import java.io.File;
 import org.slf4j.Logger;
@@ -9,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.smltools.grepp.filters.enums.Event;
 import org.smltools.grepp.output.GreppOutput;
 import org.smltools.grepp.output.RefreshableOutput;
+import org.smltools.grepp.processors.DataProcessor;
+import org.smltools.grepp.output.GreppOutput;
 
 public abstract class PropertiesParserProcessorBase extends PropertiesParserBase implements DataProcessor<List<File>> {
     private static final Logger LOGGER = LoggerFactory.getLogger(PropertiesParserFactory.class);

@@ -473,7 +473,8 @@ logDateFormats {
 """	
 	
 		def propFilter = new PropertiesFilter()
-		assertTrue(propFilter.filter(configString).replace("\r\n", "\n") == expectedResult)
+		def actualResult = propFilter.filter(configString).replace("\r\n", "\n")
+		assertTrue(actualResult, actualResult.equals(expectedResult))
 	}
 
 	void testPropertiesProcessing() {

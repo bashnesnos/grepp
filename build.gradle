@@ -74,10 +74,6 @@ startScripts {
 
 }
 
-sourceSets {
-	sourceSets.main.groovy.srcDir 'src/main/java' //compiling java with groovy since classes are coupled
-}
-
 jar.includes =['**/*.class'] //TODO: may be versioning or something is needed 
 jar.includeEmptyDirs = false
 
