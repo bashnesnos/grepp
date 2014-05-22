@@ -62,7 +62,7 @@ TODO: actually a web-interface would be available at some point (i.e. a grepp-se
 
 # Download
 
-TODO: ready-to-go binaries for java 1.5, 1.6, 1.7 (indy version) would need to be available from somewhere
+Releases are available from SourceForge: https://sourceforge.net/projects/grepp/?source=directory
 
 # Build
 
@@ -80,6 +80,6 @@ grepp/
 
 # Documentation
 
-Run the _greppInstall/bin/grepp_ with the '-h' flag to display usage tips.
+Run _grepp -h_ to display usage tips.
 
-Anyway it is a big TODO.
+TODO: add a Wiki at the SourceForge probably
