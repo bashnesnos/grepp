@@ -1,52 +1,88 @@
-import groovy.xml.DOMBuilder
-import groovy.xml.dom.DOMCategory
-import groovy.xml.XmlUtil
 import java.text.SimpleDateFormat
 
 apply plugin: 'groovy'
 apply plugin: 'application'
 
-//these properties are overwritten by subprojects dev and release if they are defined there
-def targetDir = new File("default") //is initialized with the project
-def includeOptional = false //whether to include optional sh scripts
-def params = [:] //params for used templates
+version = '1.0'
+def targetDir = new File("grepp") //default install dir path prefix
 
-//these properties are not overrided by subprojects and should be populated here. If should
-def oldJdkCompatibility //= 1.5//; populate if app is going to be ran on JRE older than yours. Works on 1.5
-def oldJreLibPath //= "C:\\Program Files\\Java\\jre1.5.0_10\\lib"//; populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
-def printTestClasspath = false //prints test classpath if true
+def curJre = System.properties['java.version']
+//org.gradle.project.jdk - e.g. 1.6 - populate if app is going to be ran on JRE older than yours. Works on 1.5
+//org.gradle.project.jdkHome - e.g. D:\Alex\jdk1.6.0_26\ - populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
+//org.gradle.project.printTestClasspath -e.g. true - prints test classpath if true
+
+def checkJre = { jreVer ->
+    return project.hasProperty('jdk') ? jdk =~ jreVer : curJre =~ jreVer
+}
 
 repositories {
-	mavenRepo name: "spring-repo", url: "http://repo.springsource.org/release"
-	mavenRepo name: "gsnapshots-repo", url: "http://snapshots.repository.codehaus.org"
     mavenCentral()
 }
 
 dependencies {
-    compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.1.7-SNAPSHOT'
-	compile group: 'org.slf4j', name:'slf4j-api', version: '1.7.5'
-	compile group: 'ch.qos.logback', name:'logback-classic', version: '1.0.11'
+    compile group: 'org.slf4j', name:'slf4j-api', version: '1.7.6'
+    compile group: 'ch.qos.logback', name:'logback-classic', version: '1.1.1'
+    compile group: 'commons-cli', name:'commons-cli', version: '1.2'
 
-    if (oldJdkCompatibility == 1.5) {
+    if (checkJre(/1.5/)) {
         compile group: 'org.livetribe', name:'livetribe-jsr223', version: '2.0.1', transitive: true //for 1.5 compatibility
+        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
+        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
     }
-
-    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.1.7-SNAPSHOT'
-	testCompile group: 'junit', name: 'junit', version: '4.10'
+    else if (checkJre(/1.7/)) { //-indy doesn't really work properly on jre1.8
+        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2', classifier: 'indy'
+        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2', classifier: 'indy'
+    }
+    else { //works with 1.6, 1.7, 1.8
+        compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
+        testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.2.2'
+    }
     
+    testCompile group: 'junit', name: 'junit', version: '4.10'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.12'
 }
 
 compileGroovy {
-    if (oldJdkCompatibility) {
-        sourceCompatibility = oldJdkCompatibility
-        targetCompatibility = oldJdkCompatibility
+    if (project.hasProperty('jdk') && !(curJre =~ jdk)) {
+        if (!project.hasProperty('jdkHome')) {
+            throw new InvalidUserDataException("You must supply a jdk home path if the desired jdk ($jdk) is not the same as the current ($curJre)") 
+        }
+
+        println "Building grepp for $jdk"
+
+        sourceCompatibility = jdk
+        targetCompatibility = jdk
         options.fork = true
-        options.bootClasspath = oldJreLibPath + "\\rt.jar"
+        options.bootClasspath = "$jdkHome\\jre\\lib\\rt.jar"
+    }
+    else {
+        println "Building grepp for the current $curJre"
+    }
+}
+
+compileTestGroovy {
+    if (project.hasProperty('jdk') && !(curJre =~ jdk)) {
+        if (!project.hasProperty('jdkHome')) {
+            throw new InvalidUserDataException("You must supply a jdk home path if the desired jdk ($jdk) is not the same as the current ($curJre)") 
+        }
+
+        println "Building grepp test for $jdk"
+
+        sourceCompatibility = jdk
+        targetCompatibility = jdk
+        options.fork = true
+        options.bootClasspath = "$jdkHome\\jre\\lib\\rt.jar"
+    }
+    else {
+        println "Building grepp test for the current $curJre"
     }
 }
 
 startScripts {
-    mainClassName = 'org.smltools.grepp.Grepp'
+    mainClassName = 'org.smltools.grepp.cli.Grepp'
     classpath += files('/config')
 
     doLast {
@@ -60,19 +96,29 @@ startScripts {
 
 }
 
-sourceSets {
-	sourceSets.main.groovy.srcDir 'src/main/java' //compiling java with groovy since classes are coupled
+distZip {
+    classifier = project.hasProperty('jdk') ? "${jdk =~ /1.5/ ? '' : ('j' + jdk)}" : "${curJre =~ /1.5/ ? '' : ('j' + curJre)}"
 }
 
 jar.includes =['**/*.class'] //TODO: may be versioning or something is needed 
 jar.includeEmptyDirs = false
 
 test {
-	systemProperty 'grepp.home', rootDir.getAbsolutePath()
-	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/main/config')
+    if (project.hasProperty('jdk') && !(curJre =~ jdk)) {
+        if (!project.hasProperty('jdkHome')) {
+            throw new InvalidUserDataException("You must supply a jdk home path if the desired jdk ($jdk) is not the same as the current ($curJre)") 
+        }
+        println "Testing grepp on $jdk"
+        executable = "$jdkHome\\bin\\java.exe"; 
+    }
+	
+    systemProperty 'grepp.home', rootDir.getAbsolutePath() + '/build/resources/test'
+    systemProperty 'grepp.config', rootDir.getAbsolutePath() + '/build/resources/test/config/config.groovy'
+	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/test/config')
 	setClasspath(newCP)
-    if (printTestClasspath)
+    if (project.hasProperty('printTestClasspath') && printTestClasspath) {
         newCP.getFiles().each {print it.getCanonicalPath() + ";"}
+    }
 }
 
 processTestResources {
@@ -83,56 +129,11 @@ processTestResources {
                 .replace('#TEST_TIME_TO#', dateFormat.format(new Date(curDate.getTime() + 60*60*1000)))
                 .replace('#TEST_TIME_TOO_FAR#', dateFormat.format(new Date(curDate.getTime() + 3*60*60*1000)))
     }   
-    doLast {
-        mergeConfig (rootDir.getAbsolutePath() + '/build/resources/main/config/config.xml'
-                    , rootDir.getAbsolutePath() + '/build/resources/test/config.custom'
-                    , rootDir.getAbsolutePath() + '/build/resources/test/config.xml')
-    }
 }
 
-
-def makeExecsFileWriter = null //leave it as null, it needs to be instantiated within a task
-processResources {
-    eachFile { FileCopyDetails elem ->
-        def file = elem.getFile()
-        def fileName = file.getName()
-        if (fileName =~ /_tmplt/) {
-            def tFileName = fileName.replace('_tmplt','')
-            elem.setName(tFileName)
-                    if (tFileName =~ /\.sh/) {
-                if (!makeExecsFileWriter) {
-                        makeExecsFileWriter = new FileWriter(destinationDir.getAbsolutePath() + '/optional/make_execs.sh', true) //appending to make_execs.sh    
-                }
-                makeExecsFileWriter.write('\nchmod +x ' + elem.getName())   
-            }
-                    elem.filter { String line ->
-                def newLine = line
-                for (param in params.keySet()) {
-                    if (line =~ /$param/) newLine = newLine.replace(param, params[param])
-                }
-                newLine
-            }
-        }
-    }
-
-
-    doLast{
-        mergeConfig (destinationDir.getAbsolutePath() + '/config/config.xml'
-            , targetDir.getAbsolutePath() + '/config.custom'
-            , null)
-        if (makeExecsFileWriter) {
-            makeExecsFileWriter.flush()
-            makeExecsFileWriter.close()
-        }
-    }
-}
 
 task cleanSubProject(type: Delete){
 
-}
-
-task copyOptional(type: Copy) {
-    from rootDir.getAbsolutePath() + '/build/resources/main/optional'
 }
 
 task prepareSublimeSettings(type: Copy) {
@@ -143,73 +144,24 @@ task prepareSublimeSettings(type: Copy) {
     into mkdir('.sublime')
 }
 
+task copyToIvy(type: Copy) {
+    from jar
+    new File('C:\\Users\\asemelit\\.grails\\ivy-cache\\org.smltools').deleteDir()
+    into 'C:\\Users\\asemelit\\Documents\\GitHub\\grepp-server\\lib'
+}
+
 tasks.addRule("Pattern: install<ID>") { String taskName ->
-	if (taskName.startsWith("install"))
-	{
-		def subProject = null
-        if (taskName =~ /Dev/) {
-            subProject = project(':dev')
-		}
-        else if (taskName ==~ /install/) {
-            subProject = project(':release')
-
-        }
-        
-        if (subProject)
-        {
-
-            targetDir = subProject.hasProperty('targetDir') ? subProject.targetDir : targetDir
-            includeOptional = subProject.hasProperty('includeOptional') ? subProject.includeOptional : includeOptional
-            oldJdkCompatibility = subProject.hasProperty('oldJdkCompatibility') ? subProject.oldJdkCompatibility : oldJdkCompatibility
-            oldJreLibPath = subProject.hasProperty('oldJreLibPath') ? subProject.oldJreLibPath : oldJreLibPath
-            params = subProject.hasProperty('params') ? subProject.params : params
-        }
-        
+    if (taskName.startsWith("install"))
+    {
         def installDir = new File(targetDir.getAbsolutePath() + 'Install')
         installApp.destinationDir = installDir
         applicationDistribution.from(processResources) {
-            exclude "**/optional/**"
             includeEmptyDirs = false
         }
-
-        if (includeOptional)
-            applicationDistribution.from(copyOptional.source)
 
         cleanSubProject.delete fileTree(installDir.getAbsolutePath())
         clean.dependsOn(':cleanSubProject')
         task(taskName, dependsOn: ':installApp') << {
         }   
-	}
-}
-
-def mergeConfig(def origin, def toMerge, def target) {
-    File originFile = new File(origin) 
-    File mergeFile = new File(toMerge)
-    if (originFile.exists() && mergeFile.exists()) { //nothing to do if the file to include does not exist
-        def cfgDoc = DOMBuilder.parse(new FileReader(originFile))
-        def customDoc = DOMBuilder.parse(new FileReader(mergeFile))
-        def root = cfgDoc.documentElement
-        use(DOMCategory) {
-            def origCustomNode = root.custom[0]
-            def mergingCustomNode = customDoc.documentElement.custom[0]
-            if (origCustomNode == null) {
-                root.appendChild(cfgDoc.importNode(mergingCustomNode, true))
-            }
-            else {
-                mergingCustomNode.children().each {
-                    origCustomNode.appendChild(cfgDoc.importNode(it, true))
-                }
-            }
-        }
-        cfgDoc.normalizeDocument()
-        if (target == null) { //merging into origin
-            XmlUtil.serialize(root, new FileWriter(originFile))    
-        }
-        else {
-            XmlUtil.serialize(root, new FileWriter(target))    
-        }
-    }
-    else {
-        println "Check $origin and $toMerge paths"
     }
 }

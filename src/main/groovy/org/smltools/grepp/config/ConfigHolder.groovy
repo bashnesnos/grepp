@@ -1,92 +1,96 @@
-package org.smltools.grepp.config
+package org.smltools.grepp.config;
 
-import groovy.xml.dom.DOMCategory;
-import groovy.util.logging.Slf4j
-import org.w3c.dom.Document
-import org.w3c.dom.Element
-import javax.xml.XMLConstants
-import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.SchemaFactory
-import javax.xml.validation.Validator
-import groovy.xml.DOMBuilder
+import groovy.util.ConfigObject
+import java.io.IOException
+import java.io.Writer
+import java.net.URL
+import java.net.URI
+import java.util.Collection
+import java.util.Map
+import java.util.Properties
+import java.util.Set
+import groovy.util.ConfigSlurper
+import java.util.regex.Pattern
+import org.smltools.grepp.util.GreppUtil
 
-@Slf4j
-public class ConfigHolder {
+/** 
+ * 
+ * As much immutable version of ConfigObject as possible to represent Grepp config file.
+ * Default representation is a .groovy file
+ *
+ * @author asemelit
+ */
 
-	//internal
-	private Validator configValidator;
-	private String configFilePath;
-	private String configXSDPath;
-	private Document cfgDoc;
-	private Element root;
+public class ConfigHolder extends ConfigObject {
+    public final static String SAVED_CONFIG_KEY = "savedConfigs";
+    public final static String SAVED_CONFIG_FILENAME_PATTERN_KEY = "pattern";
+    public final static String SAVED_CONFIG_STARTER_KEY = "starter";
+    public final static String SAVED_CONFIG_TERMINATOR_KEY = "terminator";
+    public final static String SAVED_CONFIG_DATE_FORMAT_KEY = "dateFormat";
+    public final static String SAVED_CONFIG_DATE_FORMAT_REGEX_KEY = "regex";
+    public final static String SAVED_CONFIG_DATE_FORMAT_VALUE_KEY = "value";
+    public final static String SAVED_CONFIG_LOG_THRESHOLD_KEY = "logThreshold";
 
-	/**
-	 * Constructor <br>
-	 * Initializes the instance. Parses config.xml and loads defaults from there.
-	 *
-	 * @param configFilePath String which can be recognized by a <code>FileReader</code> and is a valid path to an config.xml file
-	 */
-	ConfigHolder(String pConfigFilePath)
-	{
-		this(pConfigFilePath, null)
-	}
-	
-	
-	ConfigHolder(String pConfigFilePath, String pConfigXSDPath)
-	{
-		loadConfigInternal(pConfigFilePath, pConfigXSDPath)
-	}
+    /**
+     * Finds config id by specified String. Method looks up for <config> element containing matching <pattern> with "alevel" parameter equal to level.
+     * 
+     * @param config
+     * @param fileName String which would be matched to 'pattern' property of a savedConfig
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    public static String findConfigIdByFileName(ConfigHolder config, String fileName) {
+            if (config == null || fileName == null) {
+                    throw new IllegalArgumentException("Both config and fileName shouldn't be null");
+            }
 
-	public Validator getCofigValidator() {
-		return configValidator;
-	}
-	
-	public String getConfigFilePath() {
-		return configFilePath;
-	}
-	
-	public String getConfigXSDPath() {
-		return configXSDPath;
-	}
+            return config.savedConfigs.findResult { configId, props ->
+                    if (props.containsKey(SAVED_CONFIG_FILENAME_PATTERN_KEY)) {
+                            String currentConfigPtrn = props.pattern
+                            if (fileName =~ currentConfigPtrn) {
+                                return configId;
+                            }
+                    }
+            }
+    } 
+    
+    private URL configFilePath
 
-	public Document getCfgDoc() {
-		return cfgDoc;
-	}
-	
-	public Element getRoot() {
-		return root;
-	}
-	
-	public Object withRoot(Closure closure) {
-		use(DOMCategory) {
-			return closure.call(root);
-		}
-	}
-		
-	private void loadConfigInternal(String pConfigFilePath, String pConfigXSDPath) {
-		if (pConfigXSDPath == null || validateConfigFile(pConfigFilePath, pConfigXSDPath)) {
-			initConfig(pConfigFilePath)
-		}
-		else {
-			throw new RuntimeException("config.xml is invalid")
-		}
-	}
-	
-	private boolean validateConfigFile(String pCconfigFilePath, String pConfigXSDPath) {
-		log.trace("Loading validator")
-		def factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-		def schema = factory.newSchema(new StreamSource(new FileReader(pConfigXSDPath)))
-		configXSDPath = pConfigXSDPath
-		configValidator = schema.newValidator()
-		log.trace("Validating the config")
-		configValidator.validate(new StreamSource(new FileReader(pCconfigFilePath)))
-		return true
-	}
-	
-	private void initConfig(String pConfigFilePath) {
-		configFilePath = pConfigFilePath
-		cfgDoc = DOMBuilder.parse(new FileReader(configFilePath))
-		root = cfgDoc.documentElement
-	}
-	
+    public void save() {
+    	backupConfigFile()
+    	writeToConfigFile()
+    }
+
+    public ConfigHolder() {
+    	loadDefaults()
+    }
+
+    public ConfigHolder(URL configFilePath) {
+        if (configFilePath == null) throw new IllegalArgumentException("configFilePath shouldn't be null")
+        
+        this.configFilePath = configFilePath
+        this.merge(new ConfigSlurper().parse(configFilePath))
+    }
+
+    void loadDefaults() {
+        this.defaults.spoolFileExtension = 'txt'
+        this.defaults.resultsDir = 'results'
+        this.defaults.report.aggregator = 'csv'
+        this.defaults.report.printHeader = true
+    }
+
+    void backupConfigFile() {
+        if (configFilePath != null) {
+            new File(configFilePath.toURI()).renameTo(new File(new URI(configFilePath.toString().replace("groovy", "bak${String.format('%tY%<tm%<td', new Date())}"))))
+        }
+    }
+
+    void writeToConfigFile() {
+        if (configFilePath != null) {
+            def configFile = new File(configFilePath.toURI())
+            def writer = new StringWriter()
+            this.writeTo(writer)
+            configFile.write(GreppUtil.escapeRegexes(writer.toString()))
+        }
+    }
 }

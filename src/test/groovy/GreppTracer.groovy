@@ -1,21 +1,28 @@
-import org.smltools.grepp.config.PredictingParamsHolderFactory
+import org.smltools.grepp.cli.CLIFacade
+import org.smltools.grepp.cli.Grepp
 import org.smltools.grepp.config.ConfigHolder
-import org.smltools.grepp.config.Param
-import org.smltools.grepp.Grepp
+import java.util.Date
+import java.text.SimpleDateFormat
+import org.smltools.grepp.filters.entry.PropertiesFilter
+import groovy.xml.MarkupBuilder
+import org.smltools.grepp.util.PropertiesParserFactory
+import org.smltools.grepp.output.SimpleOutput
+import org.smltools.grepp.filters.StringAggregator
+import org.smltools.grepp.filters.FilterChain
+import java.util.regex.Pattern
 
-def BASE_HOME = System.getProperty("grepp.home")
-def HOME = BASE_HOME + "\\build\\resources\\test"
-//def WGREP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
-//def WGREP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
-//def defalutOut = System.out
+def HOME = System.getProperty("grepp.home")
+def GREPP_CONFIG = System.getProperty("grepp.config")
+//ConfigHolder config = new ConfigHolder(new File(GREPP_CONFIG).toURI().toURL())
+//CLIFacade facade = new CLIFacade(config);
+//		def options = facade.parseOptions("--to_test --predef $HOME\\fpTest*".split())
+//		def runtimeConfig = facade.makeRuntimeConfig()
+//		def entryFilterChain = facade.makeFilterChains(runtimeConfig, options).entryFilterChain
+//		def newConfig = entryFilterChain.getAsConfig(null)
+//println newConfig
 
-//def	config = new ConfigHolder(WGREP_CONFIG, WGREP_CONFIG_XSD) 
 
-//config.withRoot{ root ->
-//	println root.options.opt[0].text()
-//}
-//PredictingParamsHolderFactory paramFactory = new PredictingParamsHolderFactory(config)
-//def params = paramFactory.getParamsHolder("-tsL stCommand queryTime --some_timings cmd_only_1.log".split(" "))
-
-Grepp.main("-tf --avg_timings $HOME\\processing_report_test.log".split(" "))
- 
+def propParser = PropertiesParserFactory.getParserInstanceById('logback')
+propParser.setGreppOutput(new SimpleOutput<String>(null, null, new PrintWriter(System.out, true)))
+propParser.process([new File("$HOME\\config\\logback.xml")])
+//Grepp.main("--parse logback $HOME\\config\\logback.xml".split(" "))

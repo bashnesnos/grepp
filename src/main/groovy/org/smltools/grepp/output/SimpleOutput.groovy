@@ -1,13 +1,12 @@
 package org.smltools.grepp.output;
 
 import groovy.util.logging.Slf4j
+import org.smltools.grepp.config.ConfigHolder
 
-import org.smltools.grepp.config.ParamsHolder
-import org.smltools.grepp.config.ParamsHolderFactory
 import org.smltools.grepp.filters.enums.Event
-import org.smltools.grepp.filters.FilterBase
-import org.smltools.grepp.output.WgrepOutput;
-import org.smltools.grepp.filters.FilterChainFactory;
+import org.smltools.grepp.filters.FilterChain
+import org.smltools.grepp.output.GreppOutput;
+import org.smltools.grepp.output.RefreshableOutput;
 
 
 /**
@@ -18,57 +17,66 @@ import org.smltools.grepp.filters.FilterChainFactory;
  *
  */
 
-@Slf4j
-public class SimpleOutput implements WgrepOutput<Object, String> {
+@Slf4j("LOGGER")
+public class SimpleOutput<T> implements GreppOutput<T>, RefreshableOutput<String> {
 	
 	protected PrintWriter printer;
-	protected ParamsHolder params;
-	protected FilterBase filterChain;
+    protected ConfigHolder config;
+	protected FilterChain<T> filterChain;
 	
-	SimpleOutput(ParamsHolder params_, PrintWriter printer_) {
-		printer = printer_
-		params = params_
-		filterChain = FilterChainFactory.createFilterChain(params)
+	public SimpleOutput(ConfigHolder config, FilterChain<T> filterChain) {
+		this(config, filterChain, null)
 	}
 	
+	public SimpleOutput(ConfigHolder config, FilterChain<T> filterChain, PrintWriter printer) {
+		this.printer = printer
+		this.config = config
+		this.filterChain = filterChain
+	}
+	
+    @Override
+    public void flush() {
+    	if (filterChain != null) {
+        	filterChain.flush()
+        }
+    }
+    
 	@Override
-	public void printToOutput(Object data) {
-		printNotFiltered(filterChain.filter(data))
+	public void print(T data) {
+		printNotFiltered(filterChain != null ? filterChain.filter(data) : data)
 	}
 
 	@Override
-	public void closeOutput() {
+	public void close() {
+		flush()
 		if (printer != null) {
 			printer.close();
 		}
 	}
 
 	@Override
-	public void refreshFilters(String criteria) {
-			try {
-				if (params.refresh(criteria))
-				{
-					filterChain = FilterChainFactory.createFilterChain(params)
-				}
+	public void refreshFilters(String fileName) {
+		if (filterChain != null) {
+	        String configId = ConfigHolder.findConfigIdByFileName(config, fileName)
+			if (configId != null) {
+				filterChain.refreshByConfigId(configId)
 			}
-			catch(IllegalArgumentException e) {
-				log.debug(e)
-			}
+		}
 	}
 	
 	@Override
 	public void processEvent(Event event) {
-		printNotFiltered(filterChain.processEvent(event))
+		if (filterChain != null) {
+			printNotFiltered(filterChain.processEvent(event))
+		}
 	}
 
-	protected void printNotFiltered(Object data) {
-		if (data != null)
-		{
+	protected void printNotFiltered(T data) {
+		if (data != null) {
 			printer.println(data)
 		}
-		else
-		{
-			log.trace("data is null, not printing it")
+		else {
+			LOGGER.trace("Nothing to print")
 		}
 	}
 	

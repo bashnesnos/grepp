@@ -1,10 +1,10 @@
-import org.smltools.grepp.*
-import org.smltools.grepp.filters.entry.PropertiesFilter
-import org.smltools.grepp.config.ParamsHolderFactory
-import org.smltools.grepp.config.PredictingParamsHolderFactory
+import org.smltools.grepp.filters.entry.*
+import org.smltools.grepp.filters.logfile.*
+import org.smltools.grepp.cli.Grepp
+import org.smltools.grepp.cli.CLIFacade
 import org.smltools.grepp.config.ConfigHolder
-import org.smltools.grepp.config.Param
 import org.smltools.grepp.util.GreppUtil
+import java.net.URL
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
 import groovy.util.GroovyTestCase
@@ -13,15 +13,13 @@ import java.text.SimpleDateFormat
 class GreppTest extends GroovyTestCase {
 
 	ConfigHolder config
-	ParamsHolderFactory paramFactory
-	def BASE_HOME = System.getProperty("grepp.home")
-	def HOME = BASE_HOME + "\\build\\resources\\test"
-	def GREPP_CONFIG = BASE_HOME + "\\build\\resources\\test\\config.xml"
-	def GREPP_CONFIG_XSD = BASE_HOME + "\\build\\resources\\main\\config\\config.xsd"
+	CLIFacade facade
+	def HOME = System.getProperty('grepp.home')
+	def GREPP_CONFIG = System.getProperty("grepp.config")
 
 	void setUp() {
-		config = new ConfigHolder(GREPP_CONFIG, GREPP_CONFIG_XSD)
-		paramFactory = new PredictingParamsHolderFactory(config);
+		config = new ConfigHolder(new URL('file', '/', GREPP_CONFIG))
+		facade = new CLIFacade(config);
 	}
 
 	public static String getOutput(Closure operation) {
@@ -60,55 +58,171 @@ class GreppTest extends GroovyTestCase {
 		println "ER: ####\n$expectedResult\n#### :ER"
 		String actualResult = getOutput(operation)
 		println "AR: ####\n$actualResult\n#### :AR"
-		assertTrue(expectedResult == actualResult)
+		assertTrue("Output not matched", expectedResult.replace('\r\n', '\n') == actualResult)
 	}
 
+	public static def makeFilterChains(def facade, String arguments) {
+		def options = facade.parseOptions(arguments.split())
+		def runtimeConfig = facade.makeRuntimeConfig()
+		return facade.makeFilterChains(runtimeConfig, options)
+	}
+
+//	void testGetOptions(){
+//		config.getOptions()
+//	}
+	
 	void testMainVarsProcessing() {
-		def params = paramFactory.getParamsHolder("-L test test $HOME\\fpTest*".split(" "))
-		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "test" )
-		assertTrue( params.get(Param.FILTER_PATTERN) == "test" )
-		assertTrue( params.get(Param.FILES) == [
+		def options = facade.parseOptions("-l test test $HOME\\fpTest*".split())
+		assertTrue("User entry pattern option not recognized: " + options.l, "test".equals(options.l))
+		def runtimeConfig = facade.makeRuntimeConfig()
+		def entryFilterChain = facade.makeFilterChains(runtimeConfig, options).entryFilterChain
+		def newConfig = entryFilterChain.getAsConfig("main")
+		assertTrue("Filter pattern not recognized", "test".equals(newConfig.savedConfigs.main.starter))
+		assertTrue("Files not recognized", runtimeConfig.data.files == [
 			new File(HOME+"\\fpTest_test.log")]
 		)
-		assertTrue( params.get(Param.FOLDER_SEPARATOR) != null )
+		assertTrue("Folder separator not initialized", runtimeConfig.folderSeparator != null )
 	}
 	
 	void testConfigsProcessing() {
-		def params = paramFactory.getParamsHolder("--to_test --predef $HOME\\fpTest*".split(" "))
-		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "####\\[\\D{1,}\\].*(\\d{4}-\\d{1,2}-\\d{1,2} \\d{2}:\\d{2}:\\d{2})" )
-		assertTrue( params.get(Param.FILTER_PATTERN) == "Something::" )
-		assertTrue( params.get(Param.FILES) == [
-			new File(HOME+"\\fpTest_test.log")]
-		)
-		assertTrue( params.get(Param.FOLDER_SEPARATOR) != null )
+		def entryFilterChain = makeFilterChains(facade, "--to_test --predef $HOME\\fpTest*").entryFilterChain
+		def newConfig = entryFilterChain.getAsConfig(null)
+		assertTrue("Filter pattern not recognized", config.filterAliases.predef.equals(newConfig.filterAliases.predef))
+		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
+		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
 	}
 
 	void testExtendedPatternProcessing() {
-
-		def params = paramFactory.getParamsHolder("-L test test%and%tets $HOME\\test*".split(" "))
-		assertTrue( params.get(Param.FILTER_PATTERN) == "test%and%tets" )
+		def entryFilterChain = makeFilterChains(facade, "-l test test%and%tets $HOME\\test*").entryFilterChain
+		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
+		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
 	}
 
 	void testComplexVarsProcessing() {
-
-		def params = paramFactory.getParamsHolder("-L test test --dtime 2013-01-25T12:00:00 + $HOME\\test*".split(" "))
-		assertTrue( params.get(Param.DATE_TIME_FILTER) == "dtime" )
+		def runtimeConfig = makeFilterChains(facade, "-l test -d 2013-01-25T12:00:00;+ test $HOME\\test*")
+		def entryFilterChain = runtimeConfig.entryFilterChain
+		assertTrue("Should have EntryDateFilter", entryFilterChain.has(EntryDateFilter.class))
+		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
+		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
+		def fileFilterChain = runtimeConfig.fileFilterChain
+		assertTrue("Should have FileDateFilter", fileFilterChain.has(FileDateFilter.class))
 	}
 
 	void testAutomationProcessing() {
-		def params = paramFactory.getParamsHolder("-e test $HOME\\fpTest_*".split(" "))
-		params.refresh(params.get(Param.FILES)[0])
-		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == /####\[\D{1,}\].*(\d{4}-\d{1,2}-\d{1,2} \d{2}:\d{2}:\d{2})/)
-		assertTrue( params.get(Param.LOG_DATE_FORMAT) == "yyyy-MM-dd HH:mm:ss" )
+		def runtimeConfig = makeFilterChains(facade, "test $HOME\\fpTest_*")
+		def entryFilterChain = runtimeConfig.entryFilterChain
+		entryFilterChain.refreshByConfigId(ConfigHolder.findConfigIdByFileName(config, runtimeConfig.data.files[0].name))
+		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
+		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
 	}
 
 	void testMoreComplexVarsProcessing() {
+		def runtimeConfig = makeFilterChains(facade, "-s -l stCommand --count_ops cmd_only_1.log")
+		def entryFilterChain = runtimeConfig.entryFilterChain
+		assertTrue("Should have LogEntryFilter", entryFilterChain.has(LogEntryFilter.class))
+		assertTrue("Should have SimpleFilter", entryFilterChain.has(SimpleFilter.class))
+		assertTrue("Files not recognized", runtimeConfig.data.files.containsAll([new File("cmd_only_1.log")]))
+		assertTrue("Separator wasn't identified", "\\\\".equals(runtimeConfig.folderSeparator))
+	}
 
-		def params = paramFactory.getParamsHolder("-sL stCommand queryTime --some_timings cmd_only_1.log".split(" "))
-		assertTrue( params.get(Param.LOG_ENTRY_PATTERN) == "stCommand" )
-		assertTrue( params.get(Param.FILTER_PATTERN) == "queryTime" )
-		assertTrue( params.get(Param.FILES) == [new File("cmd_only_1.log")])
-		assertTrue( params.get(Param.FOLDER_SEPARATOR) == "\\\\" )
+	void testPluginForReportFilterMethod() {
+		def expectedResult = """\
+some_cmd,count_of_operands
+Foo,test
+Koo,test
+Foo,test"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--test_ops oo $HOME\\processing_report_test.log".split(" "))
+		}
+	}
+
+	void testOnTheFlyPluginForReportAggregator() {
+		def expectedResult = """\
+Foo|test
+Koo|test
+Foo|test"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("-add fly_report -nohd -repProp agg=piped_text;filter(name=\"?(.*?)\",some_cmd);test((operand),count_of_operands) oo $HOME\\processing_report_test.log".split(" "))
+		}
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--fly_report $HOME\\processing_report_test.log".split(" "))
+		}
+
+	}
+
+	void testPluginForFilter() {
+		def expectedResult = """\
+doodki!
+doodki!
+doodki!
+doodki!"""		
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--doodki oo $HOME\\processing_report_test.log".split(" "))
+		}
+	}
+
+	void testOnTheFlyLockedConfig() {
+		def expectedResult = """\
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
+Important information: fo
+
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
+This important stuff was missed before
+
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
+Too early for main time tests
+
+2000-01-01 10:05:56,953 [ACTIVE] ThreadStart: '15'
+The end
+
+2000-01-01 10:05:56,952 [ACTIVE] ThreadStart: '10' 
+Still too early for main time tests
+
+2000-01-01 10:05:56,955 [ACTIVE] ThreadStart: '10'
+A bit more stuff
+The end
+"""
+		assertGreppOutput(expectedResult) {
+			Grepp.main((String[]) ["--lock", "--noff", "--add", "myconfig", "--threadProp", "ThreadStart: '\\d{1,2}';;The end"
+				, "--dateProp", "yyyy-MM-dd;(\\d{4}-\\d{2}-\\d{2})", "-e", "-d", "+;2001"
+				, "oo", "$HOME\\processing_time_test.log"])
+		}
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--lock --noff -e -d +;2001 --myconfig $HOME\\processing_time_test.log".split(" "))
+		}
+	}
+
+	void testOnTheFlyReport() {
+		def expectedResult = """\
+some_cmd,count_of_operands
+Foo,3
+Koo,1
+Foo,1"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--add new_report --repProp filter(name=\"?(.*?)\",some_cmd);counter((operand),count_of_operands) oo $HOME\\processing_report_test.log".split(" "))
+		}
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--new_report $HOME\\processing_report_test.log".split(" "))
+		}
+	}
+
+	void testFileMTimeFiltering() {
+		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def dateFormat = new SimpleDateFormat("yyyy-MM-dd")
+		def testTimeStringFrom = dateFormat.format(new Date(fileTime.getTime() + 24*60*60*1000))
+
+		def expectedResult = ""
+		assertGreppOutput(expectedResult) {
+			Grepp.main("-d $testTimeStringFrom;+ Foo $HOME\\processing_time_test.log".split(" "))
+		}
+
 	}
 
 	void testComplexFiltering() {
@@ -129,7 +243,7 @@ Loo
 2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
 Voo
 #complex"""
-		
+
 		assertGreppOutput(expectedResult) {
 			Grepp.main("-e Foo $HOME\\processing_test.log".split(" "))
 		}
@@ -140,9 +254,12 @@ Voo
 		def expectedResult = """\
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo Man Chu
-#basic"""
+#basic
+2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
+Voo
+#complex"""
 		assertGreppOutput(expectedResult) {
-			Grepp.main((String[]) ["Foo%and%Man Chu%or%#basic" //don't need to split here
+			Grepp.main((String[]) ["Foo%and%Man Chu%or%#complex" //don't need to split here
 				, "$HOME\\processing_test.log"])
 		}
 	}
@@ -156,9 +273,42 @@ Foo Koo
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo Man Chu
 #basic"""
-		
+
 		assertGreppOutput(expectedResult) {
 			Grepp.main("Foo $HOME\\processing_test.log".split(" "))
+		}
+	}
+
+	void testBasicNoRegexFiltering() {
+
+		def expectedResult = """\
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '5' 
+Boo
+\\this^should|be\$matched[with]no?pain(*)\\
+"""
+		//though the last \ causes some pain in ConfigObject saving
+		assertGreppOutput(expectedResult) {
+			Grepp.main("-add norx_test -norx \\this^should|be\$matched[with]no?pain(*) $HOME\\processing_test.log".split(" "))
+		}
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--norx_test $HOME\\processing_test.log".split(" "))
+		}
+
+
+	}
+
+	void testLogEntryStartEndFiltering() {
+
+		def expectedResult = """\
+<root>
+	<header>mes1</header>
+	<info>Look for me!</info>
+</root>
+<root><header>mes1</header><info>Look for this one too!</info></root>"""		
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("-l <root>;</root> Look $HOME\\payload_test.log".split(" "))
 		}
 	}
 
@@ -174,7 +324,23 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("Foo --dtime $testTimeStringFrom +60 $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d $testTimeStringFrom;+60 Foo $HOME\\processing_time_test.log".split(" "))
+		}
+	}
+
+	void testLogDateConfigFiltering() {
+
+		def fileTime = new Date(new File(HOME+"\\processing_time_test.log").lastModified())
+		def dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH")
+		def logDateFormat = new SimpleDateFormat("yyyy-MM-dd HH")
+		def testTimeStringFrom = dateFormat.format(fileTime)
+
+		def expectedResult = """\
+${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22' 
+Foo Koo
+"""
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--lock -d $testTimeStringFrom;+60 --iso Foo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -193,7 +359,7 @@ ${logDateFormat.format(new Date(fileTime.getTime() + 3*60*60*1000))}:05:56,951 [
 Foo Man Chu
 #basic"""
 		assertGreppOutput(expectedResult) {
-			Grepp.main("Foo --dtime $testTimeStringFrom + $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d $testTimeStringFrom;+ Foo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
@@ -209,36 +375,61 @@ ${logDateFormat.format(fileTime)}:05:56,951 [ACTIVE] ThreadStart: '22'
 Foo Koo
 """
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--foo --dtime + $testTimeStringTo $HOME\\processing_time_test.log".split(" "))
+			Grepp.main("-d +;$testTimeStringTo --foo $HOME\\processing_time_test.log".split(" "))
 		}
 	}
 
-	void testPostFiltering() {
+	void testReportFiltering() {
 
 		def expectedResult = """\
 some_cmd,count_of_operands
 Foo,3
-Koo,1"""
+Koo,1
+Foo,1"""
 
 		assertGreppOutput(expectedResult) {
-			Grepp.main("--f --some_timings $HOME\\processing_report_test.log".split(" "))
+			Grepp.main("--count_ops $HOME\\processing_report_test.log".split(" "))
 		}
 	}
 
-	void testPostAverageFiltering() {
+	void testReportDefaultGroupFiltering() {
+
+		def expectedResult = """\
+some_cmd,count_of_operands
+Foo,4
+Koo,1"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--group_ops $HOME\\processing_report_test.log".split(" "))
+		}
+	}
+
+	void testReportDefaultStringGroupFiltering() {
+
+		def expectedResult = """\
+some_cmd,operands
+Foo,alpha;bravo;delta;gamma
+Koo,this"""
+
+		assertGreppOutput(expectedResult) {
+			Grepp.main("--group_op_values $HOME\\processing_report_test.log".split(" "))
+		}
+	}
+
+
+	void testReportAverageFiltering() {
 
 		def expectedResult = """\
 some_cmd,avg_processing
 Foo,150
-Koo,200
-"""
+Koo,200"""
 		assertGreppOutput(expectedResult) {
-			Grepp.main("-f --avg_timings $HOME\\processing_report_test.log".split(" "))
+			Grepp.main("--avg_timings $HOME\\processing_report_test.log".split(" "))
 		}
 	}
 
 	void testHeteroFilesGreppMain() {
-		
+
 		def expectedResult = """\
 2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
@@ -246,7 +437,7 @@ Foo Koo
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
 Foo Man Chu
 #basic"""
-		
+
 		assertGreppOutput(expectedResult) {
 			Grepp.main("Foo $HOME\\processing_test.log $HOME\\fpTest_test.log".split(" "))
 		}
@@ -263,30 +454,49 @@ log4j.appender.CWMSGlobal.layout=org.apache.log4j.PatternLayout
 log4j.appender.CWMSGlobal.layout.ConversionPattern=\\#\\#\\#\\#[%-5p] %d{ISO8601} %t %c - %n%m%n
 """
 		def expectedResult = """\
-<config id='cwms_debug_' xmlns='http://www.smltools.org/config'>
-  <date_format>yyyy-MM-dd HH:mm:ss,SSS</date_format>
-  <date>(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})</date>
-  <starter>\\#\\#\\#\\#\\[[TRACEDBUGINFOWLSV]* *\\].*</starter>
-  <pattern>cwms_debug_.*\\.log</pattern>
-</config>"""	
-		def propFilter = new PropertiesFilter(null)
-		assertTrue(propFilter.filter(configString) == expectedResult)
+savedConfigs {
+	cwms_debug_ {
+		dateFormat {
+			value='yyyy-MM-dd HH:mm:ss,SSS'
+			regex='(\\\\d{4}-\\\\d{2}-\\\\d{2} \\\\d{2}:\\\\d{2}:\\\\d{2},\\\\d{3})'
+		}
+		starter='\\\\#\\\\#\\\\#\\\\#\\\\[[TRACEDBUGINFLOWSV]* *\\\\].*'
+		pattern='cwms_debug_.*\\\\.log'
+	}
+}
+logDateFormats {
+	cwms_debug_ {
+		value='yyyy-MM-dd HH:mm:ss,SSS'
+		regex='(\\\\d{4}-\\\\d{2}-\\\\d{2} \\\\d{2}:\\\\d{2}:\\\\d{2},\\\\d{3})'
+	}
+}
+"""	
+	
+		def propFilter = new PropertiesFilter()
+		def actualResult = propFilter.filter(configString).replace("\r\n", "\n")
+		assertTrue(actualResult, actualResult.equals(expectedResult))
 	}
 
 	void testPropertiesProcessing() {
 
-		Grepp.main("--parse $HOME\\test.properties".split(" "))
-		def cfgDoc = DOMBuilder.parse(new FileReader(GREPP_CONFIG))
-		def root = cfgDoc.documentElement
-		use(DOMCategory) {
-			def config = root.custom.config.find { it.'@id' == "cwms_debug_" }
-			assertTrue(config != null)
-			assertTrue(config.date_format.text() == "yyyy-MM-dd HH:mm:ss,SSS")
-			assertTrue(config.date.text() == "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})")
-			assertTrue(config.starter.text() == "\\#\\#\\#\\#\\[[TRACEDBUGINFOWLSV]* *\\].*")
-			assertTrue(config.pattern.text() == "cwms_debug_.*\\.log")
-		}
+		Grepp.main("--parse log4j $HOME\\test.properties".split(" "))
 
+		def changedConfig = new ConfigHolder(new URL('file', '/', GREPP_CONFIG))
+		assertTrue(changedConfig.savedConfigs.containsKey('cwms_debug_'))
+		assertTrue(changedConfig.logDateFormats.containsKey('cwms_debug_'))
+		assertTrue(changedConfig.savedConfigs.cwms_debug_.starter == "\\#\\#\\#\\#\\[[TRACEDBUGINFLOWSV]* *\\].*")
+		assertTrue(changedConfig.savedConfigs.cwms_debug_.pattern == "cwms_debug_.*\\.log")
+	}
+
+	void testPropertiesPluginProcessing() {
+
+		Grepp.main("--parse logback $HOME\\config\\logback.xml".split(" "))
+
+		def changedConfig = new ConfigHolder(new URL('file', '/', GREPP_CONFIG))
+		assertTrue(changedConfig.savedConfigs.containsKey('grepp'))
+		assertTrue(changedConfig.logDateFormats.containsKey('grepp'))
+		assertTrue(changedConfig.savedConfigs.grepp.dateFormat.value == "HH:mm:ss.SSS")
+		assertTrue(changedConfig.savedConfigs.grepp.pattern == "grepp\\.log")
 	}
 
 	void testInputStreamProcessing() {
@@ -307,10 +517,10 @@ fdsfd
 		def expectedResult = """#asda
 asdas
 #asdas"""
-		
+
 		try {
 			assertGreppOutput(expectedResult) {
-				Grepp.main("-L # asd".split(" "))
+				Grepp.main("-l # asd".split(" "))
 			}
 		}
 		catch (Exception e) {

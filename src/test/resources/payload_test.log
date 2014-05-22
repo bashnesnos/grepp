@@ -1,0 +1,29 @@
+2012-09-20 05:05:56,951 [ACTIVE] ThreadStart: '22' 
+<root>
+	<header>mes1</header>
+	<info>Skip this</header>
+</root>
+
+2013-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' SkipPattern
+Too
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '5' 
+Boo
+
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '7' 
+<root>
+	<header>mes1</header>
+	<info>Look for me!</info>
+</root>
+
+2014-09-20 05:05:57,951 [ACTIVE] ThreadStart: '22' ThreadEnd1
+Goo
+2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '1' 
+Foo Man Chu
+#basic
+2012-10-20 05:05:57,952 [ACTIVE] ThreadStart: '1' SkipPattern
+Loo
+2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
+Voo
+#complex
+2012-10-20 05:05:57,953 [ACTIVE] ThreadStart: '1' ThreadEnd2
+<root><header>mes1</header><info>Look for this one too!</info></root>

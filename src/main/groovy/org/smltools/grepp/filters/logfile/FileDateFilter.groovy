@@ -6,7 +6,11 @@ import java.util.regex.Matcher
 import groovy.util.logging.Slf4j
 import groovy.xml.dom.DOMCategory
 import org.smltools.grepp.filters.enums.Event
-import org.smltools.grepp.filters.FilterBase
+import org.smltools.grepp.filters.RefreshableFilterBase
+import org.smltools.grepp.filters.FilterParams
+import org.smltools.grepp.filters.entry.LogEntryFilter
+import org.smltools.grepp.config.ConfigHolder
+import groovy.util.ConfigObject;
 
 /**
  * Provides filtering of supplied files by last modified date. <br>
@@ -15,29 +19,65 @@ import org.smltools.grepp.filters.FilterBase
  * @author Alexander Semelit
  *
  */
-
-class FileDateFilter extends FilterBase<List<File>>
-{
+@Slf4j("LOGGER")
+@FilterParams(configIdPath = ConfigHolder.SAVED_CONFIG_KEY, mandatoryProps = [ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY], order = 0)
+public class FileDateFilter extends RefreshableFilterBase<List<File>> {
     //Checking dates everywhere
 
-    protected SimpleDateFormat FILE_DATE_FORMAT = null
-    protected List fileList = []
-    protected List INPUT_DATE_PTTRNS = []
-    protected Date FROM_DATE = null
-    protected Date TO_DATE = null
-    protected int LOG_FILE_THRESHOLD = -1 //means no threshold at all
-    protected int LOG_FILE_THRESHOLD_MLTPLR = 60*60*1000
+    protected SimpleDateFormat fileDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+    protected Date from = null
+    protected Date to = null
+    protected long logFileThreshold = -1L //means no threshold at all
+    protected long logFileThresholdMltplr = 60L*60L*1000L
 
-    FileDateFilter(FilterBase<List<File>> nextFilter_, String fileDateFormat, Date fromDate, Date toDate, Integer logFileThreshold )
-    {
-        super(nextFilter_, FileDateFilter.class)
-        FROM_DATE = fromDate
-        TO_DATE = toDate
-        FILE_DATE_FORMAT = new SimpleDateFormat(fileDateFormat)
-        if (logFileThreshold != null) LOG_FILE_THRESHOLD = logFileThreshold
+    public void setFileDateOutputFormat(String fileDateFormat) {
+        this.fileDateFormat = new SimpleDateFormat(fileDateFormat)
     }
-	
-	
+
+
+    public void setFrom(Date from) {
+        this.from = from;
+    }
+
+    public void setTo(Date to) {
+        this.to = to;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public boolean fillParamsByConfigId(String configId) {
+        if (!configIdExists(configId)) {
+            return false
+        }
+
+        def customCfg = config.savedConfigs."$configId"
+
+        if (customCfg.containsKey(ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY)) {
+            logFileThreshold = customCfg."$ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY"
+            this.configId = configId;            
+            return true
+        }
+        else {
+            LOGGER.debug("Log threshold is not configured for config: {}", configId)
+            return false
+        }
+    }
+
+    @Override
+    public ConfigObject getAsConfig(String configId) {
+        if (configId == null) {
+            if (this.configId == null) {
+                throw new IllegalArgumentException("Can't derive configId (none was supplied)");
+            }
+            else {
+                configId = this.configId;
+            }
+        }
+        def root = new ConfigObject()
+        root."$ConfigHolder.SAVED_CONFIG_KEY"."$configId"."$ConfigHolder.SAVED_CONFIG_LOG_THRESHOLD_KEY" = logFileThreshold
+        return root
+    }
+
 	/**
     * Checks supplied files if they exceed supplied time boundaries. <br>
     * 
@@ -46,22 +86,13 @@ class FileDateFilter extends FilterBase<List<File>>
     * @throws IllegalArgumentException if supplied argument is not instanceof List<Files>
     */
     @Override
-    boolean check(List<File> files) {
-        fileList = [] //invalidating fileList
-        log.trace("total files: {}", files.size())
-        fileList = files.findAll { file -> checkFileTime(file) }
-        return fileList != null && fileList.size() > 0
-    }
+    public List<File> filter(List<File> files) {
+        if (from == null && to == null) {
+            throw new IllegalStateException("Either 'from' or 'to' should be supplied to the filter");
+        }
 
-    /**
-     *
-	 * Passes next filtered collection.
-     *
-	 * @return <code>super.passNext</code> result
-	 */
-	@Override
-    void beforePassing(List<File> files) {
-        passingVal = fileList
+        LOGGER.trace("total files: {}", files.size())
+        return files.findAll { file -> checkFileTime(file) }
     }
 
     /**
@@ -73,36 +104,42 @@ class FileDateFilter extends FilterBase<List<File>>
 	boolean checkFileTime(File file)
     {
         if (file == null) return
-        Date fileTime = new Date(file.lastModified())
-        if (log.isTraceEnabled()) {
-            log.trace("fileTime: {}\nChecking if file suits FROM {}", FILE_DATE_FORMAT.format(fileTime), FROM_DATE == null ? null : FILE_DATE_FORMAT.format(FROM_DATE))
+
+        if (config != null) {
+            def configId = ConfigHolder.findConfigIdByFileName(config, file.getCanonicalPath())
+            if (configId != null) {
+                refreshByConfigId(configId) //refreshing first; so the logThreshold is re-initialized
+            }
         }
-        if (FROM_DATE == null || FROM_DATE.compareTo(fileTime) <= 0)
+
+        Date fileTime = new Date(file.lastModified())
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("fileTime: {}\nChecking if file suits FROM {}", fileDateFormat.format(fileTime), from == null ? null : fileDateFormat.format(from))
+        }
+        if (from == null || !fileTime.before(from))
         {
-            if (TO_DATE != null)
+            if (to != null)
             {
-                if (log.isTraceEnabled()) log.trace(" Checking if file suits TO {}", FILE_DATE_FORMAT.format(TO_DATE))
-                if (TO_DATE.compareTo(fileTime) >= 0)
-                {
+                if (LOGGER.isTraceEnabled()) LOGGER.trace(" Checking if file suits TO {}", fileDateFormat.format(to))
+                if (!fileTime.after(to)) {
                     return true
                 }
-                if (TO_DATE.compareTo(fileTime) < 0)
-                {
-                    log.trace("Passed TO_DATE")
-                    if ((LOG_FILE_THRESHOLD == -1) || fileTime.before(new Date(TO_DATE.getTime() + LOG_FILE_THRESHOLD*LOG_FILE_THRESHOLD_MLTPLR))) return file
+                if (to.before(fileTime)) {
+                    LOGGER.trace("Passed to")
+                    if ((logFileThreshold == -1) || fileTime.before(new Date(to.getTime() + logFileThreshold*logFileThresholdMltplr))) return file
                     else
                     {
-                        log.trace("File is too far")
+                        LOGGER.trace("File is too far")
                         return false
                     }
                 }
             }
-            log.trace("Passed FROM_DATE only")
+            LOGGER.trace("Passed from only")
             return true
         }
         else
         {
-            log.trace("Not passed")
+            LOGGER.trace("Not passed")
             return false
         }
     }

@@ -5,6 +5,7 @@ Foo Koo
 Too
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '5' 
 Boo
+\this^should|be$matched[with]no?pain(*)\
 
 2012-10-20 05:05:56,951 [ACTIVE] ThreadStart: '7' 
 Moo

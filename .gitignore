@@ -3,9 +3,7 @@
 ########
 .gradle/
 build/
-dev*
-release*
-default*
+*Install
 
 ########
 # Idea
@@ -14,17 +12,23 @@ default*
 *.iml
 
 ########
+#NetBeans
+########
+.nb-gradle*
+
+########
 # Sublime
 ########
-.sublime
+*.sublime-*
 
 ########
 # General
 ########
-*.log
 .classpath
 .project
 .settings/
 bin/
 /logs
 /results
+/.nb-gradle/private/
+

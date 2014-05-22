@@ -4,13 +4,13 @@ Prereq's for running:
 
 Run via grepp.bat(Win) or grepp(Unix)
 To check if it works, execute 
-	grepp -?
+	grepp -h
 
 It should show some help on how to use grepp.
 
 Distrib structure:
 ./bin 		- Win and nix executables
-./config 	- grepp config, xsd and logging config files. Feel free to change their contents, according to your needs.
+./config 	- grepp config, logging config and plugin files. Feel free to change their contents, according to your needs.
 ./lib 		- grepp libs. It's not neccessary to replace the libs. But if you know what you're doing, why not.
 
 It's worth adding ./bin into your PATH either in Win or Unix, so you can run grepp from anywhere on the machine.

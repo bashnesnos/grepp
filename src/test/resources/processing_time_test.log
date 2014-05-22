@@ -1,3 +1,31 @@
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
+Important information: fo
+
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
+This important stuff was missed before
+
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '13' 
+You won't see me
+
+2000-01-01 10:05:56,951 [ACTIVE] ThreadStart: '15' 
+Too early for main time tests
+
+2000-01-01 10:05:56,952 [ACTIVE] ThreadStart: '10' 
+Still too early for main time tests
+
+2000-01-01 10:05:56,952 [ACTIVE] ThreadStart: '13'
+Record in the middle attack
+
+2000-01-01 10:05:56,953 [ACTIVE] ThreadStart: '15'
+The end
+
+2000-01-01 10:05:56,954 [ACTIVE] ThreadStart: '16'
+Secret record
+
+2000-01-01 10:05:56,955 [ACTIVE] ThreadStart: '10'
+A bit more stuff
+The end
+
 #TEST_TIME_FROM#:05:56,951 [ACTIVE] ThreadStart: '22' 
 Foo Koo
 
