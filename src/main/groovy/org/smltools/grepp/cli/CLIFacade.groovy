@@ -189,7 +189,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 
     public ConfigObject makeFilterChains(ConfigObject runtimeConfig, OptionAccessor options) {
         FilterChain<String> entryFilterChain = new FilterChain<String>(config, new StringAggregator(), String.class)
-		Deque<ParamParser> varParsers = new ArrayDeque<ParamParser>();
+		Queue<ParamParser> varParsers = new LinkedList<ParamParser>();
 
         FilterChain<List<File>> fileFilterChain = new FilterChain<List<File>>(config, new StringAggregator(), new ArrayList<File>().class)
         fileFilterChain.add(fileFilterChain.getInstance(FileSortFilter.class))
@@ -339,14 +339,14 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			}
 
 			if (!processConfigId([entryFilterChain, fileFilterChain], arg)) {
-				ParamParser<?> paramParser = varParsers.pop()
+				ParamParser<?> paramParser = varParsers.poll()
 				if (paramParser instanceof FilterParser) {
 					if (!entryFilterChain.isEnabled(SimpleFilter.class) || entryFilterChain.has(SimpleFilter.class)) {
-						paramParser = varParsers.pop() //i.e. skipping filterParser
+						paramParser = varParsers.poll() //i.e. skipping filterParser
 					}
 				}
 				if (!paramParser.parseVar(runtimeConfig, arg)) { //pushing back since this parser has more to parse
-					varParsers.push(paramParser)
+					varParsers.offer(paramParser)
 				}
 			} 
 		}
@@ -550,14 +550,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 	}
 
     public static PrintWriter getConsolePrinter() {
-		def console = System.console()
-		if (console != null) {
-			return console.writer()
-		}
-		else {
-			LOGGER.debug("There is no associated console to use with this output! Defaulting to System.out.");
-			return new PrintWriter(System.out, true)
-		}
+		return new PrintWriter(System.out, true)
 	}
 	
 	public static PrintWriter getFilePrinter(ConfigObject runtimeConfig) {

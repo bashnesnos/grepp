@@ -3,12 +3,12 @@ import java.text.SimpleDateFormat
 apply plugin: 'groovy'
 apply plugin: 'application'
 
-version = '2.0'
+version = '1.0'
 def targetDir = new File("grepp") //default install dir path prefix
 
 def curJre = System.properties['java.version']
 //org.gradle.project.jdk - e.g. 1.6 - populate if app is going to be ran on JRE older than yours. Works on 1.5
-//org.gradle.project.jreLibPath - e.g. D:\Alex\jdk1.6.0_26\jre\lib - populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
+//org.gradle.project.jdkHome - e.g. D:\Alex\jdk1.6.0_26\ - populate if app is going to be ran on JRE older than yours. Used to set bootclasspath
 //org.gradle.project.printTestClasspath -e.g. true - prints test classpath if true
 
 def checkJre = { jreVer ->
@@ -47,8 +47,8 @@ task wrapper(type: Wrapper) {
 
 compileGroovy {
     if (project.hasProperty('jdk') && !(curJre =~ jdk)) {
-        if (!project.hasProperty('jreLibPath')) {
-            throw new InvalidUserDataException("You should supply a jre lib path if the desired jdk ($jdk) is not the same as the current ($curJre)") 
+        if (!project.hasProperty('jdkHome')) {
+            throw new InvalidUserDataException("You must supply a jdk home path if the desired jdk ($jdk) is not the same as the current ($curJre)") 
         }
 
         println "Building grepp for $jdk"
@@ -56,10 +56,28 @@ compileGroovy {
         sourceCompatibility = jdk
         targetCompatibility = jdk
         options.fork = true
-        options.bootClasspath = jreLibPath + "\\rt.jar"
+        options.bootClasspath = "$jdkHome\\jre\\lib\\rt.jar"
     }
     else {
         println "Building grepp for the current $curJre"
+    }
+}
+
+compileTestGroovy {
+    if (project.hasProperty('jdk') && !(curJre =~ jdk)) {
+        if (!project.hasProperty('jdkHome')) {
+            throw new InvalidUserDataException("You must supply a jdk home path if the desired jdk ($jdk) is not the same as the current ($curJre)") 
+        }
+
+        println "Building grepp test for $jdk"
+
+        sourceCompatibility = jdk
+        targetCompatibility = jdk
+        options.fork = true
+        options.bootClasspath = "$jdkHome\\jre\\lib\\rt.jar"
+    }
+    else {
+        println "Building grepp test for the current $curJre"
     }
 }
 
@@ -78,11 +96,23 @@ startScripts {
 
 }
 
+distZip {
+    classifier = project.hasProperty('jdk') ? "${jdk =~ /1.5/ ? '' : ('j' + jdk)}" : "${curJre =~ /1.5/ ? '' : ('j' + curJre)}"
+}
+
 jar.includes =['**/*.class'] //TODO: may be versioning or something is needed 
 jar.includeEmptyDirs = false
 
 test {
-	systemProperty 'grepp.home', rootDir.getAbsolutePath() + '/build/resources/test'
+    if (project.hasProperty('jdk') && !(curJre =~ jdk)) {
+        if (!project.hasProperty('jdkHome')) {
+            throw new InvalidUserDataException("You must supply a jdk home path if the desired jdk ($jdk) is not the same as the current ($curJre)") 
+        }
+        println "Testing grepp on $jdk"
+        executable = "$jdkHome\\bin\\java.exe"; 
+    }
+	
+    systemProperty 'grepp.home', rootDir.getAbsolutePath() + '/build/resources/test'
     systemProperty 'grepp.config', rootDir.getAbsolutePath() + '/build/resources/test/config/config.groovy'
 	def newCP = getClasspath() + project.files(rootDir.getAbsolutePath() + '/build/resources/test/config')
 	setClasspath(newCP)

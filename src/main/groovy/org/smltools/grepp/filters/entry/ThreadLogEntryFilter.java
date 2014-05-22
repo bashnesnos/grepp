@@ -3,8 +3,8 @@ package org.smltools.grepp.filters.entry;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.ArrayDeque;
+import java.util.Queue;
+import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -42,8 +42,8 @@ public class ThreadLogEntryFilter extends LogEntryFilter {
 	private Map<String, StringBuilder> threadStartPatternBufferMap = new LinkedHashMap<String, StringBuilder>();
 	private List<String> threadSkipEndPatternList = new ArrayList<String>();
 	private List<String> threadEndPatternList;
-	private Deque<String> readyThreadEntriesStack = new ArrayDeque<String>();
-	private Deque<StringBuilder> threadBuffers = new ArrayDeque<StringBuilder>();
+	private Queue<String> readyThreadEntriesStack = new LinkedList<String>();
+	private Queue<StringBuilder> threadBuffers = new LinkedList<StringBuilder>();
 
 	public ThreadLogEntryFilter() {
 		threadBuffers.add(new StringBuilder());
@@ -151,7 +151,7 @@ public class ThreadLogEntryFilter extends LogEntryFilter {
     }
 
 	private void addThreadEntry(String threadEntry) {
-		readyThreadEntriesStack.push(threadEntry);
+		readyThreadEntriesStack.offer(threadEntry);
 	}
 
 	private String getNextThreadEntry() {
@@ -159,7 +159,7 @@ public class ThreadLogEntryFilter extends LogEntryFilter {
 			return null;
 		}
 		else {
-			return readyThreadEntriesStack.pop();
+			return readyThreadEntriesStack.poll();
 		}
 	}
 
@@ -254,7 +254,7 @@ public class ThreadLogEntryFilter extends LogEntryFilter {
 
 	private StringBuilder getStringBuilder() {
 		if (!threadBuffers.isEmpty()) {
-			return threadBuffers.pop();	
+			return threadBuffers.poll();	
 		}
 		else {
 			return new StringBuilder();
@@ -264,7 +264,7 @@ public class ThreadLogEntryFilter extends LogEntryFilter {
 
 	private void pushStringBuilder(StringBuilder stringBuilder) {
 		stringBuilder.setLength(0);
-		threadBuffers.push(stringBuilder);
+		threadBuffers.offer(stringBuilder);
 	}
 
 	/**

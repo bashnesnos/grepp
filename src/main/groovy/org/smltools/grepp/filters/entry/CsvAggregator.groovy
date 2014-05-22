@@ -12,7 +12,7 @@ public class CsvAggregator extends ReportAggregatorBase {
 
     private List<String> columns = new ArrayList<String>();
     private StringBuilder aggregator = new StringBuilder();
-    private Deque<String> curRowColumns = null;
+    private Queue<String> curRowColumns = null;
     public static final String SPOOL_FILE_EXTENSION = "csv";
     public static final String COLUMN_SEPARATOR = ",";
 
@@ -37,14 +37,14 @@ public class CsvAggregator extends ReportAggregatorBase {
         }
 
         LOGGER.trace("Refreshing current row columns")
-        curRowColumns = new ArrayDeque<String>(columns) //copying
+        curRowColumns = new LinkedList<String>(columns) //copying
         return this
     }
 
     @Override
     public CsvAggregator addCell(String value) {
         if (!curRowColumns.isEmpty()) {
-            LOGGER.trace("Filled {}", curRowColumns.pop())
+            LOGGER.trace("Filled {}", curRowColumns.poll())
             if (columns.size() - curRowColumns.size() == 1) {
                 aggregator.append(value ?: "")
             }
