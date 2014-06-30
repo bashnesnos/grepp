@@ -20,6 +20,8 @@ import groovy.util.ConfigObject;
 import org.smltools.grepp.util.GreppUtil;
 import java.io.File;
 import static org.smltools.grepp.Constants.*;
+import org.smltools.grepp.filters.logfile.*;
+import org.smltools.grepp.filters.entry.*;
 
 public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Configurable {
     private static final Logger LOGGER = LoggerFactory.getLogger(FilterChain.class);
@@ -50,14 +52,14 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 
     static {
     	try {
-	    	addFilterByName("org.smltools.grepp.filters.logfile.FileDateFilter");
-	    	addFilterByName("org.smltools.grepp.filters.logfile.FileSortFilter");
-	    	addFilterByName("org.smltools.grepp.filters.entry.EntryDateFilter");
-	    	addFilterByName("org.smltools.grepp.filters.entry.LogEntryFilter");
-	    	addFilterByName("org.smltools.grepp.filters.entry.SimpleFilter");
-	    	addFilterByName("org.smltools.grepp.filters.entry.ThreadLogEntryFilter");
-	    	addFilterByName("org.smltools.grepp.filters.entry.ReportFilter");
-	    	addFilterByName("org.smltools.grepp.filters.entry.PropertiesFilter");
+    		addFilterByClass(FileDateFilter.class);
+	    	addFilterByClass(FileSortFilter.class);
+	    	addFilterByClass(EntryDateFilter.class);
+	    	addFilterByClass(LogEntryFilter.class);
+	    	addFilterByClass(SimpleFilter.class);
+	    	addFilterByClass(ThreadLogEntryFilter.class);
+	    	addFilterByClass(ReportFilter.class);
+	    	addFilterByClass(PropertiesFilter.class);
 	    	
 	    	if (System.getProperty(GREPP_HOME_SYSTEM_OPTION) != null) {
 	    		File pluginDir = new File(System.getProperty(GREPP_HOME_SYSTEM_OPTION), GREPP_FILTER_PLUGIN_DIR);

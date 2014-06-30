@@ -10,6 +10,7 @@ import org.smltools.grepp.output.SimpleOutput
 import org.smltools.grepp.filters.StringAggregator
 import org.smltools.grepp.filters.FilterChain
 import java.util.regex.Pattern
+import org.smltools.grepp.util.GreppUtil
 
 def HOME = System.getProperty("grepp.home")
 def GREPP_CONFIG = System.getProperty("grepp.config")
@@ -22,7 +23,7 @@ def GREPP_CONFIG = System.getProperty("grepp.config")
 //println newConfig
 
 
-def propParser = PropertiesParserFactory.getParserInstanceById('logback')
-propParser.setGreppOutput(new SimpleOutput<String>(null, null, new PrintWriter(System.out, true)))
-propParser.process([new File("$HOME\\config\\logback.xml")])
+//def propParser = PropertiesParserFactory.getParserInstanceById('logback')
+//propParser.setGreppOutput(new SimpleOutput<String>(null, null, new PrintWriter(System.out, true)))
+//propParser.process([new File("$HOME\\config\\logback.xml")])
 //Grepp.main("--parse logback $HOME\\config\\logback.xml".split(" "))
