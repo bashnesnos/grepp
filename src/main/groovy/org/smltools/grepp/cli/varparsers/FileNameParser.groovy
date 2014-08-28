@@ -14,7 +14,7 @@ import groovy.util.logging.Slf4j;
  * @author Alexander Semelit
  *
  */
-@Slf4j
+@Slf4j("LOGGER")
 class FileNameParser implements ParamParser<String> {
 	private static final String FOLDER_SEPARATOR_KEY = "folderSeparator"
 	private static final String FILES_KEY = "files"
@@ -28,7 +28,7 @@ class FileNameParser implements ParamParser<String> {
 		def fSeparator = config."$FOLDER_SEPARATOR_KEY"
 		def curDir = config.containsKey('cwd') ? config.cwd : null
 
-		log.trace("analyzing supplied file: {}", fileName)
+		LOGGER.trace("analyzing supplied file: {}", fileName)
 		if (fileName =~ /\*/) {
 			//filename contains asterisk, should be a multi-file pattern
 			String flname = fileName
@@ -37,31 +37,41 @@ class FileNameParser implements ParamParser<String> {
 					curDir = new File((fileName =~/.*(?=$fSeparator)/)[0])
 				}
 				else {
-					log.debug("Directory is limited to {}", curDir.getAbsolutePath())
+					LOGGER.debug("Directory is limited to {}", curDir.getAbsolutePath())
 				}
 				flname = (fileName =~ /.*$fSeparator(.*)/)[0][1]
 			}
 			List<File> files = curDir.listFiles()
-			if (log.isTraceEnabled()) log.trace("files found " + files)
+			LOGGER.trace("files found {}", files)
 			String ptrn = flname.replaceAll(/\*/) {it - '*' + '.*'}
-			if (log.isTraceEnabled()) log.trace("matching ptrn " + ptrn)
+			LOGGER.trace("matching ptrn {}", ptrn)
 			files.each { file ->
 				if (file.name ==~ /$ptrn/) {
-					if (log.isTraceEnabled()) log.trace("adding file " + file)
-					fileList.add(file)
+					LOGGER.trace("adding file {}", file)
+					if (!file.isDirectory()) {
+						fileList.add(file)
+					}
+					else {
+						fileList.addAll(file.listFiles() as List<File>)
+					}
 				}
 			}
 		}
 		else { //all good seems to be a normal file, just adding it
 			if (curDir != null) {
-				log.debug("Limiting directory to {}", curDir.getAbsolutePath())
+				LOGGER.debug("Limiting directory to {}", curDir.getAbsolutePath())
 				if (fileName =~ fSeparator) {
 					fileName = (fileName =~ /.*$fSeparator(.*)/)[0][1]
 				}
 				fileName = "${curDir.getAbsolutePath()}$fSeparator$fileName"
 			}
-
-			fileList.add(new File(fileName))
+			File curFile = new File(fileName)
+			if (!curFile.isDirectory()) {
+				fileList.add(curFile)
+			}
+			else {
+				fileList.addAll(curFile.listFiles() as List<File>)
+			}
 		}
 		
 		List<File> files = config.data.containsKey(FILES_KEY) ? config.data.files : null
