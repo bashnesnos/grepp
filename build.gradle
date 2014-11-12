@@ -3,7 +3,7 @@ import java.text.SimpleDateFormat
 apply plugin: 'groovy'
 apply plugin: 'application'
 
-version = '1.0'
+version = '1.1'
 def targetDir = new File("grepp") //default install dir path prefix
 
 def curJre = System.properties['java.version']
@@ -96,6 +96,10 @@ startScripts {
 
 }
 
+applicationDistribution.from(processResources) {
+    includeEmptyDirs = false
+}
+
 distZip {
     classifier = project.hasProperty('jdk') ? "${jdk =~ /1.5/ ? '' : ('j' + jdk)}" : "${curJre =~ /1.5/ ? '' : ('j' + curJre)}"
 }
@@ -155,10 +159,6 @@ tasks.addRule("Pattern: install<ID>") { String taskName ->
     {
         def installDir = new File(targetDir.getAbsolutePath() + 'Install')
         installApp.destinationDir = installDir
-        applicationDistribution.from(processResources) {
-            includeEmptyDirs = false
-        }
-
         cleanSubProject.delete fileTree(installDir.getAbsolutePath())
         clean.dependsOn(':cleanSubProject')
         task(taskName, dependsOn: ':installApp') << {
