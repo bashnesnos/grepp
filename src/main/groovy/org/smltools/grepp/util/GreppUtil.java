@@ -28,7 +28,7 @@ import org.codehaus.groovy.control.CompilationFailedException;
  */
 public final class GreppUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(GreppUtil.class);
-        
+
 	private GreppUtil() { throw new AssertionError(); } //please don't instantiate the class
 
 	@SuppressWarnings("unchecked")
@@ -36,6 +36,22 @@ public final class GreppUtil {
 		try {
 			GroovyClassLoader gcl = new GroovyClassLoader();
 			return gcl.parseClass(groovyFile);
+		}
+		catch (IOException ioe) {
+			LOGGER.error("Can't open groovy file;\n", ioe);
+		}
+		catch (CompilationFailedException cfe) {
+			LOGGER.error("Can't compile groovy plugin;\n", cfe);	
+		}
+		
+		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static Class<?> loadFilterClass(File groovyFile) {
+		try {
+			FilterLoader filterLoader = new FilterLoader();
+			return filterLoader.parseClass(groovyFile);
 		}
 		catch (IOException ioe) {
 			LOGGER.error("Can't open groovy file;\n", ioe);
