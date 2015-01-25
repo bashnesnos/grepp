@@ -52,14 +52,11 @@ public final class GreppUtil {
 		try {
 			FilterLoader filterLoader = new FilterLoader();
 			return filterLoader.parseClass(groovyFile);
-		}
-		catch (IOException ioe) {
+		} catch (IOException ioe) {
 			LOGGER.error("Can't open groovy file;\n", ioe);
-		}
-		catch (CompilationFailedException cfe) {
+		} catch (CompilationFailedException cfe) {
 			LOGGER.error("Can't compile groovy plugin;\n", cfe);	
 		}
-		
 		return null;
 	}
 

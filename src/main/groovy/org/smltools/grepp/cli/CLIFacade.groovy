@@ -127,12 +127,6 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 	 *   <li>1. Flags starting with - and options starting with --</li>
 	 *   <li>2. All other arguments</li>
 	 * <p>
-	 * All other arguments are parsed via subscribed {@link varParsers}. <br>
-	 * I.e. if option, or flag requires some arguments to be parsed immediately after it was specified, a valid subclass of {@link ParserBase} should be instantiated and subscribed in the option/flag handler. <br>
-	 * {@link varParsers} are iterated in a LIFO manner. Only the last one recieves an argument for parsing. As soon as parser recieves all the required arguments, it should unsubscribe, so further arguments are passed to the next parser. <br>
-	 * By default the following parser are instantiated:
-	 *   <li>1. {@link FilterParser}</li>
-	 *   <li>2. {@link FileNameParser}</li>
 	 *
 	 * @param args Array of strings containing arguments for parsing.
 	 */
@@ -330,6 +324,7 @@ cat blabla.txt | grepp -l Chapter 'Once upon a time' > myfavoritechapter.txt
 			fileFilterChain.disableFilter(FileDateFilter.class)
 		}
 
+		//all other arguments are parsed via subscribed by the chain itself.
 		for (arg in options.arguments()) {
 			LOGGER.debug("next arg: {}", arg);
 

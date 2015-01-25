@@ -67,7 +67,11 @@ public class FilterChain<T> implements Filter<T>, Stateful<T>, Refreshable, Conf
 	    			LOGGER.trace("Plugin dir {} exists; plugging in Filters enabled", GREPP_FILTER_PLUGIN_DIR);
 	    			for (File pluginFile: pluginDir.listFiles()) {
 	    				LOGGER.trace("Found file: {}", pluginFile.getName());
-	    				Class<?> pluginClass = GreppUtil.loadGroovyClass(pluginFile);
+						Class<?> pluginClass = GreppUtil.loadFilterClass(pluginFile);
+						if (pluginClass == null) {
+							pluginClass = GreppUtil.loadGroovyClass(pluginFile);
+						}
+
 	    				if (pluginClass != null) {
 	    					addFilterByClass(pluginClass);
 	    				}
